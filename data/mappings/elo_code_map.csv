@@ -1,0 +1,247 @@
+elo_slug,elo_code,canonical_team_name,country_code,valid_from,valid_to,notes
+Afghanistan,AF,Afghanistan,AFG,,,Primary code from elo_code_profile.csv
+Albania,AL,Albania,ALB,,,Primary code from elo_code_profile.csv
+Algeria,DZ,Algeria,DZA,,,Primary code from elo_code_profile.csv
+Andorra,AD,Andorra,AND,,,Primary code from elo_code_profile.csv
+Angola,AO,Angola,AGO,,,Primary code from elo_code_profile.csv
+Anguilla,AI,Anguilla,AIA,,,Primary code from elo_code_profile.csv
+Antigua_and_Barbuda,AG,Antigua and Barbuda,ATG,,,Primary code from elo_code_profile.csv
+Argentina,AR,Argentina,ARG,,,Primary code from elo_code_profile.csv
+Armenia,AM,Armenia,ARM,,,Primary code from elo_code_profile.csv
+Aruba,AW,Aruba,ABW,,,Primary code from elo_code_profile.csv
+Australia,AU,Australia,AUS,,,Primary code from elo_code_profile.csv
+Austria,AT,Austria,AUT,,,Primary code from elo_code_profile.csv
+Azerbaijan,AZ,Azerbaijan,AZE,,,Primary code from elo_code_profile.csv
+Bahamas,BS,Bahamas,BHS,,,Primary code from elo_code_profile.csv
+Bahrain,BH,Bahrain,BHR,,,Primary code from elo_code_profile.csv
+Bangladesh,BD,Bangladesh,BGD,,,Primary code from elo_code_profile.csv
+Barbados,BB,Barbados,BRB,,,Primary code from elo_code_profile.csv
+Belarus,BY,Belarus,BLR,,,Primary code from elo_code_profile.csv
+Belgium,BE,Belgium,BEL,,,Primary code from elo_code_profile.csv
+Belize,BZ,Belize,BLZ,,,Primary code from elo_code_profile.csv
+Benin,BJ,Benin,BEN,,,Primary code from elo_code_profile.csv
+Bermuda,BM,Bermuda,BMU,,,Primary code from elo_code_profile.csv
+Bhutan,BT,Bhutan,BTN,,,Primary code from elo_code_profile.csv
+Bolivia,BO,Bolivia,BOL,,,Primary code from elo_code_profile.csv
+Bonaire,BQ,Bonaire,BES,,,Primary code from elo_code_profile.csv
+Bosnia_and_Herzegovina,BA,Bosnia and Herzegovina,BIH,,,Primary code from elo_code_profile.csv
+Botswana,BW,Botswana,BWA,,,Primary code from elo_code_profile.csv
+Brazil,BR,Brazil,BRA,,,Primary code from elo_code_profile.csv
+British_Virgin_Islands,VG,British Virgin Islands,VGB,,,Primary code from elo_code_profile.csv
+Brunei,BN,Brunei,BRN,,,Primary code from elo_code_profile.csv
+Bulgaria,BG,Bulgaria,BGR,,,Primary code from elo_code_profile.csv
+Burkina_Faso,BF,Burkina Faso,BFA,,,Primary code from elo_code_profile.csv
+Burundi,BI,Burundi,BDI,,,Primary code from elo_code_profile.csv
+Cambodia,KH,Cambodia,KHM,,,Primary code from elo_code_profile.csv
+Cameroon,CM,Cameroon,CMR,,,Primary code from elo_code_profile.csv
+Canada,CA,Canada,CAN,,,Primary code from elo_code_profile.csv
+Cape_Verde,CV,Cape Verde,CPV,,,Primary code from elo_code_profile.csv
+Cayman_Islands,KY,Cayman Islands,CYM,,,Primary code from elo_code_profile.csv
+Central_African_Republic,CF,Central African Republic,CAF,,,Primary code from elo_code_profile.csv
+Chad,TD,Chad,TCD,,,Primary code from elo_code_profile.csv
+Chagos_Islands,HG,Chagos Islands,IOT,,,Primary code from elo_code_profile.csv
+Chile,CL,Chile,CHL,,,Primary code from elo_code_profile.csv
+China,CN,China,CHN,,,Primary code from elo_code_profile.csv
+Christmas_Island,,Christmas Island,CXR,,,Primary code from elo_code_profile.csv
+Cocos_Islands,,Cocos Islands,CCK,,,Primary code from elo_code_profile.csv
+Colombia,CO,Colombia,COL,,,Primary code from elo_code_profile.csv
+Comoros,KM,Comoros,COM,,,Primary code from elo_code_profile.csv
+Congo,CG,Congo,COG,,,Primary code from elo_code_profile.csv
+Cook_Islands,CK,Cook Islands,COK,,,Primary code from elo_code_profile.csv
+Costa_Rica,CR,Costa Rica,CRI,,,Primary code from elo_code_profile.csv
+Croatia,HR,Croatia,HRV,,,Primary code from elo_code_profile.csv
+Cuba,CU,Cuba,CUB,,,Primary code from elo_code_profile.csv
+Curacao,CW,Curaçao,CUW,,,Primary code from elo_code_profile.csv
+Cyprus,CY,Cyprus,CYP,,,Primary code from elo_code_profile.csv
+Czechia,CZ,Czechia,CZE,,,Primary code from elo_code_profile.csv
+DR_Congo,CD,DR Congo,COD,,,Primary code from elo_code_profile.csv
+Denmark,DK,Denmark,DNK,,,Primary code from elo_code_profile.csv
+Djibouti,DJ,Djibouti,DJI,,,Primary code from elo_code_profile.csv
+Dominica,DM,Dominica,DMA,,,Primary code from elo_code_profile.csv
+Dominican_Republic,DO,Dominican Republic,DOM,,,Primary code from elo_code_profile.csv
+East_Timor,TL,East Timor,TLS,,,Primary code from elo_code_profile.csv
+Eastern_Samoa,AS,Eastern Samoa,ASM,,,Primary code from elo_code_profile.csv
+Ecuador,EC,Ecuador,ECU,,,Primary code from elo_code_profile.csv
+Egypt,EG,Egypt,EGY,,,Primary code from elo_code_profile.csv
+El_Salvador,SV,El Salvador,SLV,,,Primary code from elo_code_profile.csv
+England,EN,England,ENG,,,Primary code from elo_code_profile.csv
+Equatorial_Guinea,GQ,Equatorial Guinea,GNQ,,,Primary code from elo_code_profile.csv
+Eritrea,ER,Eritrea,ERI,,,Primary code from elo_code_profile.csv
+Estonia,EE,Estonia,EST,,,Primary code from elo_code_profile.csv
+Eswatini,SZ,Eswatini,SWZ,,2018-03-31,Historical code until 2018-03
+Eswatini,SW,Eswatini,SWZ,2018-04-01,,Code used since 2018-04
+Ethiopia,ET,Ethiopia,ETH,,,Primary code from elo_code_profile.csv
+FS_Micronesia,,FS Micronesia,FSM,,,Primary code from elo_code_profile.csv
+Falkland_Islands,HG,Falkland Islands,FLK,,,Primary code from elo_code_profile.csv
+Faroe_Islands,FO,Faroe Islands,FRO,,,Primary code from elo_code_profile.csv
+Fiji,FJ,Fiji,FJI,,,Primary code from elo_code_profile.csv
+Finland,FI,Finland,FIN,,,Primary code from elo_code_profile.csv
+France,FR,France,FRA,,,Primary code from elo_code_profile.csv
+French_Guiana,GF,French Guiana,GUF,,,Primary code from elo_code_profile.csv
+Gabon,GA,Gabon,GAB,,,Primary code from elo_code_profile.csv
+Gambia,GM,Gambia,GMB,,,Primary code from elo_code_profile.csv
+Georgia,GE,Georgia,GEO,,,Primary code from elo_code_profile.csv
+Germany,DE,Germany,DEU,,,Primary code from elo_code_profile.csv
+Ghana,GH,Ghana,GHA,,,Primary code from elo_code_profile.csv
+Gibraltar,GI,Gibraltar,GIB,,,Primary code from elo_code_profile.csv
+Greece,GR,Greece,GRC,,,Primary code from elo_code_profile.csv
+Greenland,GL,Greenland,GRL,,,Primary code from elo_code_profile.csv
+Grenada,GD,Grenada,GRD,,,Primary code from elo_code_profile.csv
+Guadeloupe,GP,Guadeloupe,GLP,,,Primary code from elo_code_profile.csv
+Guam,GU,Guam,GUM,,,Primary code from elo_code_profile.csv
+Guatemala,GT,Guatemala,GTM,,,Primary code from elo_code_profile.csv
+Guinea,GN,Guinea,GIN,,,Primary code from elo_code_profile.csv
+Guinea-Bissau,GW,Guinea-Bissau,GNB,,,Primary code from elo_code_profile.csv
+Guyana,GY,Guyana,GUY,,,Primary code from elo_code_profile.csv
+Haiti,HT,Haiti,HTI,,,Primary code from elo_code_profile.csv
+Honduras,HN,Honduras,HND,,,Primary code from elo_code_profile.csv
+Hong_Kong,HK,Hong Kong,HKG,,,Primary code from elo_code_profile.csv
+Hungary,HU,Hungary,HUN,,,Primary code from elo_code_profile.csv
+Iceland,IS,Iceland,ISL,,,Primary code from elo_code_profile.csv
+India,IN,India,IND,,,Primary code from elo_code_profile.csv
+Indonesia,ID,Indonesia,IDN,,,Primary code from elo_code_profile.csv
+Iran,IR,Iran,IRN,,,Primary code from elo_code_profile.csv
+Iraq,IQ,Iraq,IRQ,,,Primary code from elo_code_profile.csv
+Ireland,IE,Ireland,IRL,,,Primary code from elo_code_profile.csv
+Israel,IL,Israel,ISR,,,Primary code from elo_code_profile.csv
+Italy,IT,Italy,ITA,,,Primary code from elo_code_profile.csv
+Ivory_Coast,CI,Ivory Coast,CIV,,,Primary code from elo_code_profile.csv
+Jamaica,JM,Jamaica,JAM,,,Primary code from elo_code_profile.csv
+Japan,JP,Japan,JPN,,,Primary code from elo_code_profile.csv
+Jordan,JO,Jordan,JOR,,,Primary code from elo_code_profile.csv
+Kazakhstan,KZ,Kazakhstan,KAZ,,,Primary code from elo_code_profile.csv
+Kenya,KE,Kenya,KEN,,,Primary code from elo_code_profile.csv
+Kiribati,,Kiribati,KIR,,,Primary code from elo_code_profile.csv
+Kosovo,KO,Kosovo,KOS,,,Primary code from elo_code_profile.csv
+Kurdistan,,Kurdistan,KUR,,,Primary code from elo_code_profile.csv
+Kuwait,KW,Kuwait,KWT,,,Primary code from elo_code_profile.csv
+Kyrgyzstan,KG,Kyrgyzstan,KGZ,,,Primary code from elo_code_profile.csv
+Laos,LA,Laos,LAO,,,Primary code from elo_code_profile.csv
+Latvia,LV,Latvia,LVA,,,Primary code from elo_code_profile.csv
+Lebanon,LB,Lebanon,LBN,,,Primary code from elo_code_profile.csv
+Lesotho,LS,Lesotho,LSO,,,Primary code from elo_code_profile.csv
+Liberia,LR,Liberia,LBR,,,Primary code from elo_code_profile.csv
+Libya,LY,Libya,LBY,,,Primary code from elo_code_profile.csv
+Liechtenstein,LI,Liechtenstein,LIE,,,Primary code from elo_code_profile.csv
+Lithuania,LT,Lithuania,LTU,,,Primary code from elo_code_profile.csv
+Luxembourg,LU,Luxembourg,LUX,,,Primary code from elo_code_profile.csv
+Macao,MO,Macao,MAC,,,Primary code from elo_code_profile.csv
+Madagascar,MG,Madagascar,MDG,,,Primary code from elo_code_profile.csv
+Malawi,MW,Malawi,MWI,,,Primary code from elo_code_profile.csv
+Malaysia,MY,Malaysia,MYS,,,Primary code from elo_code_profile.csv
+Maldives,MV,Maldives,MDV,,,Primary code from elo_code_profile.csv
+Mali,ML,Mali,MLI,,,Primary code from elo_code_profile.csv
+Malta,MT,Malta,MLT,,,Primary code from elo_code_profile.csv
+Marshall_Islands,MH,Marshall Islands,MHL,,,Primary code from elo_code_profile.csv
+Martinique,MQ,Martinique,MTQ,,,Primary code from elo_code_profile.csv
+Mauritania,MR,Mauritania,MRT,,,Primary code from elo_code_profile.csv
+Mauritius,MU,Mauritius,MUS,,,Primary code from elo_code_profile.csv
+Mayotte,YT,Mayotte,MYT,,,Primary code from elo_code_profile.csv
+Mexico,MX,Mexico,MEX,,,Primary code from elo_code_profile.csv
+Moldova,MD,Moldova,MDA,,,Primary code from elo_code_profile.csv
+Monaco,,Monaco,MCO,,,Primary code from elo_code_profile.csv
+Mongolia,MN,Mongolia,MNG,,,Primary code from elo_code_profile.csv
+Montenegro,ME,Montenegro,MNE,,,Primary code from elo_code_profile.csv
+Montserrat,MS,Montserrat,MSR,,,Primary code from elo_code_profile.csv
+Morocco,MA,Morocco,MAR,,,Primary code from elo_code_profile.csv
+Mozambique,MZ,Mozambique,MOZ,,,Primary code from elo_code_profile.csv
+Myanmar,MM,Myanmar,MMR,,,Primary code from elo_code_profile.csv
+Namibia,NA,Namibia,NAM,,,Primary code from elo_code_profile.csv
+Nepal,NP,Nepal,NPL,,,Primary code from elo_code_profile.csv
+Netherlands,NL,Netherlands,NLD,,,Primary code from elo_code_profile.csv
+New_Caledonia,NC,New Caledonia,NCL,,,Primary code from elo_code_profile.csv
+New_Zealand,NZ,New Zealand,NZL,,,Primary code from elo_code_profile.csv
+Nicaragua,NI,Nicaragua,NIC,,,Primary code from elo_code_profile.csv
+Niger,NE,Niger,NER,,,Primary code from elo_code_profile.csv
+Nigeria,NG,Nigeria,NGA,,,Primary code from elo_code_profile.csv
+Niue,,Niue,NIU,,,Primary code from elo_code_profile.csv
+North_Korea,KP,North Korea,PRK,,,Primary code from elo_code_profile.csv
+North_Macedonia,MK,North Macedonia,MKD,,2018-12-31,Historical code before 2019-01
+North_Macedonia,NM,North Macedonia,MKD,2019-01-01,,Code used since 2019-01
+Northern_Cyprus,NS,Northern Cyprus,NCY,,,Primary code from elo_code_profile.csv
+Northern_Ireland,EI,Northern Ireland,NIR,,,Primary code from elo_code_profile.csv
+Northern_Mariana_Islands,MP,Northern Mariana Islands,MNP,,,Primary code from elo_code_profile.csv
+Norway,NO,Norway,NOR,,,Primary code from elo_code_profile.csv
+Oman,OM,Oman,OMN,,,Primary code from elo_code_profile.csv
+Pakistan,PK,Pakistan,PAK,,,Primary code from elo_code_profile.csv
+Palau,,Palau,PLW,,,Primary code from elo_code_profile.csv
+Palestine,PS,Palestine,PSE,,,Primary code from elo_code_profile.csv
+Panama,PA,Panama,PAN,,,Primary code from elo_code_profile.csv
+Papua_New_Guinea,PG,Papua New Guinea,PNG,,,Primary code from elo_code_profile.csv
+Paraguay,PY,Paraguay,PRY,,,Primary code from elo_code_profile.csv
+Peru,PE,Peru,PER,,,Primary code from elo_code_profile.csv
+Philippines,PH,Philippines,PHL,,,Primary code from elo_code_profile.csv
+Poland,PL,Poland,POL,,,Primary code from elo_code_profile.csv
+Portugal,PT,Portugal,PRT,,,Primary code from elo_code_profile.csv
+Puerto_Rico,PR,Puerto Rico,PRI,,,Primary code from elo_code_profile.csv
+Qatar,QA,Qatar,QAT,,,Primary code from elo_code_profile.csv
+Reunion,RE,Reunion,REU,,,Primary code from elo_code_profile.csv
+Romania,RO,Romania,ROU,,,Primary code from elo_code_profile.csv
+Russia,RU,Russia,RUS,,,Primary code from elo_code_profile.csv
+Rwanda,RW,Rwanda,RWA,,,Primary code from elo_code_profile.csv
+Saba,EU,Saba,SAB,,,Primary code from elo_code_profile.csv
+Saint_Barthelemy,BL,Saint Barthelemy,BLM,,,Primary code from elo_code_profile.csv
+Saint_Kitts_and_Nevis,KN,Saint Kitts and Nevis,KNA,,,Primary code from elo_code_profile.csv
+Saint_Lucia,LC,Saint Lucia,LCA,,,Primary code from elo_code_profile.csv
+Saint_Martin,MF,Saint Martin,MAF,,,Primary code from elo_code_profile.csv
+Saint_Pierre_and_Miquelon,,Saint Pierre and Miquelon,SPM,,,Primary code from elo_code_profile.csv
+Saint_Vincent_and_the_Grenadines,VC,Saint Vincent and the Grenadines,VCT,,,Primary code from elo_code_profile.csv
+Samoa,WS,Samoa,WSM,,,Primary code from elo_code_profile.csv
+San_Marino,SM,San Marino,SMR,,,Primary code from elo_code_profile.csv
+Sao_Tome_and_Principe,ST,Sao Tome and Principe,STP,,,Primary code from elo_code_profile.csv
+Saudi_Arabia,SA,Saudi Arabia,SAU,,,Primary code from elo_code_profile.csv
+Scotland,SQ,Scotland,SCO,,,Primary code from elo_code_profile.csv
+Senegal,SN,Senegal,SEN,,,Primary code from elo_code_profile.csv
+Serbia,RS,Serbia,SRB,,,Primary code from elo_code_profile.csv
+Seychelles,SC,Seychelles,SYC,,,Primary code from elo_code_profile.csv
+Sierra_Leone,SL,Sierra Leone,SLE,,,Primary code from elo_code_profile.csv
+Singapore,SG,Singapore,SGP,,,Primary code from elo_code_profile.csv
+Sint_Eustatius,EU,Sint Eustatius,STE,,,Primary code from elo_code_profile.csv
+Sint_Maarten,SX,Sint Maarten,SXM,,,Primary code from elo_code_profile.csv
+Slovakia,SK,Slovakia,SVK,,,Primary code from elo_code_profile.csv
+Slovenia,SI,Slovenia,SVN,,,Primary code from elo_code_profile.csv
+Solomon_Islands,SB,Solomon Islands,SLB,,,Primary code from elo_code_profile.csv
+Somalia,SO,Somalia,SOM,,,Primary code from elo_code_profile.csv
+Somaliland,,Somaliland,SML,,,Primary code from elo_code_profile.csv
+South_Africa,ZA,South Africa,ZAF,,,Primary code from elo_code_profile.csv
+South_Korea,KR,South Korea,KOR,,,Primary code from elo_code_profile.csv
+South_Sudan,SS,South Sudan,SSD,,,Primary code from elo_code_profile.csv
+Spain,ES,Spain,ESP,,,Primary code from elo_code_profile.csv
+Sri_Lanka,LK,Sri Lanka,LKA,,,Primary code from elo_code_profile.csv
+Sudan,SD,Sudan,SDN,,,Primary code from elo_code_profile.csv
+Suriname,SR,Suriname,SUR,,,Primary code from elo_code_profile.csv
+Sweden,SE,Sweden,SWE,,,Primary code from elo_code_profile.csv
+Switzerland,CH,Switzerland,CHE,,,Primary code from elo_code_profile.csv
+Syria,SY,Syria,SYR,,,Primary code from elo_code_profile.csv
+Tahiti,TI,Tahiti,PYF,,,Primary code from elo_code_profile.csv
+Taiwan,TW,Taiwan,TWN,,,Primary code from elo_code_profile.csv
+Tajikistan,TJ,Tajikistan,TJK,,,Primary code from elo_code_profile.csv
+Tanzania,TZ,Tanzania,TZA,,,Primary code from elo_code_profile.csv
+Thailand,TH,Thailand,THA,,,Primary code from elo_code_profile.csv
+Tibet,NS,Tibet,TIB,,,Primary code from elo_code_profile.csv
+Togo,TG,Togo,TGO,,,Primary code from elo_code_profile.csv
+Tonga,TO,Tonga,TON,,,Primary code from elo_code_profile.csv
+Trinidad_and_Tobago,TT,Trinidad and Tobago,TTO,,,Primary code from elo_code_profile.csv
+Tunisia,TN,Tunisia,TUN,,,Primary code from elo_code_profile.csv
+Turkey,TR,Turkey,TUR,,,Primary code from elo_code_profile.csv
+Turkmenistan,TM,Turkmenistan,TKM,,,Primary code from elo_code_profile.csv
+Turks_and_Caicos_Islands,TC,Turks and Caicos Islands,TCA,,,Primary code from elo_code_profile.csv
+Tuvalu,TV,Tuvalu,TUV,,,Primary code from elo_code_profile.csv
+US_Virgin_Islands,VI,US Virgin Islands,VIR,,,Primary code from elo_code_profile.csv
+Uganda,UG,Uganda,UGA,,,Primary code from elo_code_profile.csv
+Ukraine,UA,Ukraine,UKR,,,Primary code from elo_code_profile.csv
+United_Arab_Emirates,AE,United Arab Emirates,ARE,,,Primary code from elo_code_profile.csv
+United_States,US,United States,USA,,,Primary code from elo_code_profile.csv
+Uruguay,UY,Uruguay,URY,,,Primary code from elo_code_profile.csv
+Uzbekistan,UZ,Uzbekistan,UZB,,,Primary code from elo_code_profile.csv
+Vanuatu,VU,Vanuatu,VUT,,,Primary code from elo_code_profile.csv
+Vatican,,Vatican,VAT,,,Primary code from elo_code_profile.csv
+Venezuela,VE,Venezuela,VEN,,,Primary code from elo_code_profile.csv
+Vietnam,VN,Vietnam,VNM,,,Primary code from elo_code_profile.csv
+Wales,WA,Wales,WAL,,,Primary code from elo_code_profile.csv
+Wallis_and_Futuna,,Wallis and Futuna,WLF,,,Primary code from elo_code_profile.csv
+Western_Sahara,,Western Sahara,ESH,,,Primary code from elo_code_profile.csv
+Yemen,YE,Yemen,YEM,,,Primary code from elo_code_profile.csv
+Zambia,ZM,Zambia,ZMB,,,Primary code from elo_code_profile.csv
+Zanzibar,ZN,Zanzibar,ZAN,,,Primary code from elo_code_profile.csv
+Zimbabwe,ZW,Zimbabwe,ZWE,,,Primary code from elo_code_profile.csv

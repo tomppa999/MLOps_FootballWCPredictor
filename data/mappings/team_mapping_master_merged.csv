@@ -1,0 +1,247 @@
+canonical_team_name,country_code,confederation,api_football_team_name,api_football_team_id,elo_display_name,elo_slug
+Spain,ESP,UEFA,Spain,9,Spain,Spain
+Argentina,ARG,CONMEBOL,Argentina,26,Argentina,Argentina
+France,FRA,UEFA,France,2,France,France
+England,ENG,UEFA,England,10,England,England
+Colombia,COL,CONMEBOL,Colombia,8,Colombia,Colombia
+Brazil,BRA,CONMEBOL,Brazil,6,Brazil,Brazil
+Portugal,PRT,UEFA,Portugal,27,Portugal,Portugal
+Netherlands,NLD,UEFA,Netherlands,1118,Netherlands,Netherlands
+Ecuador,ECU,CONMEBOL,Ecuador,2382,Ecuador,Ecuador
+Croatia,HRV,UEFA,Croatia,3,Croatia,Croatia
+Norway,NOR,UEFA,Norway,1090,Norway,Norway
+Germany,DEU,UEFA,Germany,25,Germany,Germany
+Switzerland,CHE,UEFA,Switzerland,15,Switzerland,Switzerland
+Uruguay,URY,CONMEBOL,Uruguay,7,Uruguay,Uruguay
+Turkey,TUR,UEFA,Türkiye,777,Turkey,Turkey
+Japan,JPN,AFC,Japan,12,Japan,Japan
+Senegal,SEN,CAF,Senegal,13,Senegal,Senegal
+Denmark,DNK,UEFA,Denmark,21,Denmark,Denmark
+Italy,ITA,UEFA,Italy,768,Italy,Italy
+Mexico,MEX,CONCACAF,Mexico,16,Mexico,Mexico
+Belgium,BEL,UEFA,Belgium,1,Belgium,Belgium
+Paraguay,PRY,CONMEBOL,Paraguay,2380,Paraguay,Paraguay
+Austria,AUT,UEFA,Austria,775,Austria,Austria
+Morocco,MAR,CAF,Morocco,31,Morocco,Morocco
+Canada,CAN,CONCACAF,Canada,5529,Canada,Canada
+Ukraine,UKR,UEFA,Ukraine,772,Ukraine,Ukraine
+Scotland,SCO,UEFA,Scotland,1108,Scotland,Scotland
+South Korea,KOR,AFC,South Korea,17,South Korea,South_Korea
+Russia,RUS,UEFA,Russia,4,Russia,Russia
+Australia,AUS,AFC,Australia,20,Australia,Australia
+Serbia,SRB,UEFA,Serbia,14,Serbia,Serbia
+Greece,GRC,UEFA,Greece,1117,Greece,Greece
+Iran,IRN,AFC,Iran,22,Iran,Iran
+United States,USA,CONCACAF,USA,2384,United States,United_States
+Nigeria,NGA,CAF,Nigeria,19,Nigeria,Nigeria
+Poland,POL,UEFA,Poland,24,Poland,Poland
+Panama,PAN,CONCACAF,Panama,11,Panama,Panama
+Czechia,CZE,UEFA,Czech Republic,770,Czechia,Czechia
+Chile,CHL,CONMEBOL,Chile,2383,Chile,Chile
+Algeria,DZA,CAF,Algeria,1532,Algeria,Algeria
+Uzbekistan,UZB,AFC,Uzbekistan,1568,Uzbekistan,Uzbekistan
+Wales,WAL,UEFA,Wales,767,Wales,Wales
+Venezuela,VEN,CONMEBOL,Venezuela,2379,Venezuela,Venezuela
+Kosovo,KOS,UEFA,Kosovo,1111,Kosovo,Kosovo
+Peru,PER,CONMEBOL,Peru,30,Peru,Peru
+Hungary,HUN,UEFA,Hungary,769,Hungary,Hungary
+Slovenia,SVN,UEFA,Slovenia,1091,Slovenia,Slovenia
+Jordan,JOR,AFC,Jordan,1548,Jordan,Jordan
+Ireland,IRL,UEFA,Rep. Of Ireland,776,Ireland,Ireland
+Slovakia,SVK,UEFA,Slovakia,773,Slovakia,Slovakia
+Albania,ALB,UEFA,Albania,778,Albania,Albania
+Sweden,SWE,UEFA,Sweden,5,Sweden,Sweden
+Egypt,EGY,CAF,Egypt,32,Egypt,Egypt
+Bolivia,BOL,CONMEBOL,Bolivia,2381,Bolivia,Bolivia
+Georgia,GEO,UEFA,Georgia,1104,Georgia,Georgia
+Romania,ROU,UEFA,Romania,774,Romania,Romania
+DR Congo,COD,CAF,Congo DR,1508,DR Congo,DR_Congo
+Ivory Coast,CIV,CAF,Ivory Coast,1501,Ivory Coast,Ivory_Coast
+Costa Rica,CRI,CONCACAF,Costa Rica,29,Costa Rica,Costa_Rica
+Israel,ISR,UEFA,Israel,1116,Israel,Israel
+Tunisia,TUN,CAF,Tunisia,28,Tunisia,Tunisia
+Cameroon,CMR,CAF,Cameroon,1530,Cameroon,Cameroon
+Northern Ireland,NIR,UEFA,Northern Ireland,771,Northern Ireland,Northern_Ireland
+North Macedonia,MKD,UEFA,North Macedonia,16061,North Macedonia,North_Macedonia
+North Macedonia,MKD,UEFA,FYR Macedonia,1105,North Macedonia,North_Macedonia
+Saudi Arabia,SAU,AFC,Saudi Arabia,23,Saudi Arabia,Saudi_Arabia
+Mali,MLI,CAF,Mali,1500,Mali,Mali
+New Zealand,NZL,OFC,New Zealand,4673,New Zealand,New_Zealand
+Iraq,IRQ,AFC,Iraq,1567,Iraq,Iraq
+Bosnia and Herzegovina,BIH,UEFA,Bosnia & Herzegovina,1113,Bosnia and Herzegovina,Bosnia_and_Herzegovina
+Honduras,HND,CONCACAF,Honduras,4672,Honduras,Honduras
+Iceland,ISL,UEFA,Iceland,18,Iceland,Iceland
+Cape Verde,CPV,CAF,Cape Verde Islands,1533,Cape Verde,Cape_Verde
+Angola,AGO,CAF,Angola,1529,Angola,Angola
+Jamaica,JAM,CONCACAF,Jamaica,2385,Jamaica,Jamaica
+Haiti,HTI,CONCACAF,Haiti,2386,Haiti,Haiti
+United Arab Emirates,ARE,AFC,United Arab Emirates,1563,United Arab Emirates,United_Arab_Emirates
+Burkina Faso,BFA,CAF,Burkina Faso,1502,Burkina Faso,Burkina_Faso
+South Africa,ZAF,CAF,South Africa,1531,South Africa,South_Africa
+Guatemala,GTM,CONCACAF,Guatemala,5161,Guatemala,Guatemala
+Ghana,GHA,CAF,Ghana,1504,Ghana,Ghana
+Finland,FIN,UEFA,Finland,1099,Finland,Finland
+Belarus,BLR,UEFA,Belarus,1100,Belarus,Belarus
+Oman,OMN,AFC,Oman,1552,Oman,Oman
+Guinea,GIN,CAF,Guinea,1509,Guinea,Guinea
+Syria,SYR,AFC,Syria,1565,Syria,Syria
+Palestine,PSE,AFC,Palestine,1562,Palestine,Palestine
+Curaçao,CUW,CONCACAF,Curaçao,5530,Curaçao,Curacao
+Northern Cyprus,NCY,UEFA,,,Northern Cyprus,Northern_Cyprus
+Bulgaria,BGR,UEFA,Bulgaria,1103,Bulgaria,Bulgaria
+Montenegro,MNE,UEFA,Montenegro,1109,Montenegro,Montenegro
+Suriname,SUR,CONCACAF,Suriname,8171,Suriname,Suriname
+Libya,LBY,CAF,Libya,1526,Libya,Libya
+Qatar,QAT,AFC,Qatar,1569,Qatar,Qatar
+Gambia,GMB,CAF,Gambia,1492,Gambia,Gambia
+Kurdistan,KUR,,,,Kurdistan,Kurdistan
+Bahrain,BHR,AFC,Bahrain,1547,Bahrain,Bahrain
+Kazakhstan,KAZ,AFC,Kazakhstan,1095,Kazakhstan,Kazakhstan
+China,CHN,AFC,China,1566,China,China
+Benin,BEN,CAF,Benin,1516,Benin,Benin
+Gabon,GAB,CAF,Gabon,1503,Gabon,Gabon
+Niger,NER,CAF,Niger,1505,Niger,Niger
+Trinidad and Tobago,TTO,CONCACAF,Trinidad and Tobago,5168,Trinidad and Tobago,Trinidad_and_Tobago
+Uganda,UGA,CAF,Uganda,1519,Uganda,Uganda
+Luxembourg,LUX,UEFA,Luxembourg,1102,Luxembourg,Luxembourg
+Armenia,ARM,UEFA,Armenia,1094,Armenia,Armenia
+Equatorial Guinea,GNQ,CAF,Equatorial Guinea,1521,Equatorial Guinea,Equatorial_Guinea
+Faroe Islands,FRO,UEFA,Faroe Islands,1098,Faroe Islands,Faroe_Islands
+North Korea,PRK,AFC,North Korea,1561,North Korea,North_Korea
+Comoros,COM,CAF,Comoros,1524,Comoros,Comoros
+Mozambique,MOZ,CAF,Mozambique,1512,Mozambique,Mozambique
+Zambia,ZMB,CAF,Zambia,1507,Zambia,Zambia
+Madagascar,MDG,CAF,Madagascar,1490,Madagascar,Madagascar
+Thailand,THA,AFC,Thailand,1564,Thailand,Thailand
+Estonia,EST,UEFA,Estonia,1101,Estonia,Estonia
+Sudan,SDN,CAF,Sudan,1510,Sudan,Sudan
+Reunion,REU,CAF,,,Reunion,Reunion
+Sierra Leone,SLE,CAF,Sierra Leone,1499,Sierra Leone,Sierra_Leone
+Kenya,KEN,CAF,Kenya,1511,Kenya,Kenya
+Zimbabwe,ZWE,CAF,Zimbabwe,1522,Zimbabwe,Zimbabwe
+Togo,TGO,CAF,Togo,1534,Togo,Togo
+Indonesia,IDN,AFC,Indonesia,1571,Indonesia,Indonesia
+Tanzania,TZA,CAF,Tanzania,1489,Tanzania,Tanzania
+Azerbaijan,AZE,UEFA,Azerbaijan,1096,Azerbaijan,Azerbaijan
+Guadeloupe,GLP,CONCACAF,Guadeloupe,10983,Guadeloupe,Guadeloupe
+Lebanon,LBN,AFC,Lebanon,1551,Lebanon,Lebanon
+Martinique,MTQ,CONCACAF,Martinique,8117,Martinique,Martinique
+Vietnam,VNM,AFC,Vietnam,1542,Vietnam,Vietnam
+Kuwait,KWT,AFC,Kuwait,1570,Kuwait,Kuwait
+Nicaragua,NIC,CONCACAF,Nicaragua,5164,Nicaragua,Nicaragua
+El Salvador,SLV,CONCACAF,El Salvador,5159,El Salvador,El_Salvador
+Zanzibar,ZAN,,Zanzibar,10981,Zanzibar,Zanzibar
+Malaysia,MYS,AFC,Malaysia,1538,Malaysia,Malaysia
+Kyrgyzstan,KGZ,AFC,Kyrgyzstan,1554,Kyrgyzstan,Kyrgyzstan
+Namibia,NAM,CAF,Namibia,1493,Namibia,Namibia
+Mauritania,MRT,CAF,Mauritania,1491,Mauritania,Mauritania
+Rwanda,RWA,CAF,Rwanda,1514,Rwanda,Rwanda
+Cyprus,CYP,UEFA,Cyprus,1106,Cyprus,Cyprus
+Liberia,LBR,CAF,Liberia,1525,Liberia,Liberia
+Tajikistan,TJK,AFC,Tajikistan,1536,Tajikistan,Tajikistan
+New Caledonia,NCL,OFC,New Caledonia,5163,New Caledonia,New_Caledonia
+Dominican Republic,DOM,CONCACAF,Dominican Republic,5532,Dominican Republic,Dominican_Republic
+Moldova,MDA,UEFA,Moldova,1114,Moldova,Moldova
+Latvia,LVA,UEFA,Latvia,1092,Latvia,Latvia
+Botswana,BWA,CAF,Botswana,1520,Botswana,Botswana
+Malta,MLT,UEFA,Malta,1112,Malta,Malta
+Lithuania,LTU,UEFA,Lithuania,1097,Lithuania,Lithuania
+Guyana,GUY,CONCACAF,Guyana,5162,Guyana,Guyana
+Ethiopia,ETH,CAF,Ethiopia,1506,Ethiopia,Ethiopia
+Malawi,MWI,CAF,Malawi,1495,Malawi,Malawi
+Guinea-Bissau,GNB,CAF,Guinea-Bissau,1513,Guinea-Bissau,Guinea-Bissau
+Burundi,BDI,CAF,Burundi,1528,Burundi,Burundi
+Central African Republic,CAF,CAF,Central African Republic,1527,Central African Republic,Central_African_Republic
+Cuba,CUB,CONCACAF,Cuba,2388,Cuba,Cuba
+French Guiana,GUF,CONCACAF,French Guyana,8118,French Guiana,French_Guiana
+Turkmenistan,TKM,AFC,Turkmenistan,1539,Turkmenistan,Turkmenistan
+Lesotho,LSO,CAF,Lesotho,1518,Lesotho,Lesotho
+Mayotte,MYT,CAF,,,Mayotte,Mayotte
+Eswatini,SWZ,CAF,Eswatini,2995,Eswatini,Eswatini
+Eswatini,SWZ,CAF,Swaziland,1488,Eswatini,Eswatini
+Congo,COG,CAF,Congo,1517,Congo,Congo
+Tahiti,PYF,OFC,Tahiti,5167,Tahiti,Tahiti
+Saint Vincent and the Grenadines,VCT,CONCACAF,St. Vincent / Grenadines,5541,Saint Vincent and the Grenadines,Saint_Vincent_and_the_Grenadines
+Philippines,PHL,AFC,Philippines,1555,Philippines,Philippines
+Yemen,YEM,AFC,Yemen,1550,Yemen,Yemen
+Eritrea,ERI,CAF,Eritrea,1498,Eritrea,Eritrea
+Hong Kong,HKG,AFC,Hong Kong,4460,Hong Kong,Hong_Kong
+Papua New Guinea,PNG,OFC,Papua New Guinea,8175,Papua New Guinea,Papua_New_Guinea
+South Sudan,SSD,CAF,South Sudan,1496,South Sudan,South_Sudan
+Puerto Rico,PRI,CONCACAF,Puerto Rico,5539,Puerto Rico,Puerto_Rico
+Singapore,SGP,AFC,Singapore,1546,Singapore,Singapore
+India,IND,AFC,India,1537,India,India
+Chad,TCD,CAF,Chad,1523,Chad,Chad
+Bermuda,BMU,CONCACAF,Bermuda,5158,Bermuda,Bermuda
+Grenada,GRD,CONCACAF,Grenada,5533,Grenada,Grenada
+Vanuatu,VUT,OFC,Vanuatu,5170,Vanuatu,Vanuatu
+Fiji,FJI,OFC,Fiji,5160,Fiji,Fiji
+Belize,BLZ,CONCACAF,Belize,5528,Belize,Belize
+Mauritius,MUS,CAF,Mauritius,1497,Mauritius,Mauritius
+Solomon Islands,SLB,OFC,Solomon Islands,5165,Solomon Islands,Solomon_Islands
+Andorra,AND,UEFA,Andorra,1110,Andorra,Andorra
+Sao Tome and Principe,STP,CAF,Sao Tome and Principe,1494,Sao Tome and Principe,Sao_Tome_and_Principe
+Afghanistan,AFG,AFC,Afghanistan,1553,Afghanistan,Afghanistan
+Gibraltar,GIB,UEFA,Gibraltar,1093,Gibraltar,Gibraltar
+Saint Lucia,LCA,CONCACAF,St. Lucia,5540,Saint Lucia,Saint_Lucia
+Saint Kitts and Nevis,KNA,CONCACAF,St. Kitts and Nevis,5536,Saint Kitts and Nevis,Saint_Kitts_and_Nevis
+Somaliland,SML,,,,Somaliland,Somaliland
+Saint Martin,MAF,CONCACAF,Saint Martin,10984,Saint Martin,Saint_Martin
+Western Sahara,ESH,,,,Western Sahara,Western_Sahara
+Montserrat,MSR,CONCACAF,Montserrat,8170,Montserrat,Montserrat
+Somalia,SOM,CAF,Somalia,8050,Somalia,Somalia
+Sint Maarten,SXM,CONCACAF,Sint Maarten,10985,Sint Maarten,Sint_Maarten
+Aruba,ABW,CONCACAF,Aruba,8167,Aruba,Aruba
+Greenland,GRL,CONCACAF,,,Greenland,Greenland
+Myanmar,MMR,AFC,Myanmar,1556,Myanmar,Myanmar
+Bangladesh,BGD,AFC,Bangladesh,1560,Bangladesh,Bangladesh
+Dominica,DMA,CONCACAF,Dominica,5531,Dominica,Dominica
+Barbados,BRB,CONCACAF,Barbados,5527,Barbados,Barbados
+Nepal,NPL,AFC,Nepal,1545,Nepal,Nepal
+Djibouti,DJI,CAF,Djibouti,1535,Djibouti,Djibouti
+Monaco,MCO,UEFA,,,Monaco,Monaco
+Liechtenstein,LIE,UEFA,Liechtenstein,1107,Liechtenstein,Liechtenstein
+Antigua and Barbuda,ATG,CONCACAF,Antigua and Barbuda,5526,Antigua and Barbuda,Antigua_and_Barbuda
+Taiwan,TWN,AFC,Chinese Taipei,1557,Taiwan,Taiwan
+Cambodia,KHM,AFC,Cambodia,1543,Cambodia,Cambodia
+Seychelles,SYC,CAF,Seychelles,1515,Seychelles,Seychelles
+Maldives,MDV,AFC,Maldives,1549,Maldives,Maldives
+San Marino,SMR,UEFA,San Marino,1115,San Marino,San_Marino
+Pakistan,PAK,AFC,Pakistan,5535,Pakistan,Pakistan
+Bonaire,BES,CONCACAF,Bonaire,10982,Bonaire,Bonaire
+Cayman Islands,CYM,CONCACAF,Cayman Islands,8169,Cayman Islands,Cayman_Islands
+Sri Lanka,LKA,AFC,Sri Lanka,5166,Sri Lanka,Sri_Lanka
+Chagos Islands,IOT,,,,Chagos Islands,Chagos_Islands
+Tuvalu,TUV,OFC,Tuvalu,16195,Tuvalu,Tuvalu
+Sint Eustatius,STE,CONCACAF,,,Sint Eustatius,Sint_Eustatius
+Mongolia,MNG,AFC,Mongolia,5534,Mongolia,Mongolia
+Samoa,WSM,OFC,Samoa,8176,Samoa,Samoa
+Saint Barthelemy,BLM,,,,Saint Barthelemy,Saint_Barthelemy
+Bahamas,BHS,CONCACAF,Bahamas,5157,Bahamas,Bahamas
+Guam,GUM,AFC,Guam,8119,Guam,Guam
+Laos,LAO,AFC,Laos,1558,Laos,Laos
+Wallis and Futuna,WLF,,,,Wallis and Futuna,Wallis_and_Futuna
+British Virgin Islands,VGB,CONCACAF,British Virgin Islands,8168,British Virgin Islands,British_Virgin_Islands
+Vatican,VAT,UEFA,,,Vatican,Vatican
+Saba,SAB,CONCACAF,,,Saba,Saba
+East Timor,TLS,AFC,Timor-Leste,5537,East Timor,East_Timor
+Saint Pierre and Miquelon,SPM,,,,Saint Pierre and Miquelon,Saint_Pierre_and_Miquelon
+Turks and Caicos Islands,TCA,CONCACAF,Turks and Caicos Islands,5169,Turks and Caicos Islands,Turks_and_Caicos_Islands
+Brunei,BRN,AFC,Brunei,5538,Brunei,Brunei
+Anguilla,AIA,CONCACAF,Anguilla,8150,Anguilla,Anguilla
+Tibet,TIB,,,,Tibet,Tibet
+Cook Islands,COK,OFC,Cook Islands,8174,Cook Islands,Cook_Islands
+US Virgin Islands,VIR,CONCACAF,US Virgin Islands,8172,US Virgin Islands,US_Virgin_Islands
+Bhutan,BTN,AFC,Bhutan,1540,Bhutan,Bhutan
+Macao,MAC,AFC,Mação,4767,Macao,Macao
+Christmas Island,CXR,,,,Christmas Island,Christmas_Island
+Falkland Islands,FLK,,,,Falkland Islands,Falkland_Islands
+FS Micronesia,FSM,OFC,,,FS Micronesia,FS_Micronesia
+Marshall Islands,MHL,OFC,,,Marshall Islands,Marshall_Islands
+Kiribati,KIR,OFC,,,Kiribati,Kiribati
+Tonga,TON,OFC,Tonga,5542,Tonga,Tonga
+Niue,NIU,OFC,,,Niue,Niue
+Northern Mariana Islands,MNP,AFC,Northern Mariana Islands,8120,Northern Mariana Islands,Northern_Mariana_Islands
+Cocos Islands,CCK,,,,Cocos Islands,Cocos_Islands
+Palau,PLW,OFC,,,Palau,Palau
+Eastern Samoa,ASM,OFC,American Samoa,8173,Eastern Samoa,Eastern_Samoa

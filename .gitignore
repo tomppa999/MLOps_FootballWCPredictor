@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+src/*.egg-info/
+
+# Environment
+.env
+*.env
+
+# Type checking / linting
+.mypy_cache/
+.ruff_cache/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build
+dist/
+build/
+
+# MLflow
+mlruns/
+
+# DVC cache and tmp
+.dvc/cache/
+.dvc/tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data (managed by DVC, not Git)
+data/raw/
+data/silver/
+data/gold/
+data/interim/
+
+# Notebooks
+*.ipynb
+
+# Spreadsheets and binary reference files
+*.xlsx
+*.numbers
