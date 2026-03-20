@@ -25,6 +25,29 @@ Use DVC for:
 - model artifacts if tracked outside MLflow artifact storage
 - pipeline stage reproducibility later through `dvc.yaml`
 
+## DVC pipeline plan
+
+Silver and Gold are currently excluded from Git (via `.gitignore`) but not yet tracked by DVC.
+They are deterministically reproducible from raw, so no data is lost in the interim.
+
+The plan is to define a `dvc.yaml` pipeline in one pass once Gold is complete and validated.
+Doing it incrementally (silver-only first) would require editing `dvc.yaml` again soon and adds
+churn without real benefit.
+
+When Gold is ready, define all three stages together:
+
+```
+raw (already tracked via data/raw.dvc)
+  └─► silver   (build_silver stage)
+        └─► gold  (build_gold stage)
+```
+
+Each stage should declare its `cmd`, `deps`, `params`, and `outs` explicitly so that
+`dvc repro` can rebuild the full pipeline deterministically from raw.
+
+The exception: if Silver becomes expensive to compute or needs snapshot versioning before Gold
+is ready, track it early with `dvc add data/silver` as a temporary measure.
+
 ## Practical approach
 Start simple:
 1. initialize DVC locally

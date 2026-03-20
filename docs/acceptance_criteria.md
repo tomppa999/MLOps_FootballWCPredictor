@@ -17,7 +17,7 @@
 - Bronze contains reproducible raw snapshots for the real historical data pull
 - DVC is initialized
 - key data/artifact paths are identified for DVC tracking
-- versioning/reproducibility documentation exists
+- versioning/reproducibility documentation exists (see [versioning_and_reproducibility.md](versioning_and_reproducibility.md))
 - the project remains fully usable without DagsHub
 - optional instructions for later DagsHub connection are documented
 
