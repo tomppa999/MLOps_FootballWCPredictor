@@ -39,53 +39,69 @@ Where useful:
 
 Ratio features must use safe handling for zero or very small denominators.
 
-### Tactical profile features
-Use rolling team-stat summaries to represent tactical approach. Available statistics may include:
-- Shots on Goal
-- Shots off Goal
-- Shots insidebox
-- Shots outsidebox
-- Total Shots
-- Blocked Shots
-- Fouls
-- Corner Kicks
-- Offsides
-- Ball Possession
-- Yellow Cards
-- Red Cards
-- Goalkeeper Saves
-- Total passes
-- Passes accurate
-- Passes %
+### Tactical profile features (rolling)
 
-These should be aggregated into rolling pre-match summaries for each team.
+The 6 rolling tactical profile columns per side are computed from prior matches
+with `stats_tier != 'none'` (same filter as shot features):
+
+| Column | Tactical proxy |
+|---|---|
+| `{side}_team_rolling_tac_possession_pct` | Ball control / possession style |
+| `{side}_team_rolling_tac_shots_on_goal` | Shot profile / attacking directness |
+| `{side}_team_rolling_tac_shots_off_goal` | Shot profile / attacking directness |
+| `{side}_team_rolling_tac_total_shots` | Shot profile / attacking directness |
+| `{side}_team_rolling_tac_fouls` | Aggression / defensive behavior |
+| `{side}_team_rolling_tac_corner_kicks` | Set-piece tendency |
+
+These 6 columns were selected for availability across both `full` and `partial`
+stats tiers (~50% of matches). Detailed columns (`shots_insidebox`,
+`shots_outsidebox`, `total_passes`, `passes_accurate`, `pass_accuracy_pct`,
+`blocked_shots`) are excluded due to poor availability in the `partial` tier
+(~1.6% non-null).
 
 ### Tactical clustering
-Use unsupervised learning on rolling tactical/statistical summaries to assign style clusters or style indicators.
 
-Examples of broad tactical tendencies that may later be interpreted from the learned clusters:
-- ball control / possession-oriented play
-- more direct or riskier attacking patterns
-- aggressive or foul-heavy defensive behavior
-- inside-box vs outside-box shooting tendencies
+KMeans clustering on the 6-column rolling tactical profile, using epoch-based
+fitting: the model is fit once on all available non-NaN profiles and applied to
+every row. This avoids future leakage in the clustering labels while
+acknowledging the simplification of using a single epoch for the scaler/centroid
+fit (see Threats to Validity).
 
-Requirements:
-- time-aware fitting
-- deterministic where feasible
-- no future-data leakage
+**Cluster features in Gold:**
+- `home_tactical_cluster` / `away_tactical_cluster` — Int8 cluster label
+- `home_tactical_cluster_dist` / `away_tactical_cluster_dist` — Euclidean distance to assigned centroid in scaled space
 
-Cluster outputs may be represented in Gold as:
-- home_tactical_cluster
-- away_tactical_cluster
-- or cluster-derived numeric summaries
+Rows with NaN profiles receive NaN for both cluster label and distance.
 
-The clustering step does not need to predefine exact tactical dimensions perfectly in advance. It is acceptable to cluster on the statistical profile first and interpret the resulting clusters afterward.
+**k selection:** determined empirically via silhouette + elbow analysis for
+k = 2..10 (`python -m src.gold.cluster_experiment`), with results logged in
+`docs/figures/cluster_k_selection.png`.
+
+### Time-series support
+
+- `home_team_match_index` / `away_team_match_index` — 1-indexed ordinal count
+  of each team's match appearances in chronological order. Used by SARIMAX as
+  the time axis (not a predictor feature). Counts across both home and away
+  appearances.
 
 ### Context features
-- neutral indicator or venue type
-- competition_tier
-- is_knockout
+- `is_neutral` — venue neutrality flag. For 2026 WC group-stage matches where a
+  host nation (USA, Canada, Mexico) plays at home, `is_neutral` is overridden to
+  `False` so the model applies the home-advantage effect it learned from
+  historical data. No separate `is_home_advantage_2026` column exists.
+- `competition_tier`
+- `is_knockout`
 - confederation / continent indicators
+
+#### 2026 KO-round home advantage (inference-time only)
+
+For knockout rounds, venue assignment depends on bracket outcomes. The tournament
+simulation layer will carry three host-nation flags (`is_usa`, `is_mexico`,
+`is_canada`) as simulation metadata — **not** Gold features. When the simulation
+places a host nation into a KO match at a venue in their country, `is_neutral`
+is overridden to `False` for that simulated match. This works for both
+deterministic and probabilistic (Monte Carlo) inference. Implementation is
+deferred to the tournament simulation module.
 
 competition_tier should be a compact ordinal feature derived from API-Football competition metadata:
 

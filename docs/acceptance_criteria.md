@@ -21,12 +21,32 @@
 - the project remains fully usable without DagsHub
 - optional instructions for later DagsHub connection are documented
 
-## Phase 3 acceptance criteria
-- all three candidate models can train through a common flow
-- the modeling target is goals / score distributions, not direct outcome classification as the main target
-- MLflow logging is implemented
-- evaluation outputs are reproducible
-- promotion logic exists and is testable
+## Phase 3 acceptance criteria — Gold and modeling
+
+### Gold
+- Gold feature table is one row per match
+- all features are strictly time-aware and leakage-safe
+- feature set includes: Elo ratings, rolling form indicators, competition tier, is_knockout, is_neutral, home advantage flag
+- home advantage inference correctly flags USA, Canada, and Mexico playing in their host country for 2026 WC group stage
+- DVC pipeline (`dvc.yaml`) defines all three stages: raw → silver → gold
+
+### Experimental environment
+- all 9 candidate models can train through a common interface
+- all runs are logged to MLflow (params, metrics, artifacts)
+- promotion gate threshold is pre-defined in config before any training runs
+- permutation importance is computed and logged for each model
+- models that exceed the threshold (max 4) are tagged for QA promotion in MLflow
+
+### QA environment
+- promoted models are backtested against 2022 World Cup data
+- the following KPIs are computed and logged: Ranked Probability Score (RPS), Brier score, outcome accuracy
+- the single best QA model is identified and tagged for deploy promotion
+
+### Deploy environment
+- best model is retrained on full Gold dataset
+- artifact is serialized via MLflow pyfunc
+- Monte Carlo tournament simulation runs from deployed model predictions
+- simulation correctly handles the 2026 FIFA bracket (12 groups, best-8-of-12 third-placers, FIFA lookup table for R32 matchups)
 
 ## Phase 4 acceptance criteria
 - containerized jobs run reproducibly

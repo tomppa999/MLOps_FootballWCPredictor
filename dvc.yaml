@@ -1,0 +1,16 @@
+stages:
+  silver:
+    cmd: python -m src.silver.build_silver
+    deps:
+      - data/raw
+      - src/silver/
+    outs:
+      - data/silver
+
+  gold:
+    cmd: python -m src.gold.build_gold
+    deps:
+      - data/silver
+      - src/gold/
+    outs:
+      - data/gold
