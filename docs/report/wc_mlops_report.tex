@@ -27,34 +27,37 @@
 % ============================================================
 \begin{document}
 
-\title{An MLOps Pipeline for Football World Cup Prediction:\\
+\title{MLOps for Football World Cup Prediction:\\
 A Multi-Model Comparison with Structured Model Promotion}
 
 \author{
-  \IEEEauthorblockN{Tom Farnschlaeder}
-  \IEEEauthorblockA{\textit{[University Name]}\\{}
-  {[City, Country]}\\
-  {[email@university.edu]}}
+  \IEEEauthorblockN{Tom Farnschläder}
+  \IEEEauthorblockA{\textit{Tampere University}\\{}
+  {Tampere, Finland}\\
+  {tom.farnschlaeder@tuni.fi}}
 }
 
 \maketitle
 
 % ============================================================
 \begin{abstract}
-Predicting football World Cup outcomes is a challenging statistical problem due to the
-irregular and sparse nature of national team match data, the heterogeneity of competition
-formats, and the high variance inherent in low-scoring sports. In this work, we present a
-structured MLOps pipeline that automates the full lifecycle from raw data ingestion to
-tournament simulation. The pipeline implements a Bronze/Silver/Gold data architecture,
-engineers strictly time-aware and leakage-safe features, and trains nine candidate models
-spanning five families: statistical, Bayesian, time-series, classical machine learning,
-and deep learning. Models are evaluated in a three-environment structure: an experimental
-environment that gates candidates by a pre-defined performance threshold, a QA environment
-that backtests promoted models against the 2022 FIFA World Cup, and a deployment environment
-that retrains the best model on the full dataset. Monte Carlo simulation derives tournament
-outcome probabilities from predicted score distributions. All experiments are tracked with
-MLflow; data and artifacts are versioned with DVC. We report model performance, feature
-importance, and discuss threats to validity specific to the national team football domain.
+Predicting football World Cup outcomes is a challenging statistical problem because of many 
+factors, such as the irregular and sparse nature of national team match data, the hetero-
+geneity of competition formats, and the high variance inherent in low-scoring sports. 
+In this work, we present a structured MLOps pipeline that automates the full lifecycle 
+from raw data ingestion from two separate sources to the simulation of the 2026 FIFA
+World Cup. 
+The pipeline implements a Bronze/Silver/Gold data architecture, engineers strictly time-aware 
+and leakage-safe features, and trains nine candidate models spanning five families: 
+statistical, Bayesian, time-series, classical machine learning, and deep learning. 
+Models are evaluated in a three-environment structure. An experimental environment selects 
+the top-4 candidates by cross-validation RPS. A subsequent QA environment backtests promoted 
+models against the 2022 FIFA World Cup, and promotes the best model to a deployment environment,
+where it is retrained on the full dataset. A Monte Carlo simulation derives tournament outcome 
+probabilities from predicted score distributions. 
+All experiments are tracked with MLflow; data and artifacts are versioned with DVC. We report 
+model performance, feature importance, and discuss threats to validity specific to the national 
+team football domain, the data sources and the new FIFA World Cup tournament structure.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -68,18 +71,16 @@ Monte Carlo simulation, data pipeline, feature engineering
 Predicting the outcome of football matches has attracted substantial academic interest,
 largely following the seminal work of Dixon and Coles~\cite{dixon1997modelling}, who
 demonstrated that match scores can be approximated as independent Poisson processes
-conditioned on team-level attack and defence strength parameters. While club football
-benefits from dense weekly data, national team prediction poses distinct challenges:
-squads rotate, coaches change, matches occur only during international windows, and the
-competitive stakes vary widely across qualification rounds, friendlies, and finals.
+conditioned on team-level attack and defence strength parameters. 
 
-The 2026 FIFA World Cup introduces an expanded format of 48 teams across 12 groups, adding
-structural complexity through a best-third-place progressive rule that makes half the
-Round of 32 bracket non-deterministic until all group stages are complete.
+While club football benefits from dense weekly data, national team prediction poses its own
+distinct challenges: squads rotate more often, matches occur only during a few international 
+windows per year, and the competitive stakes vary widely across friendlies, qualification rounds 
+and finals.
 
 In parallel, the adoption of MLOps practices~\cite{google_mlops} has created a systematic
 framework for developing, testing, and deploying machine learning models with the same
-rigour applied to traditional software systems. A key tenet is the separation of model
+rigor applied to traditional software systems. A key principle is the separation of model
 experimentation from promotion and deployment, enforced through explicit, testable criteria.
 
 This work makes two contributions:
@@ -126,15 +127,19 @@ a home advantage term. Extensions include the Negative Binomial distribution, wh
 the equidispersion assumption, and Bayesian variants that produce full posterior predictive
 distributions over score outcomes.
 
+\tbd{More detail here or in the "Related Work" section?}
+
 For national team football specifically, team strength is commonly represented by Elo
 ratings~\cite{eloratings}, which update multiplicatively after each match and provide a
 continuous, cross-confederation measure of team quality without requiring squad-level data.
+
+\tbd{More details and formula; either here or in the "Data Sources" section}
 
 % ============================================================
 \section{Related Work}
 \label{sec:related}
 
-\tbd{Summarise 4--6 papers: Dixon-Coles extensions, tournament simulation, MLOps use cases
+\tbd{Summarise a few papers: Dixon-Coles extensions, tournament simulation, MLOps use cases
 in sports, and general MLOps pipeline papers. Include \cite{ossara2023} as a structural
 reference for pipeline design.}
 
@@ -148,7 +153,7 @@ The pipeline follows a Bronze/Silver/Gold data architecture~\cite{google_mlops},
 with three downstream model environments (Figure~\ref{fig:architecture}).
 
 \begin{itemize}
-  \item \textbf{Bronze}: raw, immutable snapshots from two sources — fixture and match
+  \item \textbf{Bronze}: raw, immutable snapshots from two sources: fixture and match
   statistics from API-Football, and historical Elo ratings from eloratings.net.
   \item \textbf{Silver}: cleaned, schema-validated, season-partitioned Parquet files.
   Team identity is resolved via a curated mapping; Elo ratings are joined by
@@ -169,11 +174,11 @@ with three downstream model environments (Figure~\ref{fig:architecture}).
 Model development follows a structured three-environment pipeline:
 
 \begin{enumerate}
-  \item \textbf{Experimental}: all nine candidate models are trained on the Gold training
-  split and evaluated on a held-out validation set. Models exceeding a pre-defined RPS
-  threshold (at most four) are tagged for QA promotion in the MLflow registry.
+  \item \textbf{Experimental}: all nine candidate models are trained on the pre-WC 2022 
+  Gold training split and evaluated on a held-out validation set. The top four candidates
+  by CV RPS are selected for QA promotion in the MLflow registry.
   \item \textbf{QA}: promoted models are backtested against the 2022 FIFA World Cup.
-  KPIs are Ranked Probability Score (RPS), Brier score, and match outcome accuracy.
+  The primary KPI is Ranked Probability Score (RPS), with RMSE as secondary metric.
   The best-performing model is tagged for deployment.
   \item \textbf{Deploy}: the selected model is retrained on the full Gold dataset,
   serialized as an MLflow pyfunc artifact, and used for tournament simulation.
@@ -281,7 +286,7 @@ Parquet table with one row per finished match. Key transformation steps:
 
 \begin{itemize}
   \item \textbf{Fixture parsing}: only matches with status \texttt{FT}, \texttt{AET},
-  or \texttt{PEN} are retained.
+  or \texttt{PEN} (completed matches) are retained.
   \item \textbf{Statistics join}: per-fixture statistics are joined by \texttt{fixture\_id};
   a \texttt{stats\_tier} column encodes completeness (\texttt{full}, \texttt{core},
   \texttt{partial}, \texttt{none}).
@@ -342,8 +347,8 @@ It is produced by \texttt{src.gold.build\_gold} with the following transformatio
 \begin{itemize}
   \item \textbf{Rolling form features}: for each team entering a match, we compute
   rolling means over the last 10 prior matches (strictly before the match date):
-  goals for/against (all matches), and shot statistics — total shots, shot accuracy,
-  conversion rate — from prior matches with \texttt{stats\_tier} $\neq$ \texttt{none}.
+  goals for/against (all matches), and shot statistics (total shots, shot accuracy,
+  conversion rate) from prior matches with \texttt{stats\_tier} $\neq$ \texttt{none}.
   Features are computed from the team's perspective regardless of home/away side.
 
   \item \textbf{Rolling tactical profiles}: five per-side rolling mean columns
@@ -354,18 +359,17 @@ It is produced by \texttt{src.gold.build\_gold} with the following transformatio
   \texttt{corner\_kicks} (territorial pressure near the opponent goal),
   and \texttt{possession\_pct} (control style).
   Each dimension is intended to capture a distinct tactical axis.
-  The initial design included \texttt{shots\_on\_goal}, \texttt{shots\_off\_goal},
-  and \texttt{total\_shots} as three separate features, but these are linearly
-  dependent (on-target + off-target $=$ total), effectively triple-weighting the
-  shots dimension in Euclidean clustering space while adding no orthogonal
-  information.  Replacing them with volume (\texttt{total\_shots}) and precision
+  The original data includes \texttt{shots\_on\_goal}, \texttt{shots\_off\_goal},
+  and \texttt{total\_shots} as three separate features, but since these are linearly
+  dependent (on-target + off-target $=$ total), taking all of them into account
+  individually would triple-weight the shots dimension in Euclidean clustering space while adding no orthogonal information. Replacing them with volume (\texttt{total\_shots}) and precision
   (\texttt{shot\_precision}) recovers two genuinely independent attacking signals.
   Opponent-suffered statistics (e.g.\ shots conceded) were considered but excluded:
   they confound the team's own tactical style with the quality of opponents faced in
   the rolling window, and the per-side cluster interaction is captured downstream by
   the model, which receives both \texttt{home\_tactical\_cluster} and
   \texttt{away\_tactical\_cluster} as separate features.
-  Detailed columns (e.g.\ \texttt{shots\_insidebox}, \texttt{total\_passes}) are
+  Other detailed columns (e.g.\ \texttt{shots\_insidebox}, \texttt{total\_passes}) are
   excluded due to sparse availability in the \texttt{partial} stats tier
   ($\sim$1.6\% non-null).
 
@@ -375,25 +379,29 @@ It is produced by \texttt{src.gold.build\_gold} with the following transformatio
   distance to assigned centroid (scaled space) for each side.  Rows with
   incomplete profiles receive NaN.  The number of clusters $k$ is determined
   empirically via silhouette analysis and the elbow method for $k = 2\ldots10$
-  (Figure~\ref{fig:cluster_k}).  With the original six-column profile, silhouette
-  scores peaked sharply at $k=2$ ($\approx 0.32$) and declined monotonically,
-  suggesting that the redundant shot features dominated the clustering geometry and
-  reduced all structure to a single high-volume versus low-volume axis.  After
-  replacing the three collinear shot columns with volume and precision, the
+  (Figure~\ref{fig:cluster_k}).  With the original six-column profile (including 
+  \texttt{shots\_on\_goal}, \texttt{shots\_off\_goal}, and \texttt{total\_shots} as 
+  three separate features), silhouette scores peaked sharply at $k=2$ ($\approx 0.32$) 
+  and declined monotonically, suggesting that the redundant shot features dominated the 
+  clustering geometry and reduced all structure to a single high-volume versus low-volume 
+  axis. After replacing the three collinear shot columns with volume and precision, the
   silhouette curve changes qualitatively: the artificial peak at $k=2$ drops
   from $\approx 0.32$ to $\approx 0.27$, and the curve is no longer monotone ---
   it dips at $k=3$ ($\approx 0.19$) before recovering to a local maximum at
-  $k=4$ ($\approx 0.20$), then declining steadily.  Concurrently, the elbow
-  method shows its clearest bend between $k=4$ and $k=5$.  Both criteria
-  converge on $\mathbf{k=4}$, which is retained as the default.
+  $k=4$ ($\approx 0.20$), then declining steadily.  The elbow
+  method shows its clearest bend at $k=5$.  We therefore select $k = 4$: it corresponds 
+  to the silhouette local maximum ($\approx 0.20$), lies one step before the elbow at 
+  $k = 5$, and provides the best balance between cluster cohesion and interpretable 
+  granularity without overfitting the geometry to noise.
 
   \item \textbf{Elo differential}: \texttt{elo\_diff} = \texttt{home\_elo\_pre}
-  $-$ \texttt{away\_elo\_pre}.
+  $-$ \texttt{away\_elo\_pre}. This is the column that represents who is the favorite in 
+  a given match based on both teams' match history.
 
   \item \textbf{Context features}: \texttt{competition\_tier} (1--4),
   \texttt{is\_knockout}, \texttt{is\_neutral}.  For 2026 WC group-stage matches
   where a host nation plays at home, \texttt{is\_neutral} is overridden to
-  \texttt{False} (see Section~\ref{sec:data}, Home Advantage at Inference).
+  \texttt{False}.
 
   \item \textbf{Match index}: per-team 1-indexed ordinal match counter used by
   SARIMAX as the integer time axis (not a predictor).
@@ -403,14 +411,16 @@ It is produced by \texttt{src.gold.build\_gold} with the following transformatio
   its feature vector.
 \end{itemize}
 
+\tbd{NOT UP TO DATE; REPLACE WITH NEW PLOT; REWRITE TWO TACTICAL SUBSECTIONS; EXPLAIN WHY TACTICAL CLUSTERING WAS NOT USED; HOW THE COLUMNS WERE VERY RAW PROXIES; HOW ROLLING AVGS FROM MATCHES AGAINST WEAKER AND STRONGER TEAMS SMOOTHEN OUT}
+
 \begin{figure}[h]
   \centering
   \includegraphics[width=\columnwidth]{../figures/cluster_k_selection.png}
   \caption{Elbow method (inertia) and silhouette analysis for $k = 2\ldots10$
   on the 5-column rolling tactical profile (total shots, shot precision, fouls,
-  corner kicks, possession).  The elbow bends most sharply between $k=4$ and $k=5$;
+  corner kicks, possession).  The elbow bends most sharply at $k=5$;
   the silhouette curve has a local maximum at $k=4$ ($\approx 0.20$) after a dip
-  at $k=3$.  Both criteria select $k=4$.}
+  at $k=3$.  We select $k=4$.}
   \label{fig:cluster_k}
 \end{figure}
 
@@ -428,13 +438,11 @@ This is deterministic because the venue schedule is known before the tournament.
 \textbf{Knockout rounds.}  Venue assignment depends on bracket position, which in turn
 depends on group-stage results.  The tournament simulation layer will carry three
 host-nation flags (\texttt{is\_usa}, \texttt{is\_mexico}, \texttt{is\_canada}) as
-simulation metadata---not Gold features.  When the simulation places a host nation into a
+simulation metadata, not Gold features.  When the simulation places a host nation into a
 knockout match at a venue in their country, \texttt{is\_neutral} is overridden to
 \texttt{False} for that simulated match.  This works identically for deterministic
 inference (known bracket) and probabilistic inference (Monte Carlo sampling, where the
 override fires only for simulated paths where the host advances to that slot).
-The exact venue-to-country mapping for KO rounds depends on FIFA's published schedule and
-is treated as an approximation in Section~\ref{sec:threats}.
 
 \subsection{Ingestion Trigger}
 
@@ -453,13 +461,13 @@ Two freshness checks run on every invocation:
   \item \textbf{API-Football freshness.} Incremental ingestion runs with a
   48-hour lookback window. The result must contain at least one fixture and
   every fixture in the window must carry a settled status
-  (\texttt{FT}, \texttt{AET}, or \texttt{PEN} --- no in-progress codes such
+  (\texttt{FT}, \texttt{AET}, or \texttt{PEN}; no in-progress codes such
   as \texttt{1H}, \texttt{HT}, \texttt{2H}).
 \end{enumerate}
 
-The trigger proceeds when \emph{at least one} condition holds (OR gate).
+The trigger proceeds when \emph{at least one} condition holds (\emph{OR} gate).
 An earlier design required both sources to be fresh simultaneously, but this
-caused unnecessary pipeline delays when one source lagged the other --- a
+caused unnecessary pipeline delays when one source lagged the other, which is a
 realistic scenario during international windows when Elo ratings update with
 a short delay. The Gold layer's date-based join handles alignment naturally:
 it only produces rows where both sources have data for the same match,
@@ -623,19 +631,21 @@ alongside training metrics and compared across model families in Section~\ref{se
 
 \subsection{Training and Validation Split}
 
-The Gold dataset covers international matches from 2018 through 2025.
-The training set includes all matches up to the end of 2021 qualification windows.
-The validation set (used for experimental gate evaluation and feature importance)
-covers 2022 qualification through the pre-tournament period.
-The 2022 FIFA World Cup is held out as a strict test set for QA evaluation.
+The Gold dataset covers international matches from 2018 through 2026.
+All matches before the 2022 FIFA World Cup (\texttt{date\_utc < 2022-11-20})
+form the training set (3{,}903 rows). Walk-forward expanding-window
+cross-validation is applied within this set to tune hyperparameters and
+evaluate experimental candidates; the CV folds span the full pre-tournament
+period, including 2022 qualification matches. 
+The 2022 FIFA World Cup (2022-11-20 to 2022-12-18, 89 matches) is held out
+as a strict test set for QA evaluation and is never seen during training or
+cross-validation.
 
 \subsection{Promotion Gate}
 
-The experimental promotion gate is defined as a maximum Ranked Probability Score (RPS)
-of \tbd{threshold value}, evaluated on the validation set. RPS is appropriate for
-ordered multi-class outcomes (away win / draw / home win) derived from score distributions.
-The threshold is logged in the project configuration file before any training runs begin.
-At most four models may be promoted to the QA environment.
+The experimental promotion gate selects the top four candidates by walk-forward 
+cross-validation RPS. RPS is appropriate for ordered multi-class outcomes (home win / 
+draw / away win) derived from score distributions.
 
 \subsection{QA Evaluation — 2022 World Cup Backtest}
 
@@ -643,10 +653,27 @@ Promoted models are evaluated on 64 matches from the 2022 FIFA World Cup (Qatar)
 Reported KPIs:
 \begin{itemize}
   \item \textbf{Ranked Probability Score (RPS)}: average over all matches; lower is better.
-  \item \textbf{Brier score}: for the predicted outcome probability of the actual result.
-  \item \textbf{Match outcome accuracy}: fraction of matches where the predicted modal
-  outcome (W/D/L) matches the actual result.
+  \item \textbf{RMSE (home goals)}: root mean squared error between the
+  predicted home-goal rate $\hat{\lambda}_h$ and the actual home goals.
+  \item \textbf{RMSE (away goals)}: same for the away-goal rate
+  $\hat{\lambda}_a$.
 \end{itemize}
+
+\subsection{Champion Selection and Production Refit}
+The QA candidate with the lowest holdout RPS is designated the challenger.
+If no production champion exists, the challenger is promoted unconditionally.
+Otherwise, promotion requires the challenger's holdout RPS to strictly
+improve on the current champion's recorded RPS; if it does not,
+\texttt{ChallengeFailed} is raised and the existing champion is retained.
+On successful promotion, the champion model is refit on \emph{all} available
+Gold data (\texttt{X\_full}, covering 2018 through the latest ingested match)
+using the hyperparameters selected during the experimental phase.
+The refitted model is serialized as an MLflow pyfunc artifact, registered in
+the MLflow Model Registry, and promoted to the \texttt{Production} alias.
+The associated MLflow run records the QA holdout metrics
+(\texttt{qa\_holdout\_rps}, \texttt{qa\_holdout\_rmse\_home},
+\texttt{qa\_holdout\_rmse\_away}) together with the full Gold row count and
+the QA run ID for traceability.
 
 % ============================================================
 \section{Results}
@@ -660,10 +687,13 @@ comparison across model families, (5) key figures: metric bar chart, feature imp
 \section{Discussion}
 \label{sec:discussion}
 
-\tbd{Discuss which hypotheses held, which were refuted, and why. Discuss feature importance
-findings and their alignment with football domain knowledge (Elo differential expected as
-\#1; competition tier, rolling form as secondary). Discuss PyMC calibration vs.\ GLM.
-Discuss LSTM/CNN sample size limitations.}
+\tbd{Discuss:
+- which hypotheses held?
+- which were refuted, and why? 
+- Discuss feature importance findings and their alignment with football domain knowledge (Elo differential expected as
+\#1; competition tier, rolling form as secondary). 
+- Discuss PyMC calibration vs.\ GLM.
+- Discuss LSTM/CNN sample size limitations.}
 
 \subsection{Threats to Validity}
 \label{sec:threats}
@@ -679,8 +709,10 @@ teams, which are disproportionately represented in the later World Cup stages.
 \textbf{Dual-source identity mismatch.}
 API-Football and Elo use different team name conventions and country codes. Resolution
 relies on a manually curated mapping file. Any future team renaming or code change
-requires a manual update, creating a persistent maintenance liability with no automated
-validation.
+requires a manual update. This creates a maintenance liability. However, team names
+and country codes change rarely: The last two changes were Swaziland to Eswatini in 2018,
+and Macedonia to North Macedonia in 2019. Unmapped country codes are detected at pipeline 
+runtime via a dedicated warning log entry to ensure that silent data loss is avoided.
 
 \textbf{Residual data quality issues.}
 Elo TSV rows with malformed dates, the ISO code \texttt{NA} (Namibia) being parsed as a
@@ -693,7 +725,7 @@ the external data contracts.
 \textbf{Sparse national team calendar.}
 National teams play 6--12 matches per year, compared to 40+ for club teams. Rolling form
 features, Elo stability, and statistics are computed over substantially smaller per-team
-samples, amplifying noise throughout the feature set.
+samples, which amplifies noise throughout the feature set.
 
 \textbf{Long gaps between international windows.}
 SARIMAX's integer-indexed time dimension treats all consecutive match observations as
@@ -709,37 +741,49 @@ unsupervised play-style clustering. A coaching change close to a tournament is a
 model weakness.
 
 \textbf{2026 FIFA bracket format.}
-The 12-group, best-third-place format generates up to $\binom{12}{8} = 495$ possible
-Round of 32 bracket configurations. A single goal difference in any group can restructure
-the entire knockout tree. Evidence from UEFA's adoption of a similar rule in EURO
-competitions suggests teams increasingly play for draws on the final matchday once
-qualification arithmetic permits it, depressing late group-stage goal counts in a manner
-that is poorly represented in the training data.
-
-\textbf{2026 host nation home advantage in knockout rounds.}
-The group-stage home advantage correction for the United States, Canada, and Mexico is
-implemented using pre-assigned venue data. Knockout-round venue assignment is approximate;
-the Monte Carlo simulation does not dynamically assign venues as the bracket resolves.
+The 2026 FIFA World Cup introduces an expanded format of 48 teams across 12 groups, which adds
+structural complexity through a best-third-place progressive rule. It has major consequences for the 
+probabilities of knockout stage match-ups and minor implications for the last group matchday.
+(1) The new format generates $\binom{12}{8} = 495$ possible Round of 32 bracket configurations. As a 
+consequence, over 60\% of all knockout stage match-ups are non-deterministic. A single goal difference 
+in any group can restructure the entire knockout tree, which in turn increases the sensitivity of 
+tournament win-probability estimates to group-stage prediction errors.
+(2) The effect of qualification arithmetic on final-matchday play style is plausible across major 
+tournaments and has been visible occasionally (e.g., when a draw may serve both teams' interests, such 
+as in the famous "Disgrace of Gijón"), which is why FIFA and continental confederations all moved 
+to simultaneous final-matchday kickoffs in each group many years ago. 
+Modern best-third-placed-teams formats reintroduce a variant of this effect: groups whose final matchday 
+kicks off later can observe completed results from earlier groups and calculate the exact result needed 
+to qualify as one of the best third-placed teams. The creates an incentive to play to a target scoreline 
+rather than competitively.
+The training corpus contains too few  late group-stage matches from such scenarios (EURO since 2016, 
+AFCON since 2019) to isolate or quantify its impact on goal counts.
 
 \subsubsection{Pipeline and Monitoring}
 
 \textbf{Passive monitoring.}
-MLflow records all training metrics and artifacts, but no automated alerting triggers if
-deployed model performance degrades between tournaments. Monitoring is passive.
+MLflow records all training metrics and artifacts, but there is no automated alerting if deployed model 
+performance degrades between runs. For this project's operational scope (a single tournament with a bounded 
+pre-WC window of roughly three friendlies per team) this is not a real concern: the model has no meaningful 
+opportunity to degrade before inference is run. Were the pipeline extended to a continuous club-football or 
+multi-tournament deployment, passive monitoring would become a material threat, as silent concept drift 
+could go unnoticed between retraining cycles.
+
 
 \textbf{Elo source reliability.}
-Elo ratings are fetched from a third-party website. A source outage or structural change
-during an active qualification window would cause the pipeline to fall back to the last
-validated snapshot, introducing staleness precisely when current ratings are most valuable.
+Elo ratings are fetched from a third-party website (eloratings.net). By default, existing TSV 
+files are preserved and reused if not explicitly overwritten to provide implicit continuity against 
+transient outages. A forced refresh during a source outage would fail without updating the data, 
+which effectively leaves the last successfully downloaded snapshot in place. Given that Elo ratings 
+change slowly between individual matches, short-term staleness is not expected to affect model predictions.
 
 % ============================================================
 \section{Conclusion}
 \label{sec:conclusion}
 
-\tbd{Summarise contributions, key findings, and which model was selected for deployment.
+\tbd{Summarize contributions, key findings, and which model was selected for deployment.
 Discuss implications for national team prediction and MLOps pipeline design. Outline
-future work: DagsHub remote integration, Cloud Run deployment for live 2026 WC simulation,
-improved squad composition features, and expanded post-tournament monitoring.}
+possible improvements.}
 
 % ============================================================
 \bibliographystyle{IEEEtran}
