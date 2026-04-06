@@ -1,0 +1,35 @@
+flowchart TD
+    subgraph scheduling [GCP Cloud Scheduler]
+        DailyCron["daily-trigger\ncron 4:30 UTC"]
+        TournCron["tournament-trigger\ncron */30 * * * *\npaused; enabled Jun 11 - Jul 19"]
+    end
+
+    subgraph triggerPy ["trigger.py (Cloud Run Job)"]
+        EloCheck["check_elo_freshness()"]
+        ApiCheck["check_api_football_freshness()"]
+        Gate{"elo OR api\nfresh?"}
+        EloIngest["run_elo_ingestion()\nonly if elo_fresh"]
+        DvcRepro["run_dvc_pipeline()\ndvc repro + push + commit"]
+        Dispatch{"mode?"}
+        Evaluate["evaluate 9 candidates\non WC 2022 holdout\n(stage=evaluation)"]
+        Refit["refit winner on\nfull Gold dataset\n(stage=production-refit)"]
+        Inference["inference + simulation\nwith current champion"]
+    end
+
+    subgraph mlflow [MLflow on DagsHub]
+        ExpTrack["Experiment tracking\n9 evaluation runs per cycle"]
+        Registry["Model Registry\nregister + promote\nrefitted champion"]
+        Artifacts["Artifacts\nmodels, scalers, predictions"]
+    end
+
+    DailyCron -->|"mode=auto"| EloCheck
+    TournCron -->|"mode=inference_only"| EloCheck
+    EloCheck --> Gate
+    ApiCheck --> Gate
+    Gate -->|No| Stop["exit 0"]
+    Gate -->|Yes| EloIngest --> DvcRepro --> Dispatch
+    Dispatch -->|"auto + gold grew 10+"| Evaluate
+    Dispatch -->|"auto + gold grew < 10"| Inference
+    Dispatch -->|"inference_only"| Inference
+    Evaluate --> ExpTrack --> Refit --> Registry --> Inference
+    Inference --> Artifacts

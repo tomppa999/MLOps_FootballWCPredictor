@@ -6,9 +6,9 @@
 - Build Bronze/Silver/Gold data layers with schema validation
 - Train and compare 9 candidate models across 5 model families (see below) using a three-environment pipeline
 - Measure permutation-based feature importance for all models in the experimental environment
-- Promote models that exceed a pre-defined score threshold (max 4) to QA environment
-- Backtest QA models against the 2022 World Cup; report RPS, Brier score, and outcome accuracy
-- Promote the single best QA model to deploy environment; retrain on full Gold dataset
+- Rank experimental models by CV RPS; promote top 4 to QA environment
+- Backtest QA models against the 2022 World Cup; report RPS and RMSE
+- Promote the single best QA model to deploy environment; refit on the full Gold dataset available at run time
 - Simulate tournament outcomes via Monte Carlo from predicted score distributions
 - Apply home advantage correction at inference time for USA, Canada, and Mexico in the 2026 WC
 - Retrain automatically when fresh data arrives from both sources
@@ -28,8 +28,8 @@
 
 | # | Model                    | Family       | Library       |
 |---|--------------------------|--------------|---------------|
-| 1 | Poisson GLM              | Statistical  | statsmodels   |
-| 2 | Negative Binomial GLM    | Statistical  | statsmodels   |
+| 1 | Poisson GLM              | Statistical  | scipy.optimize (custom MLE) |
+| 2 | Negative Binomial GLM    | Statistical  | statsmodels                 |
 | 3 | Bayesian Poisson (PyMC)  | Bayesian     | pymc          |
 | 4 | SARIMAX (ARIMAX)         | Time-Series  | statsmodels   |
 | 5 | Ridge Regression         | ML baseline  | scikit-learn  |
@@ -57,9 +57,9 @@ Match outcomes (W/D/L) are derived downstream from score distributions.
 
 ## Environment pipeline
 
-1. Experimental: all 9 models trained on Gold data (pre-2022 holdout); gate by pre-defined score threshold; max 4 advance
-2. QA: promoted models backtested against 2022 World Cup; KPIs: RPS, Brier score, outcome accuracy
-3. Deploy: best QA model retrained on full Gold dataset; serialized via MLflow pyfunc
+1. Experimental: all 9 models tuned via Optuna with walk-forward CV on pre-WC 2022 data; ranked by CV RPS; top 4 advance
+2. QA: promoted models retrained on full pre-WC 2022 data and backtested against 2022 World Cup holdout; KPIs: RPS, RMSE
+3. Deploy: best QA model refitted on the full Gold dataset available at run time (including WC 2022 and all subsequent matches); evaluation run logged separately for audit; refitted model registered and promoted in MLflow
 
 ## Threats to validity
 

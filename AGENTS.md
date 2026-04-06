@@ -20,6 +20,7 @@ This repository implements a minimal but serious MLOps pipeline for football Wor
 - pandas / numpy / scikit-learn
 - statsmodels
 - xgboost
+- keras (for LSTM and CNN candidates)
 - MLflow
 - pytest
 - Docker
@@ -57,7 +58,7 @@ This repository implements a minimal but serious MLOps pipeline for football Wor
 - Gold = one row per match, modeling-ready features
 - No future information in features
 - Keep training/inference schema stable
-- Candidate models: Poisson, Negative Binomial, XGBoost
+- Candidate models: Poisson GLM, Negative Binomial GLM, XGBoost, Bayesian Poisson, SARIMAX, Ridge, Random Forest, LSTM, CNN
 - Models predict goals / goal-distribution parameters first, not direct outcomes
 - Outcomes are derived later from score distributions and Monte Carlo simulation
 - Log all candidate runs to MLflow

@@ -16,7 +16,7 @@ Follow these rules:
 - Features must be strictly time-aware and leakage-safe.
 - Do not assume xG exists.
 - Do not reimplement Elo formulas.
-- Candidate models are Poisson, Negative Binomial, and XGBoost.
+- Candidate models are: Poisson GLM, Negative Binomial GLM, XGBoost, Bayesian Poisson, SARIMAX, Ridge, Random Forest, LSTM, CNN.
 - The modeling target is goals / score distribution behavior, not direct W-D-L classification as the main objective.
 - Match outcomes are derived later from score distributions or Monte Carlo simulation.
 - All candidate model runs should eventually log to MLflow.

@@ -39,11 +39,13 @@
 
 ### QA environment
 - promoted models are backtested against 2022 World Cup data
-- the following KPIs are computed and logged: Ranked Probability Score (RPS), Brier score, outcome accuracy
-- the single best QA model is identified and tagged for deploy promotion
+- the following KPIs are computed and logged: Ranked Probability Score (RPS) as primary metric, RMSE on predicted expected goals as secondary metric
+- the single best QA model (lowest holdout RPS) is identified; it advances to deploy only if its holdout RPS beats the current production champion (or no champion exists)
 
 ### Deploy environment
-- best model is retrained on full Gold dataset
+- best model is refitted on the full Gold dataset available at run time (pre-WC 2022 + WC 2022 + all subsequent matches)
+- refitted run is logged to MLflow with `stage=production-refit` and links back to the evaluation run via `evaluation_run_id`
+- WC 2022 holdout metrics from the evaluation phase are preserved as audit trail
 - artifact is serialized via MLflow pyfunc
 - Monte Carlo tournament simulation runs from deployed model predictions
 - simulation correctly handles the 2026 FIFA bracket (12 groups, best-8-of-12 third-placers, FIFA lookup table for R32 matchups)

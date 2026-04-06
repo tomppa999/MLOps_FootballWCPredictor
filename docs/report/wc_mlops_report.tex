@@ -222,7 +222,7 @@ Figure~\ref{fig:gantt} shows the project timeline.
     bar/.style={fill=blue!40},
     bar incomplete/.style={fill=gray!20},
     milestone/.style={fill=red!70, shape=diamond},
-    today=8,
+    today=2,
     today rule/.style={draw=red, dashed, line width=1pt},
     time slot format=isodate-yearmonth,
     compress calendar
@@ -230,16 +230,15 @@ Figure~\ref{fig:gantt} shows the project timeline.
   \gantttitlecalendar{year, month} \\
 
   % --- Phase 1 & 2 (complete) ---
-  \ganttgroup{Data Ingestion}{2026-03}{2026-03} \\
+  \ganttgroup{Data \& Features}{2026-03}{2026-03} \\
   \ganttbar{Bronze ingestion}{2026-03}{2026-03} \\
-
-  \ganttgroup{Silver Transformation}{2026-03}{2026-03} \\
   \ganttbar{Silver pipeline}{2026-03}{2026-03} \\
+  \ganttbar{Gold features}{2026-03}{2026-03} \\
+  \ganttbar{Pipeline trigger}{2026-03}{2026-03} \\
   \ganttmilestone{Prof.\ meeting \#1}{2026-03} \\
 
   % --- Phase 3 (planned) ---
-  \ganttgroup{Gold \& Modeling}{2026-04}{2026-05} \\
-  \ganttbar[bar incomplete/.style={fill=gray!20}]{Gold features}{2026-04}{2026-04} \\
+  \ganttgroup{Modeling}{2026-04}{2026-05} \\
   \ganttbar[bar incomplete/.style={fill=gray!20}]{Experimental env}{2026-04}{2026-05} \\
   \ganttbar[bar incomplete/.style={fill=gray!20}]{QA env}{2026-05}{2026-05} \\
 
@@ -248,7 +247,8 @@ Figure~\ref{fig:gantt} shows the project timeline.
   \ganttbar[bar incomplete/.style={fill=gray!20}]{Deploy env}{2026-05}{2026-05} \\
   \ganttbar[bar incomplete/.style={fill=gray!20}]{Report write-up}{2026-05}{2026-06} \\
 \end{ganttchart}
-\caption{Project Gantt chart. Weeks of 9~March (ingestion) and 16~March (Silver) are complete.
+\caption{Project Gantt chart. Bronze ingestion (9~March), Silver pipeline (16~March),
+Gold features, and pipeline trigger (31~March) are complete.
 First professor meeting was 21~March~2026. Remaining phases are planned.}
 \label{fig:gantt}
 \end{figure}
@@ -303,10 +303,39 @@ Parquet table with one row per finished match. Key transformation steps:
 
 \subsection{Silver Schema}
 
-The Silver table contains \tbd{N} columns per match, including fixture metadata,
-team identifiers and country codes, goals by period, 16 per-side statistics columns,
-pre- and post-match Elo ratings, competition tier, and the neutral venue flag.
-\tbd{Insert Silver schema table.}
+The Silver table contains 72 columns per match, organised into six groups
+(Table~\ref{tab:silver_schema}). All stat columns are \texttt{Int16} except
+possession and pass accuracy (\texttt{Float32}) and pass counts (\texttt{Int32}).
+Elo columns are \texttt{Float32}; boolean flags use pandas \texttt{boolean}
+(nullable) dtype.
+
+\begin{table}[h]
+  \centering
+  \caption{Silver layer column groups (72 total)}
+  \label{tab:silver_schema}
+  \begin{tabular}{lc}
+    \toprule
+    Column group & Count \\
+    \midrule
+    Match identity                      & 14 \\
+    Teams (API ID, canonical, ISO code, conf.) & 10 \\
+    Goals (final, HT, FT, ET, pen.)    & 10 \\
+    Elo ratings (pre \& post, both sides) & 4 \\
+    Match statistics (16 per side)      & 32 \\
+    Quality flags                       & 2  \\
+    \midrule
+    \textbf{Total}                      & \textbf{72} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The 16 per-side statistics are: shots on goal, shots off goal, total shots,
+blocked shots, shots inside/outside box, fouls, corner kicks, offsides,
+possession~\%, yellow cards, red cards, goalkeeper saves, total passes,
+accurate passes, and pass accuracy~\%.
+Quality flags encode \texttt{has\_statistics} (boolean) and
+\texttt{stats\_tier} (\texttt{full} / \texttt{partial} / \texttt{cards\_only}
+/ \texttt{none}), derived from which stat subsets are non-null.
 
 \subsection{Gold Layer}
 
@@ -409,6 +438,98 @@ inference (known bracket) and probabilistic inference (Monte Carlo sampling, whe
 override fires only for simulated paths where the host advances to that slot).
 The exact venue-to-country mapping for KO rounds depends on FIFA's published schedule and
 is treated as an approximation in Section~\ref{sec:threats}.
+
+\subsection{Ingestion Trigger}
+
+The pipeline trigger (\texttt{src.pipeline.trigger}) checks two data sources
+for freshness and executes the pipeline when at least one has new data.
+It accepts a \texttt{-{}-mode} argument: \texttt{auto} (retrain if enough new
+data, then always infer) or \texttt{inference\_only} (frozen model, predict
+and simulate only).
+
+Two freshness checks run on every invocation:
+
+\begin{enumerate}
+  \item \textbf{ELO freshness.} All team TSVs are re-downloaded to a temporary
+  directory and each file's SHA-256 digest is compared against the last stored
+  manifest. At least one digest must have changed.
+  \item \textbf{API-Football freshness.} Incremental ingestion runs with a
+  48-hour lookback window. The result must contain at least one fixture and
+  every fixture in the window must carry a settled status
+  (\texttt{FT}, \texttt{AET}, or \texttt{PEN} --- no in-progress codes such
+  as \texttt{1H}, \texttt{HT}, \texttt{2H}).
+\end{enumerate}
+
+The trigger proceeds when \emph{at least one} condition holds (OR gate).
+An earlier design required both sources to be fresh simultaneously, but this
+caused unnecessary pipeline delays when one source lagged the other --- a
+realistic scenario during international windows when Elo ratings update with
+a short delay. The Gold layer's date-based join handles alignment naturally:
+it only produces rows where both sources have data for the same match,
+so running the pipeline with one stale source is safe and never produces
+incorrect features.
+
+When only the ELO source is fresh, the trigger re-downloads the ELO TSVs
+with overwrite; when only API-Football is fresh, the ELO overwrite is skipped
+(API-Football data was already fetched as a side effect of its freshness
+check). In both cases, \texttt{dvc repro} rebuilds Silver and Gold from
+whatever upstream data is available.
+
+\textbf{Dual-schedule design.}
+Two Cloud Scheduler entries invoke the same Cloud Run Job at different
+frequencies:
+\begin{itemize}
+  \item \textbf{Pre-tournament}: daily at 04:30~UTC with
+  \texttt{-{}-mode auto}. The time is chosen to ensure that late-evening
+  Americas matches have finished and Elo ratings have been updated.
+  \item \textbf{Tournament}: every 30~minutes with
+  \texttt{-{}-mode inference\_only}, active only during the WC~2026
+  date range (June~11 -- July~19). The scheduler entry is created paused
+  and manually enabled at tournament start.
+\end{itemize}
+The Cloud Run Job runs the same Docker image and \texttt{trigger.py} entry
+point in both cases; only the \texttt{-{}-mode} argument and schedule differ.
+Secrets (API keys, DagsHub credentials) are stored in GCP Secret Manager
+and mounted as environment variables at job execution time.
+
+\subsection{Continuous Training and Inference}
+\label{sec:ct}
+
+The trigger dispatches either a full retraining cycle or inference-only,
+depending on the mode and data growth (Figure~\ref{fig:ct_architecture}).
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\columnwidth]{../figures/architecture_ct_pipeline.png}
+  \caption{Trigger, continuous training, and inference pipeline.
+  Pre-tournament: daily trigger retrains when Gold grows by 10+ matches;
+  tournament: 30-minute trigger runs inference only with frozen champion.}
+  \label{fig:ct_architecture}
+\end{figure}
+
+\textbf{Pre-tournament retraining.}
+When \texttt{mode=auto} and the Gold table has grown by at least 10 rows
+since the last training cycle, all nine candidate models are retrained on
+the updated training split, evaluated on the 2022 World Cup holdout, and
+logged to MLflow. The best candidate is promoted to Production in the MLflow
+Model Registry. Inference and Monte Carlo simulation follow immediately,
+using the newly promoted champion. If Gold grew by fewer than 10 rows, only
+inference runs. The retraining threshold and the last Gold row count are
+tracked as MLflow run parameters.
+
+\textbf{Tournament inference.}
+During the tournament, the model is frozen at the parameters established in
+the last pre-tournament retraining cycle. The 30-minute trigger runs in
+\texttt{inference\_only} mode: it loads the Production champion from the
+MLflow Model Registry, predicts upcoming matches, runs the Monte Carlo
+tournament simulation, and logs updated predictions as MLflow artifacts.
+No retraining occurs during the tournament.
+
+\textbf{Re-evaluation on WC~2022.}
+Every retraining cycle re-evaluates all candidates on the fixed 2022 World
+Cup test set. The champion model type is expected to remain stable across
+cycles; the purpose is drift detection and maintaining a complete audit trail
+in MLflow.
 
 % ============================================================
 \section{Modeling}

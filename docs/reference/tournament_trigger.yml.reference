@@ -1,0 +1,45 @@
+# Tournament Pipeline Trigger — Cloud Scheduler + Cloud Run Job reference
+#
+# Tournament mode: runs every 30 minutes with --mode inference_only.
+# Active only during WC 2026 (June 11 – July 19).
+# Created in PAUSED state; manually resumed at tournament start.
+# The Cloud Run Job is the same as the daily trigger; only the --mode
+# argument and schedule differ.
+
+# -----------------------------------------------------------------------
+# 1. Override --mode for tournament runs
+# -----------------------------------------------------------------------
+# The Cloud Run Job "football-pipeline" is shared with the daily trigger.
+# For tournament execution the scheduler overrides the container args:
+#
+# gcloud run jobs update football-pipeline \
+#   --region REGION \
+#   --args="--mode,inference_only"
+#
+# Alternatively, create a second Cloud Run Job with a fixed
+# --mode inference_only if you prefer not to mutate args between schedules.
+
+# -----------------------------------------------------------------------
+# 2. Create the Cloud Scheduler entry (one-time, paused)
+# -----------------------------------------------------------------------
+# gcloud scheduler jobs create http tournament-pipeline-trigger \
+#   --location REGION \
+#   --schedule "*/30 * * * *" \
+#   --time-zone "UTC" \
+#   --uri "https://REGION-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/PROJECT/jobs/football-pipeline:run" \
+#   --http-method POST \
+#   --oauth-service-account-email SA@PROJECT.iam.gserviceaccount.com \
+#   --description "Tournament trigger — every 30 min, mode=inference_only, Jun 11 - Jul 19" \
+#   --state paused
+
+# -----------------------------------------------------------------------
+# 3. Enable at tournament start / disable after
+# -----------------------------------------------------------------------
+# gcloud scheduler jobs resume tournament-pipeline-trigger --location REGION
+# gcloud scheduler jobs pause  tournament-pipeline-trigger --location REGION
+
+# -----------------------------------------------------------------------
+# 4. Pause the daily trigger during tournament (optional)
+# -----------------------------------------------------------------------
+# gcloud scheduler jobs pause  daily-pipeline-trigger --location REGION
+# gcloud scheduler jobs resume daily-pipeline-trigger --location REGION

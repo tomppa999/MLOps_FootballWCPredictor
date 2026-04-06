@@ -1,0 +1,36 @@
+# Daily Pipeline Trigger — Cloud Scheduler + Cloud Run Job reference
+#
+# Pre-tournament: runs daily at 04:30 UTC with --mode auto.
+# The Cloud Run Job executes the same Docker image as local development.
+# Secrets are stored in GCP Secret Manager and mounted as env vars.
+
+# -----------------------------------------------------------------------
+# 1. Create the Cloud Run Job (one-time)
+# -----------------------------------------------------------------------
+# gcloud run jobs create football-pipeline \
+#   --image REGION-docker.pkg.dev/PROJECT/REPO/football-pipeline:latest \
+#   --region REGION \
+#   --task-timeout 1800 \
+#   --max-retries 1 \
+#   --set-secrets "MLFLOW_TRACKING_URI=mlflow-tracking-uri:latest,\
+#     MLFLOW_TRACKING_USERNAME=dagshub-username:latest,\
+#     MLFLOW_TRACKING_PASSWORD=dagshub-token:latest,\
+#     API_FOOTBALL_KEY=api-football-key:latest" \
+#   --args="--mode,auto"
+
+# -----------------------------------------------------------------------
+# 2. Create the Cloud Scheduler entry (one-time)
+# -----------------------------------------------------------------------
+# gcloud scheduler jobs create http daily-pipeline-trigger \
+#   --location REGION \
+#   --schedule "30 4 * * *" \
+#   --time-zone "UTC" \
+#   --uri "https://REGION-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/PROJECT/jobs/football-pipeline:run" \
+#   --http-method POST \
+#   --oauth-service-account-email SA@PROJECT.iam.gserviceaccount.com \
+#   --description "Daily pipeline trigger — pre-tournament, 04:30 UTC, mode=auto"
+
+# -----------------------------------------------------------------------
+# 3. Manual execution (testing)
+# -----------------------------------------------------------------------
+# gcloud run jobs execute football-pipeline --region REGION

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import os
 import sys
 import time
 from datetime import datetime, timezone
@@ -21,7 +22,7 @@ BASE_TSV_URL_PATTERN = "https://eloratings.net/{slug}.tsv"
 
 REQUEST_TIMEOUT = 30
 SLEEP_SECONDS = 0.5
-OVERWRITE = False
+OVERWRITE = os.environ.get("ELO_OVERWRITE", "0") == "1"
 
 
 def sha256_file(path: Path) -> str:

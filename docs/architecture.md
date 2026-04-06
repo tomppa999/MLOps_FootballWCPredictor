@@ -49,10 +49,19 @@ Modeling-ready match-level features:
 Gold datasets used for training should be reproducible and versionable.
 
 ## Model layer
-Train and compare:
-- Poisson
-- Negative Binomial
-- XGBoost
+Train and compare 9 candidates across 5 families:
+
+| # | Model                   | Family        | Library                     |
+|---|-------------------------|---------------|-----------------------------|
+| 1 | Poisson GLM             | Statistical   | scipy.optimize (custom MLE) |
+| 2 | Negative Binomial GLM   | Statistical   | statsmodels                 |
+| 3 | Bayesian Poisson (PyMC) | Bayesian      | pymc          |
+| 4 | SARIMAX (ARIMAX)        | Time-Series   | statsmodels   |
+| 5 | Ridge Regression        | ML baseline   | scikit-learn  |
+| 6 | Random Forest           | ML ensemble   | scikit-learn  |
+| 7 | XGBoost                 | ML boosting   | xgboost       |
+| 8 | LSTM                    | Deep Learning | keras         |
+| 9 | 1D CNN                  | Deep Learning | keras         |
 
 All models should share a common training/evaluation interface where practical.
 
@@ -66,6 +75,12 @@ A model can only be promoted if:
 - schema checks pass
 - training succeeds
 - evaluation beats the current production baseline on the chosen primary metric
+
+After selection, the winning model type and hyperparameters are refitted on
+the full Gold dataset available at run time. The refitted model is the
+artifact that gets registered and promoted to Production in the MLflow model
+registry. The evaluation run that justified the selection is linked via an
+`evaluation_run_id` parameter on the production-refit run.
 
 ## Deployment
 Use code-based deployment:

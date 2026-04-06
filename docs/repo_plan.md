@@ -13,27 +13,32 @@
 6. implement Silver cleaning and standardization
 7. add tests and validation checks
 
-### Phase 3 — Gold, modeling, and environments
-8. implement Gold match-level feature engineering
-   - rolling form, Elo diff, competition tier, is_knockout, is_neutral, home advantage flag
-   - strictly time-aware; no leakage
-9. define dvc.yaml pipeline (raw → silver → gold) in one pass once Gold is validated
-10. implement common model training interface (one entry point per model family)
-11. add MLflow logging for all experimental runs
-12. compute and log permutation feature importance per model
-13. implement experimental gate (pre-defined threshold, max 4 promoted)
-14. implement QA backtesting against 2022 World Cup (RPS, Brier, outcome accuracy)
-15. implement deploy retraining on full Gold + MLflow pyfunc serialization
+### Phase 3 — Gold, modeling, and environments (Gold + trigger complete)
+8. ~~implement Gold match-level feature engineering~~ (complete)
+9. ~~define dvc.yaml pipeline (raw → silver → gold)~~ (complete)
+10. ~~implement daily pipeline trigger with dual-source freshness checks~~ (complete)
+11. ~~change trigger freshness gate from AND to OR; add --mode CLI arg~~ (complete)
+12. ~~implement common model training interface (one entry point per model family)~~ (complete)
+13. ~~add MLflow logging for all experimental runs~~ (complete)
+14. ~~compute and log permutation feature importance per model~~ (complete)
+15. ~~implement experimental gate (pre-defined threshold, max 4 promoted)~~ (complete)
+16. ~~implement QA backtesting against 2022 World Cup (RPS primary, RMSE secondary)~~ (complete)
+17. ~~implement deploy retraining on full Gold + MLflow pyfunc serialization~~ (complete)
+18. ~~implement continuous training dispatch in trigger (retrain on 10+ new gold rows, inference-only otherwise)~~ (complete)
+19. freeze model at tournament start; inference-only mode during WC
+
+### Phase 3.5 — GCP Cloud Run and MLflow remote
+20. set up DagsHub MLflow tracking as remote
+21. set up GCP project, Artifact Registry, Secret Manager
+22. fix Dockerfile entrypoint, build and push Docker image
+23. create Cloud Run Job + two Cloud Scheduler entries (daily 4:30 UTC + tournament every 30 min)
+24. test end-to-end trigger via manual Cloud Run Job execution
 
 ### Phase 4 — Simulation, deployment, monitoring
-16. implement Monte Carlo tournament simulation
+24. implement Monte Carlo tournament simulation
     - handle 2026 FIFA bracket (12 groups, best-8-of-12 third-placers, R32 lookup table)
     - apply home advantage correction for USA/CAN/MEX group stage
-17. containerize pipeline jobs
-18. define scheduled refresh/retrain flow
-19. add monitoring outputs (drift, performance)
-20. optionally connect DVC remote to DagsHub
-21. prepare cloud deployment (Cloud Run Jobs + Cloud Scheduler)
+25. add monitoring outputs (drift, performance)
 
 ## Design rules
 - local-first
