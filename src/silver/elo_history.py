@@ -198,6 +198,7 @@ def _resolve_elo_code(
         return None
     ranges = code_ranges.get(country_code)
     if not ranges:
+        logger.warning("No elo_code mapping found for country_code=%r on %s", country_code, match_date.date())
         return None
     for valid_from, valid_to, elo_code in ranges:
         from_ok = valid_from is None or match_date >= valid_from

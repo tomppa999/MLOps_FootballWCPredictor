@@ -65,6 +65,7 @@ def build_url(slug: str) -> str:
 
 
 def download_file(url: str, target_path: Path) -> tuple[bool, int | None, str]:
+    tmp_path = target_path.with_suffix(".tsv.tmp")
     try:
         response = requests.get(url, timeout=REQUEST_TIMEOUT)
         status_code = response.status_code
@@ -76,11 +77,15 @@ def download_file(url: str, target_path: Path) -> tuple[bool, int | None, str]:
         if not content.strip():
             return False, status_code, "Empty response body"
 
-        target_path.write_bytes(content)
+        tmp_path.write_bytes(content)
+        tmp_path.rename(target_path)
         return True, status_code, "ok"
 
     except requests.RequestException as e:
         return False, None, f"Request failed: {e}"
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink()
 
 
 def ensure_output_dir(path: Path) -> None:
@@ -118,8 +123,6 @@ def manifest_rows(slugs: Iterable[str]) -> list[dict[str, str]]:
         else:
             file_hash = ""
             status = "failed"
-            if file_path.exists():
-                file_path.unlink()
 
         rows.append(
             {
