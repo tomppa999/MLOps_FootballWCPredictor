@@ -60,7 +60,7 @@ ROLLING_SHOT_COLUMNS: Final[list[str]] = [
     "away_team_rolling_conversion",
 ]
 
-# Rolling tactical profile columns (5 stats x 2 sides) used as clustering input
+# Rolling tactical profile columns (5 stats x 2 sides) — direct model features
 ROLLING_TACTICAL_COLUMNS: Final[list[str]] = [
     f"{side}_team_rolling_tac_{suffix}"
     for side in ("home", "away")
@@ -71,13 +71,6 @@ ROLLING_TACTICAL_COLUMNS: Final[list[str]] = [
         "corner_kicks",
         "possession_pct",
     )
-]
-
-TACTICAL_CLUSTER_COLUMNS: Final[list[str]] = [
-    "home_tactical_cluster",
-    "away_tactical_cluster",
-    "home_tactical_cluster_dist",
-    "away_tactical_cluster_dist",
 ]
 
 TARGET_COLUMNS: Final[list[str]] = [
@@ -94,7 +87,6 @@ GOLD_COLUMNS: Final[list[str]] = (
     + ROLLING_GOALS_COLUMNS
     + ROLLING_SHOT_COLUMNS
     + ROLLING_TACTICAL_COLUMNS
-    + TACTICAL_CLUSTER_COLUMNS
     + TARGET_COLUMNS
 )
 
@@ -105,7 +97,6 @@ FEATURE_COLUMNS: Final[list[str]] = (
     + ROLLING_GOALS_COLUMNS
     + ROLLING_SHOT_COLUMNS
     + ROLLING_TACTICAL_COLUMNS
-    + TACTICAL_CLUSTER_COLUMNS
 )
 
 # ---------------------------------------------------------------------------
@@ -135,10 +126,6 @@ GOLD_DTYPES: Final[dict[str, str]] = {
     "away_team_rolling_shot_accuracy": "Float64",
     "away_team_rolling_conversion": "Float64",
     **{col: "Float64" for col in ROLLING_TACTICAL_COLUMNS},
-    "home_tactical_cluster": "Int8",
-    "away_tactical_cluster": "Int8",
-    "home_tactical_cluster_dist": "Float64",
-    "away_tactical_cluster_dist": "Float64",
     "home_goals": "Int16",
     "away_goals": "Int16",
 }

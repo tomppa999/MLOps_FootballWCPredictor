@@ -110,13 +110,56 @@ Section~\ref{sec:conclusion} concludes.
 
 \subsection{From DevOps to MLOps}
 
-MLOps is a natural evolution of DevOps practices applied to machine learning systems.
-While DevOps unifies software development and IT operations through Continuous Integration
-(CI) and Continuous Delivery (CD)~\cite{ossara2023}, MLOps extends this with Continuous
-Training (CT): the automated retraining of models as new data becomes available.
-Google's MLOps maturity model~\cite{google_mlops} defines three automation levels;
-this project targets Level~1, where data and model pipelines are partially automated
-and experiments are tracked systematically.
+MLOps can be understood from three complementary perspectives~\cite{moreschini2022mlops}.
+
+\textbf{Evolution from DevOps.}
+MLOps extends the DevOps infinite loop --- plan, code, build, test, release, deploy,
+operate, monitor --- with ML-specific steps: data exploration, feature engineering, model
+validation, and experiment optimisation. Continuous Integration and Continuous Delivery
+are retained, and a third practice unique to ML systems is added: Continuous Training
+(CT), the automated retraining of models as new data becomes available~\cite{ossara2023}.
+
+\textbf{Automation level perspective (Google).}
+Google's MLOps maturity model~\cite{google_mlops} defines three automation levels.
+At Level~0, every step --- data preparation, training, evaluation --- is executed manually
+with no pipeline automation. At Level~1, the ML pipeline itself is automated and models
+are retrained continuously on fresh data; components are reusable and composable across
+pipelines. At Level~2, the pipeline's CI/CD system is fully automated, including automated
+triggering and model deployment. This project targets \textbf{Level~1}: the data-to-Gold
+pipeline is orchestrated via DVC, all candidate models are trained through a common
+interface, experiment tracking is automated via MLflow, and a scheduled trigger handles
+retraining and inference. Full CI/CD automation of the pipeline code itself (Level~2) is
+out of scope for a single-tournament deployment.
+
+\textbf{Tools-oriented perspective (Databricks).}
+Databricks defines MLOps as the union of three operational domains:
+$\text{MLOps} = \text{DevOps} + \text{DataOps} + \text{ModelOps}$~\cite{databricks_mlops}.
+DataOps covers data management and reproducibility; ModelOps covers model lifecycle
+management, deployment, and governance. The OSSARA case study~\cite{ossara2023} provides
+a concrete instantiation of this decomposition. In this project, \textbf{DVC} implements
+DataOps --- versioning raw snapshots, Silver Parquet files, and Gold artifacts --- and
+\textbf{MLflow} implements ModelOps --- tracking all training runs, logging metrics and
+artifacts, and managing model promotion through the registry. Git provides the underlying
+DevOps layer. DagsHub is planned as the remote coordination layer that unifies DVC and
+MLflow under a single interface.
+
+\subsection{Code-Based vs.\ Model-Based Deployment}
+
+In model-based deployment, a trained model artifact is promoted from development to
+staging to production. This is straightforward but does not support automated end-to-end
+retraining: the artifact is frozen at the time of promotion, and retraining requires
+manual intervention~\cite{databricks_bigbook}. In code-based deployment, the training
+pipeline itself is promoted, and models are retrained in each environment on progressively
+larger data: a limited subset in staging and the full production dataset in production.
+This enables safe automated retraining while respecting data access boundaries.
+
+This pipeline follows the code-based approach. The three environments share identical
+training code; what advances between them is not a frozen artifact but a validated pipeline
+configuration. In the Experimental environment, all nine candidate models are trained on
+the pre-2022 training split. In QA, promoted candidates are retrained on the same split
+and evaluated on the held-out 2022 World Cup. In Deploy, the selected model is retrained
+on the full Gold dataset available at run time. The retraining threshold and Gold row count
+are logged as MLflow run parameters, providing a complete audit trail across cycles.
 
 \subsection{Football Score Modeling}
 
@@ -188,22 +231,24 @@ Model development follows a structured three-environment pipeline:
 
 \begin{table}[h]
   \centering
-  \caption{Approved tool stack}
+  \caption{Tool stack}
   \begin{tabular}{ll}
     \toprule
     Purpose & Tool \\
     \midrule
-    Data pipeline & Python, pandas, numpy \\
+    Data pipeline & Python, pandas, numpy, scipy \\
     Statistical models & statsmodels \\
     Bayesian modeling & PyMC \\
+    Hyperparameter tuning & Optuna \\
     ML models & scikit-learn, XGBoost \\
-    Deep learning & Keras / TensorFlow \\
+    Deep learning & Keras 3 (JAX backend) \\
     Experiment tracking & MLflow \\
     Data \& artifact versioning & DVC \\
     Code versioning & Git \\
+    Testing & pytest \\
     Containerization & Docker \\
-    Remote collaboration & DagsHub (planned) \\
-    Cloud deployment & Cloud Run Jobs (planned) \\
+    Remote collaboration & DagsHub \\
+    Cloud deployment & Cloud Run Jobs \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -212,12 +257,12 @@ Model development follows a structured three-environment pipeline:
 
 Figure~\ref{fig:gantt} shows the project timeline.
 
-\begin{figure}[h]
+\begin{figure*}[t]
 \centering
 \begin{ganttchart}[
     hgrid,
     vgrid,
-    x unit=0.55cm,
+    x unit=0.18cm,
     y unit title=0.5cm,
     y unit chart=0.6cm,
     title/.style={fill=gray!30},
@@ -227,33 +272,40 @@ Figure~\ref{fig:gantt} shows the project timeline.
     bar/.style={fill=blue!40},
     bar incomplete/.style={fill=gray!20},
     milestone/.style={fill=red!70, shape=diamond},
-    time slot format=isodate-yearmonth
-  ]{2026-03}{2026-07}
-  \gantttitlecalendar{year, month} \\
+    time slot format=isodate
+  ]{2026-03-09}{2026-05-17}
+  \gantttitle{March}{23}\gantttitle{April}{30}\gantttitle{May}{17} \\
+  \gantttitle{9}{7}\gantttitle{16}{7}\gantttitle{23}{7}\gantttitle{30}{7}%
+  \gantttitle{6}{7}\gantttitle{13}{7}\gantttitle{20}{7}\gantttitle{27}{7}%
+  \gantttitle{4}{7}\gantttitle{11}{7} \\
 
-  % --- Phase 1 & 2 (complete) ---
-  \ganttgroup{Data \& Features}{2026-03}{2026-03} \\
-  \ganttbar{Bronze ingestion}{2026-03}{2026-03} \\
-  \ganttbar{Silver pipeline}{2026-03}{2026-03} \\
-  \ganttbar{Gold features}{2026-03}{2026-03} \\
-  \ganttbar{Pipeline trigger}{2026-03}{2026-03} \\
-  \ganttmilestone{Prof.\ meeting \#1}{2026-03} \\
+  % --- Data & Features (complete) ---
+  \ganttgroup{Data \& Features}{2026-03-09}{2026-03-31} \\
+  \ganttbar{Bronze ingestion}{2026-03-09}{2026-03-15} \\
+  \ganttbar{Silver pipeline}{2026-03-16}{2026-03-20} \\
+  \ganttmilestone{Prof.\ meeting \#1}{2026-03-20} \\
+  \ganttbar{Gold features}{2026-03-23}{2026-03-31} \\
 
-  % --- Phase 3 (planned) ---
-  \ganttgroup{Modeling}{2026-04}{2026-05} \\
-  \ganttbar[bar incomplete/.style={fill=gray!20}]{Experimental env}{2026-04}{2026-05} \\
-  \ganttbar[bar incomplete/.style={fill=gray!20}]{QA env}{2026-05}{2026-05} \\
+  % --- Modeling & Infrastructure (complete) ---
+  \ganttgroup{Modeling \& Infrastructure}{2026-03-30}{2026-04-06} \\
+  \ganttbar{Experimental env}{2026-03-30}{2026-04-06} \\
+  \ganttbar{Pipeline trigger}{2026-03-30}{2026-04-06} \\
+  \ganttbar{QA env}{2026-04-01}{2026-04-06} \\
+  \ganttbar{Deploy env}{2026-04-03}{2026-04-06} \\
 
-  % --- Phase 4 (planned) ---
-  \ganttgroup{Deployment \& Report}{2026-05}{2026-06} \\
-  \ganttbar[bar incomplete/.style={fill=gray!20}]{Deploy env}{2026-05}{2026-05} \\
-  \ganttbar[bar incomplete/.style={fill=gray!20}]{Report write-up}{2026-05}{2026-06} \\
+  % --- Simulation (planned) ---
+  \ganttgroup{Simulation}{2026-04-13}{2026-04-19} \\
+  \ganttbar[bar incomplete/.style={fill=gray!20}]{MC simulation}{2026-04-13}{2026-04-19} \\
+
+  % --- Report (continuous) ---
+  \ganttbar{Report write-up}{2026-03-09}{2026-05-17} \\
 \end{ganttchart}
-\caption{Project Gantt chart. Bronze ingestion (9~March), Silver pipeline (16~March),
-Gold features, and pipeline trigger (31~March) are complete.
-First professor meeting was 21~March~2026. Remaining phases are planned.}
+\caption{Project timeline (weekly granularity). Data and features pipeline complete by
+31~March~2026. All modeling environments and pipeline trigger implemented week of
+6~April~2026. Monte Carlo simulation planned for week of 13~April. Report write-up
+is ongoing throughout. First professor meeting: 20~March~2026.}
 \label{fig:gantt}
-\end{figure}
+\end{figure*}
 
 % ============================================================
 \section{Data Pipeline}
@@ -294,8 +346,11 @@ Parquet table with one row per finished match. Key transformation steps:
   and ISO country codes via a curated mapping CSV.
   \item \textbf{Filters}: youth squads (e.g.\ \texttt{U21}), B-squads, club teams, and
   non-FIFA entities are removed.
-  \item \textbf{Competition tier}: leagues are assigned a tier (1–3) and a binary
+  \item \textbf{Competition tier}: leagues are assigned a tier (1–4) and a binary
   \texttt{is\_knockout} flag using a mapping of competition names and date-based overrides.
+  Tier~1 = FIFA World Cup; Tier~2 = continental finals (EURO, Copa América, AFCON, Asian Cup,
+  Gold Cup, etc.); Tier~3 = World Cup and continental qualifiers, Nations Leagues;
+  Tier~4 = international friendlies (default for unmapped league IDs).
   \item \textbf{Elo join}: pre-match Elo ratings for both teams are joined by date-proximate
   lookup (\texttt{merge\_asof}); the \texttt{is\_neutral} flag is sourced from the Elo
   venue column with a heuristic fallback.
@@ -366,39 +421,35 @@ It is produced by \texttt{src.gold.build\_gold} with the following transformatio
   (\texttt{shot\_precision}) recovers two genuinely independent attacking signals.
   Opponent-suffered statistics (e.g.\ shots conceded) were considered but excluded:
   they confound the team's own tactical style with the quality of opponents faced in
-  the rolling window, and the per-side cluster interaction is captured downstream by
-  the model, which receives both \texttt{home\_tactical\_cluster} and
-  \texttt{away\_tactical\_cluster} as separate features.
+  the rolling window.
   Other detailed columns (e.g.\ \texttt{shots\_insidebox}, \texttt{total\_passes}) are
   excluded due to sparse availability in the \texttt{partial} stats tier
   ($\sim$1.6\% non-null).
+  These ten columns (five statistics $\times$ two sides) are used directly as continuous
+  model features.
 
-  \item \textbf{Tactical clustering}: \texttt{StandardScaler} + \texttt{KMeans}
-  is fitted epoch-based on all non-NaN tactical profiles, then applied to every row.
-  Gold receives four cluster columns: cluster label (\texttt{Int8}) and Euclidean
-  distance to assigned centroid (scaled space) for each side.  Rows with
-  incomplete profiles receive NaN.  The number of clusters $k$ is determined
-  empirically via silhouette analysis and the elbow method for $k = 2\ldots10$
-  (Figure~\ref{fig:cluster_k}).  With the original six-column profile (including 
-  \texttt{shots\_on\_goal}, \texttt{shots\_off\_goal}, and \texttt{total\_shots} as 
-  three separate features), silhouette scores peaked sharply at $k=2$ ($\approx 0.32$) 
-  and declined monotonically, suggesting that the redundant shot features dominated the 
-  clustering geometry and reduced all structure to a single high-volume versus low-volume 
-  axis. After replacing the three collinear shot columns with volume and precision, the
-  silhouette curve changes qualitatively: the artificial peak at $k=2$ drops
-  from $\approx 0.32$ to $\approx 0.27$, and the curve is no longer monotone ---
-  it dips at $k=3$ ($\approx 0.19$) before recovering to a local maximum at
-  $k=4$ ($\approx 0.20$), then declining steadily.  The elbow
-  method shows its clearest bend at $k=5$.  We therefore select $k = 4$: it corresponds 
-  to the silhouette local maximum ($\approx 0.20$), lies one step before the elbow at 
-  $k = 5$, and provides the best balance between cluster cohesion and interpretable 
-  granularity without overfitting the geometry to noise.
+  \item \textbf{Tactical clustering (investigated, not used)}: \texttt{StandardScaler}
+  + \texttt{KMeans} clustering on the five rolling tactical columns was evaluated as a
+  way to add discrete play-style labels to Gold.  Silhouette and elbow analysis was
+  run for $k = 2\ldots10$ across five variants: the full five-column profile, a
+  three-column core (\texttt{possession\_pct}, \texttt{total\_shots}, \texttt{fouls}),
+  a two-column style proxy (\texttt{possession\_pct}, \texttt{shot\_precision}), and
+  PCA reductions to two and three components (Figure~\ref{fig:cluster_k}).
+  No variant exceeded a silhouette score of $0.40$; the dominant variance axis across
+  all variants was a single volume-and-dominance continuum, not a set of discrete
+  tactical archetypes.  This is consistent with rolling averages being computed across
+  opponents of varying quality: a team's observed possession or shot count in a
+  particular rolling window reflects opponent strength as much as it does the team's
+  own style, smoothing out any genuine tactical signal.  Given these results, cluster
+  labels were not added to Gold; the ten rolling tactical columns are retained as
+  direct continuous features.
 
   \item \textbf{Elo differential}: \texttt{elo\_diff} = \texttt{home\_elo\_pre}
   $-$ \texttt{away\_elo\_pre}. This is the column that represents who is the favorite in 
   a given match based on both teams' match history.
 
-  \item \textbf{Context features}: \texttt{competition\_tier} (1--4),
+  \item \textbf{Context features}: \texttt{competition\_tier} (1 = World Cup finals,
+  2 = continental finals, 3 = qualifiers/Nations Leagues, 4 = friendlies),
   \texttt{is\_knockout}, \texttt{is\_neutral}.  For 2026 WC group-stage matches
   where a host nation plays at home, \texttt{is\_neutral} is overridden to
   \texttt{False}.
@@ -411,16 +462,15 @@ It is produced by \texttt{src.gold.build\_gold} with the following transformatio
   its feature vector.
 \end{itemize}
 
-\tbd{NOT UP TO DATE; REPLACE WITH NEW PLOT; REWRITE TWO TACTICAL SUBSECTIONS; EXPLAIN WHY TACTICAL CLUSTERING WAS NOT USED; HOW THE COLUMNS WERE VERY RAW PROXIES; HOW ROLLING AVGS FROM MATCHES AGAINST WEAKER AND STRONGER TEAMS SMOOTHEN OUT}
-
 \begin{figure}[h]
   \centering
-  \includegraphics[width=\columnwidth]{../figures/cluster_k_selection.png}
-  \caption{Elbow method (inertia) and silhouette analysis for $k = 2\ldots10$
-  on the 5-column rolling tactical profile (total shots, shot precision, fouls,
-  corner kicks, possession).  The elbow bends most sharply at $k=5$;
-  the silhouette curve has a local maximum at $k=4$ ($\approx 0.20$) after a dip
-  at $k=3$.  We select $k=4$.}
+  \includegraphics[width=\columnwidth]{../figures/cluster_experiment_v2.png}
+  \caption{Elbow (top) and silhouette (bottom) analysis for $k = 2\ldots10$
+  across five column-subset and PCA variants of the rolling tactical profile.
+  No variant exceeds a silhouette score of $0.40$; all variants peak at $k=2$
+  or $k=3$, reflecting a single dominance axis rather than discrete tactical
+  archetypes.  Clustering was therefore not included in Gold; the raw rolling
+  tactical columns are used as direct continuous features.}
   \label{fig:cluster_k}
 \end{figure}
 
@@ -591,20 +641,21 @@ Variational inference (ADVI) is used as a faster approximation during experiment
 \subsection{Hypotheses}
 
 \begin{description}
-  \item[H1] \textbf{Poisson GLM as a competitive baseline.}
+  \item[H1] \textbf{Elo differential is the dominant feature across model families.}
+  Elo ratings encode cumulative historical performance and are the most information-dense
+  single feature available without squad-level data. Permutation importance is expected to
+  rank \texttt{elo\_diff} first across most or all model families, with competition tier
+  and rolling form as secondary contributors.
+
+  \item[H2] \textbf{Poisson GLM as a competitive baseline.}
   Football goal counts are well-approximated by Poisson processes~\cite{dixon1997modelling}.
   The Poisson GLM is expected to perform competitively despite its simplicity, providing
   a meaningful floor for more complex models.
 
-  \item[H2] \textbf{XGBoost captures non-linear interactions.}
+  \item[H3] \textbf{XGBoost captures non-linear interactions.}
   Elo differential, competition tier, and rolling form may interact in non-linear ways
   that GLMs cannot capture. XGBoost is expected to outperform linear models by exploiting
   these interactions.
-
-  \item[H3] \textbf{SARIMAX captures temporal momentum.}
-  Teams on multi-match winning or losing streaks may carry serial correlation in their
-  goal output beyond what rolling features encode. SARIMAX is expected to capture
-  residual temporal structure not available to cross-sectional models.
 
   \item[H4] \textbf{Deep learning models underperform relative to complexity.}
   LSTM and 1D CNN require substantial sequence data to generalize. National team datasets
@@ -641,11 +692,34 @@ The 2022 FIFA World Cup (2022-11-20 to 2022-12-18, 89 matches) is held out
 as a strict test set for QA evaluation and is never seen during training or
 cross-validation.
 
+\subsection{Evaluation Metric: Ranked Probability Score}
+
+The Ranked Probability Score (RPS) for a single match with $K$ ordered outcome
+categories is defined as
+\begin{equation}
+  \text{RPS} = \frac{1}{K-1} \sum_{k=1}^{K-1}
+  \left( \sum_{i=1}^{k} p_i - \sum_{i=1}^{k} o_i \right)^2
+\end{equation}
+where $p_i$ is the predicted probability and $o_i \in \{0,1\}$ is the observed
+indicator for outcome $i$, with outcomes ordered away win, draw, home win ($K=3$).
+Lower RPS is better; a perfect prediction scores 0. Unlike accuracy or log-loss, RPS
+penalises predictions that assign probability mass to outcomes far from the true result,
+making it well-suited for evaluating probabilistic forecasts over ordered categories.
+Match-level RPS values are averaged across all matches to yield a single summary score.
+
+\subsection{Hyperparameter Tuning}
+
+Hyperparameters are tuned per model using Optuna's Tree-structured Parzen Estimator
+(TPE) sampler with 50 trials. Each trial evaluates a candidate configuration via
+walk-forward cross-validation on the training set and reports mean CV RPS as the
+objective. Every trial is logged to MLflow as a nested run under the parent tuning run,
+creating a full search audit trail. The best configuration found by Optuna is used for
+the final experimental evaluation and all downstream environments.
+
 \subsection{Promotion Gate}
 
-The experimental promotion gate selects the top four candidates by walk-forward 
-cross-validation RPS. RPS is appropriate for ordered multi-class outcomes (home win / 
-draw / away win) derived from score distributions.
+The experimental promotion gate selects the top four candidates by walk-forward
+cross-validation RPS using their Optuna-tuned hyperparameters.
 
 \subsection{QA Evaluation — 2022 World Cup Backtest}
 
@@ -688,11 +762,13 @@ comparison across model families, (5) key figures: metric bar chart, feature imp
 \label{sec:discussion}
 
 \tbd{Discuss:
-- which hypotheses held?
-- which were refuted, and why? 
-- Discuss feature importance findings and their alignment with football domain knowledge (Elo differential expected as
-\#1; competition tier, rolling form as secondary). 
+- H1: did elo\_diff rank first in permutation importance across model families?
+- H2: was Poisson GLM competitive relative to more complex models?
+- H3: did XGBoost outperform linear models, and which interactions mattered?
+- H4: did LSTM and CNN underperform as expected given dataset sparsity?
+- H5: was Bayesian Poisson better calibrated than frequentist alternatives?
 - Discuss PyMC calibration vs.\ GLM.
+- Discuss SARIMAX results without directional expectation.
 - Discuss LSTM/CNN sample size limitations.}
 
 \subsection{Threats to Validity}
@@ -736,9 +812,11 @@ staleness of rolling features computed across long breaks.
 \textbf{Squad and coaching composition.}
 Roster turnover between qualification campaigns and the tournament itself is unmodeled.
 Coaching changes can alter a team's tactical identity substantially; coach identity
-was considered as a feature but excluded in favour of capturing tactical patterns through
-unsupervised play-style clustering. A coaching change close to a tournament is a known
-model weakness.
+was considered as a feature but excluded.  Tactical patterns are approximated instead
+by rolling averages of observable statistics (possession, shots, fouls, corners), which
+are acknowledged proxies: because these averages are computed across opponents of varying
+quality, they reflect opponent strength as much as the team's own style.
+A coaching change close to a tournament is a known model weakness.
 
 \textbf{2026 FIFA bracket format.}
 The 2026 FIFA World Cup introduces an expanded format of 48 teams across 12 groups, which adds

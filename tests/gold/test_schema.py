@@ -53,9 +53,6 @@ class TestColumnConsistency:
         assert "home_team_match_index" in GOLD_COLUMNS
         assert "away_team_match_index" in GOLD_COLUMNS
 
-    def test_tactical_cluster_columns_present(self):
-        assert "home_tactical_cluster" in GOLD_COLUMNS
-        assert "away_tactical_cluster_dist" in GOLD_COLUMNS
 
 
 class TestValidation:

@@ -1,7 +1,7 @@
 """Build the Gold matches table from Silver.
 
 Usage:
-    python -m src.gold.build_gold [--data-root DATA_ROOT] [--n-clusters N]
+    python -m src.gold.build_gold [--data-root DATA_ROOT]
 
 Reads:
     data/silver/matches/season=YYYY/part-0.parquet (or .csv fallback)
@@ -16,18 +16,11 @@ import argparse
 import logging
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from src.gold.context_features import add_elo_diff, override_neutral_for_2026_hosts
 from src.gold.rolling_features import compute_rolling_features
 from src.gold.schema import GOLD_COLUMNS, apply_gold_dtypes, validate_gold
-from src.gold.tactical_clustering import (
-    TACTICAL_PROFILE_COLUMNS_HOME,
-    TACTICAL_PROFILE_COLUMNS_AWAY,
-    assign_tactical_clusters,
-    fit_tactical_clusters,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -62,21 +55,7 @@ def load_silver(silver_dir: Path) -> pd.DataFrame:
     return df
 
 
-def _extract_clustering_profiles(df: pd.DataFrame) -> np.ndarray:
-    """Extract non-NaN tactical profiles (home + away) for clustering fit."""
-    from src.gold.rolling_features import TACTICAL_STAT_SUFFIXES
-
-    home = df[TACTICAL_PROFILE_COLUMNS_HOME].rename(
-        columns=dict(zip(TACTICAL_PROFILE_COLUMNS_HOME, TACTICAL_STAT_SUFFIXES))
-    )
-    away = df[TACTICAL_PROFILE_COLUMNS_AWAY].rename(
-        columns=dict(zip(TACTICAL_PROFILE_COLUMNS_AWAY, TACTICAL_STAT_SUFFIXES))
-    )
-    combined = pd.concat([home, away], ignore_index=True).dropna()
-    return combined.values
-
-
-def build_gold(df: pd.DataFrame, n_clusters: int = 4) -> pd.DataFrame:
+def build_gold(df: pd.DataFrame) -> pd.DataFrame:
     """Transform a Silver DataFrame into a Gold DataFrame."""
     df = df.copy()
 
@@ -101,22 +80,6 @@ def build_gold(df: pd.DataFrame, n_clusters: int = 4) -> pd.DataFrame:
     logger.info("Adding context features...")
     df = add_elo_diff(df)
     df = override_neutral_for_2026_hosts(df)
-
-    # Tactical clustering (epoch-based: fit on all available profiles, then assign)
-    logger.info("Fitting tactical clusters (k=%d)...", n_clusters)
-    profiles = _extract_clustering_profiles(df)
-    if len(profiles) >= n_clusters:
-        pipeline = fit_tactical_clusters(profiles, n_clusters=n_clusters)
-        df = assign_tactical_clusters(df, pipeline)
-    else:
-        logger.warning(
-            "Only %d profiles available, skipping clustering (need >= %d)",
-            len(profiles), n_clusters,
-        )
-        for col in ["home_tactical_cluster", "away_tactical_cluster"]:
-            df[col] = pd.array([pd.NA] * len(df), dtype="Int8")
-        for col in ["home_tactical_cluster_dist", "away_tactical_cluster_dist"]:
-            df[col] = np.nan
 
     # Select and reorder to Gold schema
     for col in GOLD_COLUMNS:
@@ -159,19 +122,13 @@ def main() -> None:
         default=None,
         help="Output path (default: <data-root>/gold/matches.parquet)",
     )
-    parser.add_argument(
-        "--n-clusters",
-        type=int,
-        default=4,
-        help="Number of tactical clusters (default: 4)",
-    )
     args = parser.parse_args()
 
     silver_dir = args.data_root / "silver" / "matches"
     output_path = args.output or (args.data_root / "gold" / "matches.parquet")
 
     df = load_silver(silver_dir)
-    gold = build_gold(df, n_clusters=args.n_clusters)
+    gold = build_gold(df)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     gold.to_parquet(output_path, index=False, engine="pyarrow")

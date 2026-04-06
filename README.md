@@ -7,7 +7,7 @@ Build a level-1-style MLOps pipeline that:
 - ingests football and Elo data
 - builds Bronze / Silver / Gold layers
 - engineers time-aware features
-- trains Poisson, Negative Binomial, and XGBoost models
+- trains several models (Poisson GLM, Negative Binomial GLM, XGBoost, Bayesian Poisson, SARIMAX, Ridge, Random Forest, LSTM, CNN)
 - compares them in MLflow
 - promotes the best validated model
 - supports code-based deployment and tournament simulation

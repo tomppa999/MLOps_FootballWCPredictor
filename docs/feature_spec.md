@@ -59,23 +59,14 @@ stats tiers (~50% of matches). Detailed columns (`shots_insidebox`,
 `blocked_shots`) are excluded due to poor availability in the `partial` tier
 (~1.6% non-null).
 
-### Tactical clustering
+### Tactical clustering (dropped)
 
-KMeans clustering on the 6-column rolling tactical profile, using epoch-based
-fitting: the model is fit once on all available non-NaN profiles and applied to
-every row. This avoids future leakage in the clustering labels while
-acknowledging the simplification of using a single epoch for the scaler/centroid
-fit (see Threats to Validity).
-
-**Cluster features in Gold:**
-- `home_tactical_cluster` / `away_tactical_cluster` — Int8 cluster label
-- `home_tactical_cluster_dist` / `away_tactical_cluster_dist` — Euclidean distance to assigned centroid in scaled space
-
-Rows with NaN profiles receive NaN for both cluster label and distance.
-
-**k selection:** determined empirically via silhouette + elbow analysis for
-k = 2..10 (`python -m src.gold.cluster_experiment`), with results logged in
-`docs/figures/cluster_k_selection.png`.
+KMeans clustering on rolling tactical profiles was investigated but dropped.
+Silhouette analysis across five column-subset and PCA variants (see
+`src/gold/cluster_experiment_v2.py`, `docs/figures/cluster_experiment_v2.png`)
+showed all silhouette scores below 0.40 and no variant producing well-separated
+clusters at any interpretable k. The rolling tactical profile columns are used
+directly as continuous features instead.
 
 ### Time-series support
 
