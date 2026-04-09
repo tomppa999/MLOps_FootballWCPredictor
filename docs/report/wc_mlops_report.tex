@@ -71,7 +71,7 @@ Monte Carlo simulation, data pipeline, feature engineering
 Predicting the outcome of football matches has attracted substantial academic interest,
 largely following the seminal work of Dixon and Coles~\cite{dixon1997modelling}, who
 demonstrated that match scores can be approximated as independent Poisson processes
-conditioned on team-level attack and defence strength parameters. 
+conditioned on team-level attack and defense strength parameters. 
 
 While club football benefits from dense weekly data, national team prediction poses its own
 distinct challenges: squads rotate more often, matches occur only during a few international 
@@ -113,15 +113,15 @@ Section~\ref{sec:conclusion} concludes.
 MLOps can be understood from three complementary perspectives~\cite{moreschini2022mlops}.
 
 \textbf{Evolution from DevOps.}
-MLOps extends the DevOps infinite loop --- plan, code, build, test, release, deploy,
-operate, monitor --- with ML-specific steps: data exploration, feature engineering, model
-validation, and experiment optimisation. Continuous Integration and Continuous Delivery
+MLOps extends the DevOps infinite loop (plan, code, build, test, release, deploy,
+operate, monitor) with ML-specific steps: data exploration, feature engineering, model
+validation, and experiment optimization. Continuous Integration and Continuous Delivery
 are retained, and a third practice unique to ML systems is added: Continuous Training
 (CT), the automated retraining of models as new data becomes available~\cite{ossara2023}.
 
 \textbf{Automation level perspective (Google).}
 Google's MLOps maturity model~\cite{google_mlops} defines three automation levels.
-At Level~0, every step --- data preparation, training, evaluation --- is executed manually
+At Level~0, every step (data preparation, training, evaluation) is executed manually
 with no pipeline automation. At Level~1, the ML pipeline itself is automated and models
 are retrained continuously on fresh data; components are reusable and composable across
 pipelines. At Level~2, the pipeline's CI/CD system is fully automated, including automated
@@ -137,9 +137,9 @@ $\text{MLOps} = \text{DevOps} + \text{DataOps} + \text{ModelOps}$~\cite{databric
 DataOps covers data management and reproducibility; ModelOps covers model lifecycle
 management, deployment, and governance. The OSSARA case study~\cite{ossara2023} provides
 a concrete instantiation of this decomposition. In this project, \textbf{DVC} implements
-DataOps --- versioning raw snapshots, Silver Parquet files, and Gold artifacts --- and
-\textbf{MLflow} implements ModelOps --- tracking all training runs, logging metrics and
-artifacts, and managing model promotion through the registry. Git provides the underlying
+DataOps (versioning raw snapshots, Silver Parquet files, and Gold artifacts) and
+\textbf{MLflow} implements ModelOps (tracking all training runs, logging metrics and
+artifacts, and managing model promotion through the registry). Git provides the underlying
 DevOps layer. DagsHub is planned as the remote coordination layer that unifies DVC and
 MLflow under a single interface.
 
@@ -721,8 +721,8 @@ The hyperparameter tuning loop uses the Poisson negative log-likelihood (NLL) in
 where $h_i, a_i$ are the observed goals and $\hat{\lambda}_{h,i}, \hat{\lambda}_{a,i}$
 are the predicted Poisson rates. NLL directly rewards placing probability mass near
 the actual scoreline, aligning the tuning signal with the model architecture (all
-candidates output goal-rate parameters). RPS remains the selection and gating metric
-for top-K promotion, QA evaluation, and the champion/challenger gate, where downstream
+candidates output goal-rate parameters). RPS remains the gating metric
+for QA evaluation and the champion/challenger gate, where downstream
 W/D/L calibration is the quantity of interest.
 
 \subsection{Hyperparameter Tuning}
@@ -879,8 +879,8 @@ occupies the middle position, a confident but wrong draw prediction never incurs
 maximum penalty, creating a subtle incentive toward draw-hedging in any decision gated
 by RPS. This bias was removed from the hyperparameter tuning loop by switching to
 Poisson NLL, which operates in goal-count space and is agnostic to outcome ordering.
-However, model selection (top-K promotion), QA evaluation, and the champion/challenger
-gate still use RPS. At these stages the bias is mitigated by the coarseness of the
+However, QA evaluation and the champion/challenger gate still use RPS.
+At these stages, the bias is mitigated by the coarseness of the
 comparison (a small number of fundamentally different model families) and by the fact
 that goal-rate accuracy is already enforced during tuning. The residual effect is
 expected to be negligible for this pipeline but would warrant monitoring in a production
