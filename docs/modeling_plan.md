@@ -238,7 +238,7 @@ rows.
   Computed via analytical Poisson grid: `P(H=h, A=a) = poisson.pmf(h, λ_h) * poisson.pmf(a, λ_a)`,
   truncated at ~10 goals, normalized. Sum over grid to get P(home win), P(draw), P(away win).
   For non-distributional models (Ridge, RF, XGBoost): assume Poisson(predicted_mean).
-  Lower is better; 0 = perfect, 1 = worst. Used for top-K promotion, QA holdout evaluation,
-  and champion/challenger gating.
+  Lower is better; 0 = perfect, 1 = worst. Used for QA holdout evaluation and
+  champion/challenger gating.
 - **Secondary:** RMSE on predicted expected goals.
 - **Dropped:** Brier score (redundant with RPS for ordered outcomes).
