@@ -51,7 +51,7 @@ The pipeline implements a Bronze/Silver/Gold data architecture, engineers strict
 and leakage-safe features, and trains nine candidate models spanning five families: 
 statistical, Bayesian, time-series, classical machine learning, and deep learning. 
 Models are evaluated in a three-environment structure. An experimental environment selects 
-the top-4 candidates by cross-validation RPS. A subsequent QA environment backtests promoted 
+the top-4 candidates by cross-validation Poisson negative log-likelihood. A subsequent QA environment backtests promoted 
 models against the 2022 FIFA World Cup, and promotes the best model to a deployment environment,
 where it is retrained on the full dataset. A Monte Carlo simulation derives tournament outcome 
 probabilities from predicted score distributions. 
@@ -218,8 +218,9 @@ Model development follows a structured three-environment pipeline:
 
 \begin{enumerate}
   \item \textbf{Experimental}: all nine candidate models are trained on the pre-WC 2022 
-  Gold training split and evaluated on a held-out validation set. The top four candidates
-  by CV RPS are selected for QA promotion in the MLflow registry.
+  Gold training split. Hyperparameters are tuned by Optuna using Poisson negative
+  log-likelihood (NLL) as the objective. The top four candidates by CV NLL are selected
+  for QA promotion in the MLflow registry.
   \item \textbf{QA}: promoted models are backtested against the 2022 FIFA World Cup.
   The primary KPI is Ranked Probability Score (RPS), with RMSE as secondary metric.
   The best-performing model is tagged for deployment.
@@ -707,19 +708,36 @@ penalises predictions that assign probability mass to outcomes far from the true
 making it well-suited for evaluating probabilistic forecasts over ordered categories.
 Match-level RPS values are averaged across all matches to yield a single summary score.
 
+\subsection{Tuning Objective: Poisson Negative Log-Likelihood}
+
+While RPS evaluates outcome-level calibration, it collapses the full score distribution
+into three W/D/L buckets and is therefore insensitive to goal-rate accuracy.
+The hyperparameter tuning loop uses the Poisson negative log-likelihood (NLL) instead:
+\begin{equation}
+  \text{NLL} = -\frac{1}{N}\sum_{i=1}^{N}
+  \bigl[\log P(h_i \mid \hat{\lambda}_{h,i})
+       + \log P(a_i \mid \hat{\lambda}_{a,i})\bigr]
+\end{equation}
+where $h_i, a_i$ are the observed goals and $\hat{\lambda}_{h,i}, \hat{\lambda}_{a,i}$
+are the predicted Poisson rates. NLL directly rewards placing probability mass near
+the actual scoreline, aligning the tuning signal with the model architecture (all
+candidates output goal-rate parameters). RPS remains the selection and gating metric
+for top-K promotion, QA evaluation, and the champion/challenger gate, where downstream
+W/D/L calibration is the quantity of interest.
+
 \subsection{Hyperparameter Tuning}
 
 Hyperparameters are tuned per model using Optuna's Tree-structured Parzen Estimator
 (TPE) sampler with 50 trials. Each trial evaluates a candidate configuration via
-walk-forward cross-validation on the training set and reports mean CV RPS as the
-objective. Every trial is logged to MLflow as a nested run under the parent tuning run,
+walk-forward cross-validation on the training set and reports mean CV Poisson NLL as the
+objective (with CV RPS logged as a secondary metric). Every trial is logged to MLflow as a nested run under the parent tuning run,
 creating a full search audit trail. The best configuration found by Optuna is used for
 the final experimental evaluation and all downstream environments.
 
 \subsection{Promotion Gate}
 
 The experimental promotion gate selects the top four candidates by walk-forward
-cross-validation RPS using their Optuna-tuned hyperparameters.
+cross-validation Poisson NLL using their Optuna-tuned hyperparameters.
 
 \subsection{QA Evaluation — 2022 World Cup Backtest}
 
@@ -854,6 +872,19 @@ files are preserved and reused if not explicitly overwritten to provide implicit
 transient outages. A forced refresh during a source outage would fail without updating the data, 
 which effectively leaves the last successfully downloaded snapshot in place. Given that Elo ratings 
 change slowly between individual matches, short-term staleness is not expected to affect model predictions.
+
+\textbf{Residual ordinal bias in RPS.}
+RPS is an ordinal metric with three categories (home win, draw, away win). Because draw
+occupies the middle position, a confident but wrong draw prediction never incurs the
+maximum penalty, creating a subtle incentive toward draw-hedging in any decision gated
+by RPS. This bias was removed from the hyperparameter tuning loop by switching to
+Poisson NLL, which operates in goal-count space and is agnostic to outcome ordering.
+However, model selection (top-K promotion), QA evaluation, and the champion/challenger
+gate still use RPS. At these stages the bias is mitigated by the coarseness of the
+comparison (a small number of fundamentally different model families) and by the fact
+that goal-rate accuracy is already enforced during tuning. The residual effect is
+expected to be negligible for this pipeline but would warrant monitoring in a production
+system with many similar candidates.
 
 % ============================================================
 \section{Conclusion}

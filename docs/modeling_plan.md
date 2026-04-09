@@ -229,11 +229,16 @@ rows.
 
 ## Evaluation metrics
 
-- **Primary (gating):** RPS (Ranked Probability Score) — ordinal-aware, proper scoring rule.
+- **Tuning objective:** Poisson NLL (negative log-likelihood) — scores how well the predicted
+  goal rates explain the observed scoreline. Operates in goal-count space and is agnostic to
+  W/D/L outcome ordering. Used as the Optuna objective during hyperparameter tuning.
+  All models emit Poisson-compatible rates (λ_h, λ_a), so NLL applies uniformly across families.
+  Lower is better.
+- **Selection and gating:** RPS (Ranked Probability Score) — ordinal-aware, proper scoring rule.
   Computed via analytical Poisson grid: `P(H=h, A=a) = poisson.pmf(h, λ_h) * poisson.pmf(a, λ_a)`,
   truncated at ~10 goals, normalized. Sum over grid to get P(home win), P(draw), P(away win).
   For non-distributional models (Ridge, RF, XGBoost): assume Poisson(predicted_mean).
-  Lower is better; 0 = perfect, 1 = worst.
+  Lower is better; 0 = perfect, 1 = worst. Used for top-K promotion, QA holdout evaluation,
+  and champion/challenger gating.
 - **Secondary:** RMSE on predicted expected goals.
-- **Dropped:** Poisson NLL (only applicable to distributional models, not useful for cross-model comparison)
-  and Brier score (redundant with RPS for ordered outcomes).
+- **Dropped:** Brier score (redundant with RPS for ordered outcomes).

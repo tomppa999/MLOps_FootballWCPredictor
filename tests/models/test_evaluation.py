@@ -1,4 +1,4 @@
-"""Tests for src.models.evaluation — RPS, outcome probs, RMSE."""
+"""Tests for src.models.evaluation — Poisson NLL, RPS, outcome probs, RMSE."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from src.models.evaluation import (
+    compute_mean_nll,
     compute_mean_rps,
     compute_outcome_probs,
     compute_rmse,
@@ -134,6 +135,49 @@ class TestComputeMeanRPS:
         )
         assert isinstance(rps, float)
         assert 0 <= rps <= 1
+
+
+# ---------------------------------------------------------------------------
+# compute_mean_nll
+# ---------------------------------------------------------------------------
+
+
+class TestComputeMeanNLL:
+    def test_good_prediction_beats_bad(self):
+        """Rates close to actual goals should score lower NLL than distant rates."""
+        actual_h = np.array([2, 1, 0])
+        actual_a = np.array([1, 0, 3])
+        good_nll = compute_mean_nll(
+            np.array([2.0, 1.0, 0.5]), np.array([1.0, 0.5, 2.5]),
+            actual_h, actual_a,
+        )
+        bad_nll = compute_mean_nll(
+            np.array([5.0, 5.0, 5.0]), np.array([5.0, 5.0, 5.0]),
+            actual_h, actual_a,
+        )
+        assert good_nll < bad_nll
+
+    def test_nll_non_negative(self):
+        nll = compute_mean_nll(
+            np.array([1.5, 2.0]), np.array([1.0, 0.8]),
+            np.array([1, 3]), np.array([0, 1]),
+        )
+        assert nll >= 0.0
+
+    def test_known_value(self):
+        """Single match: lambda_h=1, lambda_a=1, actual=(1,1).
+        NLL = -(logpmf(1,1) + logpmf(1,1)) = -2*log(e^{-1}) = 2."""
+        from scipy.stats import poisson
+
+        expected = -(poisson.logpmf(1, 1.0) + poisson.logpmf(1, 1.0))
+        nll = compute_mean_nll(np.array([1.0]), np.array([1.0]),
+                               np.array([1]), np.array([1]))
+        np.testing.assert_allclose(nll, expected, atol=1e-10)
+
+    def test_returns_float(self):
+        nll = compute_mean_nll(np.array([1.0]), np.array([1.0]),
+                               np.array([1]), np.array([1]))
+        assert isinstance(nll, float)
 
 
 # ---------------------------------------------------------------------------

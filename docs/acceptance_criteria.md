@@ -34,7 +34,8 @@
 - all 9 candidate models can train through a common interface
 - all runs are logged to MLflow (params, metrics, artifacts)
 - permutation importance is computed and logged for each model
-- the top 4 models by CV RPS are selected for QA promotion (no absolute threshold)
+- hyperparameters are tuned using Poisson NLL as the Optuna objective
+- the top 4 models by CV NLL are selected for QA promotion (no absolute threshold)
 
 ### QA environment
 - promoted models are backtested against 2022 World Cup data

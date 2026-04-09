@@ -28,6 +28,7 @@ from src.models.candidates.xgboost_model import XGBoostModel
 from src.models.config import DEFAULT_N_TRIALS, MODEL_FEATURE_SETS, SEARCH_SPACES
 from src.models.data_split import DataSplits, load_gold, make_splits, walk_forward_cv
 from src.models.evaluation import (
+    compute_mean_nll,
     compute_mean_rps,
     compute_permutation_importance,
     compute_rmse,
@@ -75,7 +76,7 @@ class ExperimentalResult:
     model_name: str
     model_cls: type[BaseModel]
     best_params: dict[str, Any]
-    cv_rps: float
+    cv_nll: float
     importance: pd.DataFrame
     splits: DataSplits
     feature_cols: list[str]
@@ -88,7 +89,7 @@ class QAResult:
     model_name: str
     model_cls: type[BaseModel]
     best_params: dict[str, Any]
-    cv_rps: float
+    cv_nll: float
     holdout_rps: float
     holdout_rmse_home: float
     holdout_rmse_away: float
@@ -176,20 +177,20 @@ def run_experimental_phase(
                 model_name=model_name,
                 model_cls=model_cls,
                 best_params=best_params,
-                cv_rps=study.best_value,
+                cv_nll=study.best_value,
                 importance=importance,
                 splits=splits,
                 feature_cols=feature_cols,
             )
         )
-        logger.info("%s — best CV RPS: %.4f", model_name, study.best_value)
+        logger.info("%s — best CV NLL: %.4f", model_name, study.best_value)
 
-    results.sort(key=lambda r: r.cv_rps)
+    results.sort(key=lambda r: r.cv_nll)
     top_k = results[:TOP_K_FOR_QA]
     logger.info(
         "Experimental done — top %d: %s",
         TOP_K_FOR_QA,
-        [(r.model_name, f"{r.cv_rps:.4f}") for r in top_k],
+        [(r.model_name, f"{r.cv_nll:.4f}") for r in top_k],
     )
     return top_k
 
@@ -228,7 +229,7 @@ def run_qa_phase(top_models: list[ExperimentalResult]) -> QAResult:
                     "holdout_rps": holdout_rps,
                     "holdout_rmse_home": rmse_h,
                     "holdout_rmse_away": rmse_a,
-                    "cv_rps": entry.cv_rps,
+                    "cv_nll": entry.cv_nll,
                 },
             )
             qa_run_id = run.info.run_id
@@ -238,7 +239,7 @@ def run_qa_phase(top_models: list[ExperimentalResult]) -> QAResult:
                 model_name=entry.model_name,
                 model_cls=entry.model_cls,
                 best_params=entry.best_params,
-                cv_rps=entry.cv_rps,
+                cv_nll=entry.cv_nll,
                 holdout_rps=holdout_rps,
                 holdout_rmse_home=rmse_h,
                 holdout_rmse_away=rmse_a,

@@ -10,7 +10,7 @@ import numpy as np
 import optuna
 
 from src.models.base import BaseModel
-from src.models.evaluation import compute_mean_rps
+from src.models.evaluation import compute_mean_nll, compute_mean_rps
 from src.models.mlflow_utils import get_or_create_experiment, setup_mlflow
 
 logger = logging.getLogger(__name__)
@@ -65,21 +65,26 @@ def _make_objective(
         sampled = sample_params(trial, search_space)
         all_params = {**_fixed, **sampled}
 
+        fold_nll: list[float] = []
         fold_rps: list[float] = []
         for train_idx, val_idx in cv_folds:
             model = model_cls(**all_params)
             model.fit(X[train_idx], y[train_idx])
             lam_h, lam_a = model.predict(X[val_idx])
+            nll = compute_mean_nll(lam_h, lam_a, y[val_idx, 0], y[val_idx, 1])
             rps = compute_mean_rps(lam_h, lam_a, y[val_idx, 0], y[val_idx, 1])
+            fold_nll.append(nll)
             fold_rps.append(rps)
 
+        mean_nll = float(np.mean(fold_nll))
         mean_rps = float(np.mean(fold_rps))
 
         with mlflow.start_run(nested=True, run_name=f"trial_{trial.number}"):
             mlflow.log_params(all_params)
+            mlflow.log_metric("cv_nll_mean", mean_nll)
             mlflow.log_metric("cv_rps_mean", mean_rps)
-            for i, rps_val in enumerate(fold_rps):
-                mlflow.log_metric(f"cv_rps_fold_{i}", rps_val)
+            for i, nll_val in enumerate(fold_nll):
+                mlflow.log_metric(f"cv_nll_fold_{i}", nll_val)
             mlflow.set_tags(
                 {
                     "stage": "experimental",
@@ -88,7 +93,7 @@ def _make_objective(
                 }
             )
 
-        return mean_rps
+        return mean_nll
 
     return objective
 
@@ -154,11 +159,11 @@ def run_tuning(
         mlflow.log_params(
             {f"best_{k}": v for k, v in study.best_params.items()}
         )
-        mlflow.log_metric("best_cv_rps", study.best_value)
+        mlflow.log_metric("best_cv_nll", study.best_value)
 
     best_params = {**(fixed_params or {}), **study.best_params}
     logger.info(
-        "%s tuning done — best CV RPS: %.4f, params: %s",
+        "%s tuning done — best CV NLL: %.4f, params: %s",
         model_cls.__name__,
         study.best_value,
         best_params,

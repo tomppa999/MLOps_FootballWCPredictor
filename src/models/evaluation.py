@@ -1,4 +1,4 @@
-"""Evaluation metrics: RPS, RMSE, outcome probabilities, permutation importance."""
+"""Evaluation metrics: Poisson NLL, RPS, RMSE, outcome probabilities, permutation importance."""
 
 from __future__ import annotations
 
@@ -108,6 +108,28 @@ def compute_mean_rps(
     probs = compute_outcome_probs(lambda_h, lambda_a)
     outcomes = goals_to_outcome(home_goals, away_goals)
     return float(compute_rps(probs, outcomes).mean())
+
+
+# ---------------------------------------------------------------------------
+# Poisson Negative Log-Likelihood
+# ---------------------------------------------------------------------------
+
+
+def compute_mean_nll(
+    lambda_h: np.ndarray,
+    lambda_a: np.ndarray,
+    home_goals: np.ndarray,
+    away_goals: np.ndarray,
+) -> float:
+    """Mean Poisson negative log-likelihood over both sides.
+
+    Scores how well the predicted rates explain the observed scoreline.
+    Lower is better; used as the Optuna tuning objective.
+    """
+    nll = -(
+        poisson.logpmf(home_goals, lambda_h) + poisson.logpmf(away_goals, lambda_a)
+    )
+    return float(nll.mean())
 
 
 # ---------------------------------------------------------------------------

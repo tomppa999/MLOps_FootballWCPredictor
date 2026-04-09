@@ -121,7 +121,7 @@ def fake_splits():
 
 def _make_exp_result(
     model_name: str,
-    cv_rps: float,
+    cv_nll: float,
     splits: DataSplits,
     *,
     model_cls: type[BaseModel] = _FakeModel,
@@ -131,7 +131,7 @@ def _make_exp_result(
         model_name=model_name,
         model_cls=model_cls,
         best_params=best_params or {},
-        cv_rps=cv_rps,
+        cv_nll=cv_nll,
         importance=pd.DataFrame(
             {"feature": ["f0"], "importance_mean": [0.1], "importance_std": [0.01]}
         ),
@@ -146,7 +146,7 @@ def _make_exp_result(
 
 
 class TestTopKSelection:
-    def test_sorted_by_cv_rps_ascending(self, fake_splits):
+    def test_sorted_by_cv_nll_ascending(self, fake_splits):
         results = [
             _make_exp_result("worst", 0.50, fake_splits),
             _make_exp_result("best", 0.15, fake_splits),
@@ -154,7 +154,7 @@ class TestTopKSelection:
             _make_exp_result("good", 0.20, fake_splits),
             _make_exp_result("ok", 0.30, fake_splits),
         ]
-        results.sort(key=lambda r: r.cv_rps)
+        results.sort(key=lambda r: r.cv_nll)
         top_k = results[:TOP_K_FOR_QA]
 
         assert len(top_k) == 4
@@ -168,7 +168,7 @@ class TestTopKSelection:
             _make_exp_result(f"model_{i}", i * 0.1, fake_splits)
             for i in range(5)
         ]
-        results.sort(key=lambda r: r.cv_rps)
+        results.sort(key=lambda r: r.cv_nll)
         top_k = results[:TOP_K_FOR_QA]
         names = {r.model_name for r in top_k}
         assert "model_4" not in names
@@ -178,7 +178,7 @@ class TestTopKSelection:
             _make_exp_result("a", 0.20, fake_splits),
             _make_exp_result("b", 0.30, fake_splits),
         ]
-        results.sort(key=lambda r: r.cv_rps)
+        results.sort(key=lambda r: r.cv_nll)
         top_k = results[:TOP_K_FOR_QA]
         assert len(top_k) == 2
 
@@ -246,7 +246,7 @@ class TestDeployPhase:
             model_name="fake",
             model_cls=_FakeModel,
             best_params={"lam_h": 1.5, "lam_a": 1.0},
-            cv_rps=0.20,
+            cv_nll=0.20,
             holdout_rps=0.18,
             holdout_rmse_home=1.0,
             holdout_rmse_away=0.8,
@@ -271,7 +271,7 @@ class TestDeployPhase:
             model_name="fake",
             model_cls=_FakeModel,
             best_params={"lam_h": 1.5, "lam_a": 1.0},
-            cv_rps=0.20,
+            cv_nll=0.20,
             holdout_rps=0.18,
             holdout_rmse_home=1.0,
             holdout_rmse_away=0.8,
@@ -302,7 +302,7 @@ class TestDeployPhase:
             model_name="fake",
             model_cls=_FakeModel,
             best_params={},
-            cv_rps=0.20,
+            cv_nll=0.20,
             holdout_rps=0.18,
             holdout_rmse_home=1.0,
             holdout_rmse_away=0.8,
@@ -479,7 +479,7 @@ class TestChampionGate:
             model_name="fake",
             model_cls=_FakeModel,
             best_params={},
-            cv_rps=0.20,
+            cv_nll=0.20,
             holdout_rps=0.25,
             holdout_rmse_home=1.0,
             holdout_rmse_away=0.8,
@@ -506,7 +506,7 @@ class TestChampionGate:
             model_name="fake",
             model_cls=_FakeModel,
             best_params={},
-            cv_rps=0.20,
+            cv_nll=0.20,
             holdout_rps=0.25,  # better than champion 0.30
             holdout_rmse_home=1.0,
             holdout_rmse_away=0.8,
@@ -532,7 +532,7 @@ class TestChampionGate:
             model_name="fake",
             model_cls=_FakeModel,
             best_params={},
-            cv_rps=0.25,
+            cv_nll=0.25,
             holdout_rps=0.22,  # worse than champion 0.20
             holdout_rmse_home=1.0,
             holdout_rmse_away=0.8,
