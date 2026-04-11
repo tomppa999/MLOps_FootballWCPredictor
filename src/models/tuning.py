@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 import mlflow
@@ -10,7 +11,7 @@ import numpy as np
 import optuna
 
 from src.models.base import BaseModel
-from src.models.evaluation import compute_mean_nll, compute_mean_rps
+from src.models.evaluation import compute_mean_nll, compute_mean_rps, compute_rmse
 from src.models.mlflow_utils import get_or_create_experiment, setup_mlflow
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,8 @@ def _make_objective(
 
         fold_nll: list[float] = []
         fold_rps: list[float] = []
+        fold_rmse_h: list[float] = []
+        fold_rmse_a: list[float] = []
         for train_idx, val_idx in cv_folds:
             model = model_cls(**all_params)
             model.fit(X[train_idx], y[train_idx])
@@ -75,14 +78,20 @@ def _make_objective(
             rps = compute_mean_rps(lam_h, lam_a, y[val_idx, 0], y[val_idx, 1])
             fold_nll.append(nll)
             fold_rps.append(rps)
+            fold_rmse_h.append(compute_rmse(lam_h, y[val_idx, 0]))
+            fold_rmse_a.append(compute_rmse(lam_a, y[val_idx, 1]))
 
         mean_nll = float(np.mean(fold_nll))
         mean_rps = float(np.mean(fold_rps))
+        mean_rmse_h = float(np.mean(fold_rmse_h))
+        mean_rmse_a = float(np.mean(fold_rmse_a))
 
         with mlflow.start_run(nested=True, run_name=f"trial_{trial.number}"):
             mlflow.log_params(all_params)
             mlflow.log_metric("cv_nll_mean", mean_nll)
             mlflow.log_metric("cv_rps_mean", mean_rps)
+            mlflow.log_metric("cv_rmse_home_mean", mean_rmse_h)
+            mlflow.log_metric("cv_rmse_away_mean", mean_rmse_a)
             for i, nll_val in enumerate(fold_nll):
                 mlflow.log_metric(f"cv_nll_fold_{i}", nll_val)
             mlflow.set_tags(
@@ -149,12 +158,29 @@ def run_tuning(
         fixed_params=fixed_params,
     )
 
+    start_time = time.monotonic()
+
+    def _log_trial(
+        study: optuna.Study, trial: optuna.trial.FrozenTrial
+    ) -> None:
+        elapsed = time.monotonic() - start_time
+        logger.info(
+            "%s trial %d/%d — NLL: %.4f (best: %.4f) | params: %s | elapsed: %.0fs",
+            model_cls.__name__,
+            trial.number + 1,
+            n_trials,
+            trial.value,
+            study.best_value,
+            trial.params,
+            elapsed,
+        )
+
     with mlflow.start_run(
         experiment_id=experiment_id,
         run_name=f"tuning_{model_cls.__name__}",
         tags={"stage": "experimental", "model_name": model_cls.__name__},
     ):
-        study.optimize(objective, n_trials=n_trials)
+        study.optimize(objective, n_trials=n_trials, callbacks=[_log_trial])
 
         mlflow.log_params(
             {f"best_{k}": v for k, v in study.best_params.items()}

@@ -8,7 +8,9 @@ Phase 3 (Deploy):       Refit the winner on *all* Gold data, register, promote.
 from __future__ import annotations
 
 import logging
+import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import mlflow
@@ -34,10 +36,13 @@ from src.models.evaluation import (
     compute_rmse,
 )
 from src.models.mlflow_utils import (
+    PRODUCTION_MODEL_NAME,
+    STAGING_MODEL_NAME,
     get_champion_rps,
     log_run,
     promote_to_production,
     register_model,
+    set_challenger_alias,
     setup_mlflow,
     start_run,
 )
@@ -46,7 +51,7 @@ from src.models.tuning import run_tuning
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Candidate registry (all 9 models)
+# Candidate registry (9 models)
 # ---------------------------------------------------------------------------
 
 CANDIDATE_MODELS: dict[str, type[BaseModel]] = {
@@ -91,6 +96,7 @@ class QAResult:
     best_params: dict[str, Any]
     cv_nll: float
     holdout_rps: float
+    holdout_nll: float
     holdout_rmse_home: float
     holdout_rmse_away: float
     qa_run_id: str
@@ -172,6 +178,23 @@ def run_experimental_phase(
             model, splits.X_train, splits.y_train, feature_cols, n_repeats=5,
         )
 
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = Path(tmpdir) / f"importance_{model_name}.csv"
+            importance.to_csv(csv_path, index=False)
+            with start_run(
+                run_name=f"best_{model_name}",
+                tags={
+                    "stage": "experimental",
+                    "model_name": model_name,
+                    "role": "best",
+                },
+            ):
+                log_run(
+                    params=best_params,
+                    metrics={"cv_nll": study.best_value},
+                )
+                mlflow.log_artifact(str(csv_path), artifact_path="importance")
+
         results.append(
             ExperimentalResult(
                 model_name=model_name,
@@ -186,6 +209,7 @@ def run_experimental_phase(
         logger.info("%s — best CV NLL: %.4f", model_name, study.best_value)
 
     results.sort(key=lambda r: r.cv_nll)
+    _log_importance_summary(results)
     top_k = results[:TOP_K_FOR_QA]
     logger.info(
         "Experimental done — top %d: %s",
@@ -195,15 +219,35 @@ def run_experimental_phase(
     return top_k
 
 
+def _log_importance_summary(results: list[ExperimentalResult]) -> None:
+    """Print a top-5 feature importance summary for every model."""
+    logger.info("=== Feature Importance Summary (top 5 per model) ===")
+    for r in results:
+        top5 = r.importance.head(5)
+        lines = [
+            f"  {row.feature:>30s}  {row.importance_mean:+.6f} ± {row.importance_std:.6f}"
+            for row in top5.itertuples()
+        ]
+        logger.info(
+            "%s (CV NLL: %.4f):\n%s", r.model_name, r.cv_nll, "\n".join(lines),
+        )
+
+
 # ---------------------------------------------------------------------------
 # Phase 2 — QA (holdout evaluation on WC 2022)
 # ---------------------------------------------------------------------------
 
 
 def run_qa_phase(top_models: list[ExperimentalResult]) -> QAResult:
-    """Retrain top models on pre-WC data; pick best by WC 2022 holdout RPS."""
+    """Retrain top models on pre-WC data; pick best by WC 2022 holdout RPS.
+
+    Each finalist is serialized and registered as a version of wc_staging
+    in the MLflow model registry.  The winner receives the ``challenger``
+    alias.
+    """
     setup_mlflow()
     qa_results: list[QAResult] = []
+    run_id_to_version: dict[str, str] = {}
 
     for entry in top_models:
         model = entry.model_cls(**entry.best_params)
@@ -211,6 +255,12 @@ def run_qa_phase(top_models: list[ExperimentalResult]) -> QAResult:
 
         lam_h, lam_a = model.predict(entry.splits.X_holdout)
         holdout_rps = compute_mean_rps(
+            lam_h,
+            lam_a,
+            entry.splits.y_holdout[:, 0],
+            entry.splits.y_holdout[:, 1],
+        )
+        holdout_nll = compute_mean_nll(
             lam_h,
             lam_a,
             entry.splits.y_holdout[:, 0],
@@ -227,12 +277,17 @@ def run_qa_phase(top_models: list[ExperimentalResult]) -> QAResult:
                 params=entry.best_params,
                 metrics={
                     "holdout_rps": holdout_rps,
+                    "holdout_nll": holdout_nll,
                     "holdout_rmse_home": rmse_h,
                     "holdout_rmse_away": rmse_a,
                     "cv_nll": entry.cv_nll,
                 },
             )
+            _log_model_artifact(model)
             qa_run_id = run.info.run_id
+
+        qa_mv = register_model(qa_run_id, model_name=STAGING_MODEL_NAME)
+        run_id_to_version[qa_run_id] = qa_mv.version
 
         qa_results.append(
             QAResult(
@@ -241,6 +296,7 @@ def run_qa_phase(top_models: list[ExperimentalResult]) -> QAResult:
                 best_params=entry.best_params,
                 cv_nll=entry.cv_nll,
                 holdout_rps=holdout_rps,
+                holdout_nll=holdout_nll,
                 holdout_rmse_home=rmse_h,
                 holdout_rmse_away=rmse_a,
                 qa_run_id=qa_run_id,
@@ -248,10 +304,11 @@ def run_qa_phase(top_models: list[ExperimentalResult]) -> QAResult:
                 feature_cols=entry.feature_cols,
             )
         )
-        logger.info("%s — holdout RPS: %.4f", entry.model_name, holdout_rps)
+        logger.info("%s — holdout RPS: %.4f, NLL: %.4f", entry.model_name, holdout_rps, holdout_nll)
 
     qa_results.sort(key=lambda r: r.holdout_rps)
     winner = qa_results[0]
+    set_challenger_alias(version=run_id_to_version[winner.qa_run_id])
     logger.info(
         "QA winner: %s (holdout RPS: %.4f)",
         winner.model_name,
@@ -282,7 +339,7 @@ def run_deploy_phase(winner: QAResult) -> str:
     setup_mlflow()
 
     champion_rps = get_champion_rps()
-    if champion_rps is not None and winner.holdout_rps >= champion_rps:
+    if champion_rps is not None and winner.holdout_rps > champion_rps:
         raise ChallengeFailed(
             f"Challenger {winner.model_name} holdout RPS {winner.holdout_rps:.4f} "
             f"does not beat champion RPS {champion_rps:.4f} — promotion skipped."
@@ -312,6 +369,7 @@ def run_deploy_phase(winner: QAResult) -> str:
             },
             metrics={
                 "qa_holdout_rps": winner.holdout_rps,
+                "qa_holdout_nll": winner.holdout_nll,
                 "qa_holdout_rmse_home": winner.holdout_rmse_home,
                 "qa_holdout_rmse_away": winner.holdout_rmse_away,
             },
@@ -319,7 +377,7 @@ def run_deploy_phase(winner: QAResult) -> str:
         _log_model_artifact(model)
         run_id = run.info.run_id
 
-    mv = register_model(run_id, artifact_path="model")
+    mv = register_model(run_id, model_name=PRODUCTION_MODEL_NAME)
     promote_to_production(version=mv.version)
 
     logger.info(
@@ -355,7 +413,11 @@ def run_full_pipeline(
     winner = run_qa_phase(top_k)
 
     logger.info("=== Phase 3: Deploy ===")
-    run_id = run_deploy_phase(winner)
+    try:
+        run_id = run_deploy_phase(winner)
+    except ChallengeFailed as exc:
+        logger.info(str(exc))
+        return winner.qa_run_id
 
     logger.info("=== Pipeline complete (run_id=%s) ===", run_id)
     return run_id

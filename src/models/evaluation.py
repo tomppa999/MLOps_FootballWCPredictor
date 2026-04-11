@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -10,6 +11,8 @@ from scipy.stats import poisson
 
 if TYPE_CHECKING:
     from src.models.base import BaseModel
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Outcome probabilities (analytical Poisson grid)
@@ -35,6 +38,10 @@ def compute_outcome_probs(
     """
     lambda_h = np.atleast_1d(np.asarray(lambda_h, dtype=np.float64))
     lambda_a = np.atleast_1d(np.asarray(lambda_a, dtype=np.float64))
+    # Clip to a safe ceiling: poisson.pmf underflows to 0 for lambda >> max_goals,
+    # which would produce a zero-sum row and a NaN after normalization.
+    lambda_h = lambda_h.clip(1e-6, 15.0)
+    lambda_a = lambda_a.clip(1e-6, 15.0)
 
     goals = np.arange(max_goals + 1)
 
@@ -52,8 +59,17 @@ def compute_outcome_probs(
     p_away = (joint * (h_idx < a_idx)[None]).sum(axis=(1, 2))
 
     result = np.column_stack([p_home, p_draw, p_away])
-    # Normalize to account for truncation-induced probability loss at high rates
-    result /= result.sum(axis=1, keepdims=True)
+    # Normalize to account for truncation-induced probability loss at high rates.
+    # Guard against zero-sum rows (should not occur after ceiling clip, but kept
+    # as a second line of defense).
+    row_sum = result.sum(axis=1, keepdims=True)
+    if np.any(row_sum == 0):
+        logger.warning(
+            "compute_outcome_probs: %d row(s) have zero probability mass — "
+            "lambda ceiling may be too low",
+            int((row_sum == 0).sum()),
+        )
+    result /= np.where(row_sum == 0, 1.0, row_sum)
     return result
 
 
@@ -125,7 +141,14 @@ def compute_mean_nll(
 
     Scores how well the predicted rates explain the observed scoreline.
     Lower is better; used as the Optuna tuning objective.
+
+    Lambdas are clipped to 1e-6 to prevent -inf from poisson.logpmf when
+    a model predicts zero or negative rates (Ridge, SARIMAX, some XGBoost
+    trials).  The clip is applied here rather than in individual model
+    predict() methods so that model outputs are not altered.
     """
+    lambda_h = np.asarray(lambda_h, dtype=np.float64).clip(1e-6)
+    lambda_a = np.asarray(lambda_a, dtype=np.float64).clip(1e-6)
     nll = -(
         poisson.logpmf(home_goals, lambda_h) + poisson.logpmf(away_goals, lambda_a)
     )

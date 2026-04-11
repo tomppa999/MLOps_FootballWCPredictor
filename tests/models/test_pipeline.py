@@ -213,6 +213,7 @@ class TestQAPhase:
 
         assert winner.qa_run_id
         assert winner.holdout_rps >= 0.0
+        assert np.isfinite(winner.holdout_nll)
         assert winner.holdout_rmse_home >= 0.0
         assert winner.holdout_rmse_away >= 0.0
 
@@ -225,6 +226,7 @@ class TestQAPhase:
         client = mlflow.tracking.MlflowClient()
         run_data = client.get_run(winner.qa_run_id).data
         assert "holdout_rps" in run_data.metrics
+        assert "holdout_nll" in run_data.metrics
         assert run_data.tags["stage"] == "qa"
         assert run_data.tags["model_name"] == "logged"
 
@@ -248,6 +250,7 @@ class TestDeployPhase:
             best_params={"lam_h": 1.5, "lam_a": 1.0},
             cv_nll=0.20,
             holdout_rps=0.18,
+            holdout_nll=2.75,
             holdout_rmse_home=1.0,
             holdout_rmse_away=0.8,
             qa_run_id="qa_abc",
@@ -273,6 +276,7 @@ class TestDeployPhase:
             best_params={"lam_h": 1.5, "lam_a": 1.0},
             cv_nll=0.20,
             holdout_rps=0.18,
+            holdout_nll=2.75,
             holdout_rmse_home=1.0,
             holdout_rmse_away=0.8,
             qa_run_id="qa_xyz",
@@ -289,6 +293,7 @@ class TestDeployPhase:
         assert run_data.tags["stage"] == "production-refit"
         assert run_data.tags["model_name"] == "fake"
         assert "qa_holdout_rps" in run_data.metrics
+        assert "qa_holdout_nll" in run_data.metrics
 
     @patch("src.models.pipeline.promote_to_production")
     @patch("src.models.pipeline.register_model")
@@ -304,6 +309,7 @@ class TestDeployPhase:
             best_params={},
             cv_nll=0.20,
             holdout_rps=0.18,
+            holdout_nll=2.75,
             holdout_rmse_home=1.0,
             holdout_rmse_away=0.8,
             qa_run_id="qa_art",
@@ -431,9 +437,10 @@ class TestDispatchThreshold:
 
 class TestPhaseOrdering:
     @patch("src.models.pipeline.promote_to_production")
+    @patch("src.models.pipeline.set_challenger_alias")
     @patch("src.models.pipeline.register_model")
     def test_qa_winner_flows_to_deploy(
-        self, mock_register, mock_promote, tmp_mlflow, fake_splits
+        self, mock_register, mock_challenger, mock_promote, tmp_mlflow, fake_splits
     ):
         """Verify that the QA winner's params appear in the deploy run."""
         mock_register.return_value = MagicMock(version="1")
@@ -481,6 +488,7 @@ class TestChampionGate:
             best_params={},
             cv_nll=0.20,
             holdout_rps=0.25,
+            holdout_nll=2.80,
             holdout_rmse_home=1.0,
             holdout_rmse_away=0.8,
             qa_run_id="qa_first",
@@ -508,6 +516,7 @@ class TestChampionGate:
             best_params={},
             cv_nll=0.20,
             holdout_rps=0.25,  # better than champion 0.30
+            holdout_nll=2.75,
             holdout_rmse_home=1.0,
             holdout_rmse_away=0.8,
             qa_run_id="qa_better",
@@ -525,7 +534,7 @@ class TestChampionGate:
     def test_challenger_loses_raises(
         self, mock_champion_rps, mock_register, mock_promote, tmp_mlflow, fake_splits
     ):
-        """Challenger RPS >= champion RPS → no improvement → ChallengeFailed raised."""
+        """Challenger RPS > champion RPS → no improvement → ChallengeFailed raised."""
         mock_champion_rps.return_value = 0.20  # existing champion is very good
 
         qa = QAResult(
@@ -534,6 +543,7 @@ class TestChampionGate:
             best_params={},
             cv_nll=0.25,
             holdout_rps=0.22,  # worse than champion 0.20
+            holdout_nll=2.80,
             holdout_rmse_home=1.0,
             holdout_rmse_away=0.8,
             qa_run_id="qa_worse",
@@ -545,3 +555,32 @@ class TestChampionGate:
 
         mock_register.assert_not_called()
         mock_promote.assert_not_called()
+
+    @patch("src.models.pipeline.promote_to_production")
+    @patch("src.models.pipeline.register_model")
+    @patch("src.models.pipeline.get_champion_rps")
+    def test_challenger_ties_promotes(
+        self, mock_champion_rps, mock_register, mock_promote, tmp_mlflow, fake_splits
+    ):
+        """Challenger RPS == champion RPS → tie → promotion happens (newer model)."""
+        mock_champion_rps.return_value = 0.25
+        mock_register.return_value = MagicMock(version="3")
+
+        qa = QAResult(
+            model_name="fake",
+            model_cls=_FakeModel,
+            best_params={},
+            cv_nll=0.20,
+            holdout_rps=0.25,  # equal to champion
+            holdout_nll=2.75,
+            holdout_rmse_home=1.0,
+            holdout_rmse_away=0.8,
+            qa_run_id="qa_tie",
+            splits=fake_splits,
+            feature_cols=[f"f{i}" for i in range(8)],
+        )
+        run_id = run_deploy_phase(qa)
+
+        assert isinstance(run_id, str) and len(run_id) > 0
+        mock_register.assert_called_once()
+        mock_promote.assert_called_once_with(version="3")

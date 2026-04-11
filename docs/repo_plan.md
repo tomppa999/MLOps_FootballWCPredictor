@@ -13,7 +13,7 @@
 6. implement Silver cleaning and standardization
 7. add tests and validation checks
 
-### Phase 3 — Gold, modeling, and environments (Gold + trigger complete)
+### Phase 3 — Gold, modeling, and environments (complete)
 8. ~~implement Gold match-level feature engineering~~ (complete)
 9. ~~define dvc.yaml pipeline (raw → silver → gold)~~ (complete)
 10. ~~implement daily pipeline trigger with dual-source freshness checks~~ (complete)
@@ -25,7 +25,7 @@
 16. ~~implement QA backtesting against 2022 World Cup (RPS primary, RMSE secondary)~~ (complete)
 17. ~~implement deploy retraining on full Gold + MLflow pyfunc serialization~~ (complete)
 18. ~~implement continuous training dispatch in trigger (retrain on 10+ new gold rows, inference-only otherwise)~~ (complete)
-19. freeze model at tournament start; inference-only mode during WC
+19. ~~freeze model at tournament start; inference-only mode during WC~~ (complete)
 
 ### Phase 3.5 — GCP Cloud Run and MLflow remote
 20. set up DagsHub MLflow tracking as remote

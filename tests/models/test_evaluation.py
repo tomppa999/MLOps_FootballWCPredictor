@@ -52,6 +52,11 @@ class TestComputeOutcomeProbs:
         probs = compute_outcome_probs(np.array([0.1, 5.0]), np.array([5.0, 0.1]))
         assert (probs >= 0).all()
 
+    def test_extreme_lambda_no_nan(self):
+        """Very large lambda must not produce NaN (underflow guard)."""
+        probs = compute_outcome_probs(np.array([50.0]), np.array([50.0]))
+        assert not np.any(np.isnan(probs))
+
 
 # ---------------------------------------------------------------------------
 # goals_to_outcome
@@ -178,6 +183,15 @@ class TestComputeMeanNLL:
         nll = compute_mean_nll(np.array([1.0]), np.array([1.0]),
                                np.array([1]), np.array([1]))
         assert isinstance(nll, float)
+
+    def test_zero_lambda_returns_finite(self):
+        """Lambda=0 with non-zero goals must produce a large but finite NLL."""
+        nll = compute_mean_nll(
+            np.array([0.0, 0.0]), np.array([0.0, 0.0]),
+            np.array([2, 1]), np.array([1, 3]),
+        )
+        assert np.isfinite(nll)
+        assert nll > 0
 
 
 # ---------------------------------------------------------------------------

@@ -309,6 +309,9 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
 # ---------------------------------------------------------------------------
 
 def main(mode: str = "auto") -> int:
+    from dotenv import load_dotenv  # noqa: PLC0415
+    load_dotenv()
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",

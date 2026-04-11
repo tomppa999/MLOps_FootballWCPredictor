@@ -16,7 +16,7 @@ import os
 from typing import Any
 
 # Fall back to the pure-Python PyTensor linker when C++ headers are unavailable.
-os.environ.setdefault("PYTENSOR_FLAGS", "linker=py")
+#os.environ.setdefault("PYTENSOR_FLAGS", "linker=py")
 
 import numpy as np
 import pymc as pm

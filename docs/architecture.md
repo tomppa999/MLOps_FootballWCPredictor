@@ -78,8 +78,8 @@ A model can only be promoted if:
 
 After selection, the winning model type and hyperparameters are refitted on
 the full Gold dataset available at run time. The refitted model is the
-artifact that gets registered and promoted to Production in the MLflow model
-registry. The evaluation run that justified the selection is linked via an
+artifact that gets registered and promoted via the `champion` alias in the MLflow
+model registry. The evaluation run that justified the selection is linked via an
 `evaluation_run_id` parameter on the production-refit run.
 
 ## Deployment

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 import mlflow
@@ -10,9 +11,10 @@ from mlflow.entities.model_registry import ModelVersion
 
 logger = logging.getLogger(__name__)
 
-TRACKING_URI: str = "file:./mlruns"
+TRACKING_URI: str = os.environ.get("MLFLOW_TRACKING_URI", "file:./mlruns")
 EXPERIMENT_NAME: str = "wc_prediction"
-REGISTRY_MODEL_NAME: str = "wc_champion"
+STAGING_MODEL_NAME: str = "wc_staging"
+PRODUCTION_MODEL_NAME: str = "wc_production"
 
 
 def setup_mlflow(tracking_uri: str = TRACKING_URI) -> None:
@@ -80,7 +82,8 @@ def log_run(
 def register_model(
     run_id: str,
     artifact_path: str = "model",
-    model_name: str = REGISTRY_MODEL_NAME,
+    *,
+    model_name: str,
 ) -> ModelVersion:
     """Register a logged model artifact in the MLflow Model Registry."""
     model_uri = f"runs:/{run_id}/{artifact_path}"
@@ -90,45 +93,48 @@ def register_model(
 
 
 def promote_to_production(
-    model_name: str = REGISTRY_MODEL_NAME,
+    model_name: str = PRODUCTION_MODEL_NAME,
     version: int | str = 1,
 ) -> None:
-    """Transition a model version to the Production stage."""
+    """Set the 'champion' alias on a registered model version."""
     client = mlflow.tracking.MlflowClient()
-    client.transition_model_version_stage(
-        name=model_name,
-        version=str(version),
-        stage="Production",
-        archive_existing_versions=True,
-    )
-    logger.info("Promoted %s v%s to Production", model_name, version)
+    client.set_registered_model_alias(model_name, "champion", str(version))
+    logger.info("Promoted %s v%s to champion", model_name, version)
 
 
-def load_champion(model_name: str = REGISTRY_MODEL_NAME) -> Any:
-    """Load the current Production model from the registry."""
-    return mlflow.pyfunc.load_model(f"models:/{model_name}/Production")
+def set_challenger_alias(
+    model_name: str = STAGING_MODEL_NAME,
+    version: int | str = 1,
+) -> None:
+    """Set the 'challenger' alias on a registered model version."""
+    client = mlflow.tracking.MlflowClient()
+    client.set_registered_model_alias(model_name, "challenger", str(version))
+    logger.info("Set challenger alias on %s v%s", model_name, version)
 
 
-def get_latest_production_run_id(model_name: str = REGISTRY_MODEL_NAME) -> str | None:
-    """Return the run_id of the current Production model version, or None.
+def load_champion(model_name: str = PRODUCTION_MODEL_NAME) -> Any:
+    """Load the current champion model from the registry."""
+    return mlflow.pyfunc.load_model(f"models:/{model_name}@champion")
 
-    Returns None when no production version exists or the model is not yet
-    registered (MLflow 3.x raises MlflowException in that case).
+
+def get_latest_production_run_id(model_name: str = PRODUCTION_MODEL_NAME) -> str | None:
+    """Return the run_id of the current champion model version, or None.
+
+    Returns None when no champion alias exists or the model is not yet
+    registered (MLflow raises MlflowException in that case).
     """
     client = mlflow.tracking.MlflowClient()
     try:
-        versions = client.get_latest_versions(model_name, stages=["Production"])
+        mv = client.get_model_version_by_alias(model_name, "champion")
     except mlflow.exceptions.MlflowException:
         return None
-    if versions:
-        return versions[0].run_id
-    return None
+    return mv.run_id
 
 
-def get_champion_rps(model_name: str = REGISTRY_MODEL_NAME) -> float | None:
-    """Return the qa_holdout_rps of the current Production champion, or None.
+def get_champion_rps(model_name: str = PRODUCTION_MODEL_NAME) -> float | None:
+    """Return the qa_holdout_rps of the current champion, or None.
 
-    Returns None when no production model exists (first run — always promote).
+    Returns None when no champion exists (first run — always promote).
     """
     run_id = get_latest_production_run_id(model_name)
     if run_id is None:

@@ -10,7 +10,6 @@ from src.gold.schema import (
     ROLLING_SHOT_COLUMNS,
     ROLLING_TACTICAL_COLUMNS,
     TARGET_COLUMNS,
-    TACTICAL_CLUSTER_COLUMNS,
 )
 
 # Re-export for convenience
@@ -34,8 +33,7 @@ FULL_FEATURE_COLUMNS: Final[list[str]] = (
     CORE_FEATURE_COLUMNS
     + ROLLING_SHOT_COLUMNS
     + ROLLING_TACTICAL_COLUMNS
-    + TACTICAL_CLUSTER_COLUMNS
-)  # 28 features
+)  # 24 features
 
 # Which feature set each model uses
 MODEL_FEATURE_SETS: Final[dict[str, list[str]]] = {
@@ -64,7 +62,7 @@ SEARCH_SPACES: Final[dict[str, dict]] = {
         "alpha": {"type": "float", "low": 1e-4, "high": 10.0, "log": True},
     },
     "ridge": {
-        "alpha": {"type": "float", "low": 1e-3, "high": 1e3, "log": True},
+        "alpha": {"type": "float", "low": 1e-3, "high": 1e5, "log": True},
     },
     "random_forest": {
         "n_estimators": {"type": "int", "low": 50, "high": 500},
@@ -82,7 +80,7 @@ SEARCH_SPACES: Final[dict[str, dict]] = {
     },
     # Milestone 4 models — search spaces defined upfront
     "bayesian_poisson": {
-        "prior_sigma": {"type": "float", "low": 0.1, "high": 5.0, "log": True},
+        "prior_sigma": {"type": "float", "low": 0.1, "high": 5.0, "log": False},
         "draws": {"type": "int", "low": 500, "high": 2000},
         "tune_steps": {"type": "int", "low": 500, "high": 2000},
     },
@@ -109,12 +107,12 @@ SEARCH_SPACES: Final[dict[str, dict]] = {
 # Default Optuna trial counts per model
 DEFAULT_N_TRIALS: Final[dict[str, int]] = {
     "poisson_glm": 30,
-    "negbin_glm": 20,
+    "negbin_glm": 30,
     "ridge": 30,
-    "random_forest": 50,
-    "xgboost": 60,
-    "bayesian_poisson": 20,
-    "sarimax": 30,
-    "lstm": 25,
-    "cnn": 25,
+    "random_forest": 80,
+    "xgboost": 100,
+    "bayesian_poisson": 40,
+    "sarimax": 48,
+    "lstm": 50,
+    "cnn": 50,
 }

@@ -26,6 +26,10 @@ Match outcomes such as home win / draw / away win are derived later from predict
 - version code with Git
 - version data/artifacts with DVC
 
+## Prerequisites
+
+- **macOS**: Xcode (not just Command Line Tools) is required for PyMC/PyTensor C compilation. Install from the App Store and run `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`.
+
 ## Planned stack
 - Python
 - pandas / numpy / scikit-learn

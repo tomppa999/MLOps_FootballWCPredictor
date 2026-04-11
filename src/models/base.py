@@ -9,7 +9,7 @@ import numpy as np
 
 
 class BaseModel(ABC):
-    """All 9 candidate models implement this interface.
+    """All 10 candidate models implement this interface.
 
     ``predict`` must return Poisson-rate estimates (λ_home, λ_away).
     Non-distributional models (Ridge, RF, XGBoost) treat their point

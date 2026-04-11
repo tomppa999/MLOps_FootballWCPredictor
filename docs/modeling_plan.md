@@ -5,17 +5,17 @@
 9 models across 5 families are trained in the experimental environment.
 All target `home_goals` and `away_goals` as count/distribution outputs.
 
-| # | Model                   | Family        | Library                     |
-|---|-------------------------|---------------|-----------------------------|
-| 1 | Poisson GLM             | Statistical   | scipy.optimize (custom MLE) |
-| 2 | Negative Binomial GLM   | Statistical   | statsmodels                 |
-| 3 | Bayesian Poisson (PyMC) | Bayesian      | pymc          |
-| 4 | SARIMAX (ARIMAX)        | Time-Series   | statsmodels   |
-| 5 | Ridge Regression        | ML baseline   | scikit-learn  |
-| 6 | Random Forest           | ML ensemble   | scikit-learn  |
-| 7 | XGBoost                 | ML boosting   | xgboost       |
-| 8 | LSTM                    | Deep Learning | keras         |
-| 9 | 1D CNN                  | Deep Learning | keras         |
+| # | Model                            | Family        | Library                     |
+|---|----------------------------------|---------------|-----------------------------|
+| 1 | Poisson GLM                      | Statistical   | scipy.optimize (custom MLE) |
+| 2 | Negative Binomial GLM            | Statistical   | statsmodels                 |
+| 3 | Bayesian Poisson (PyMC)          | Bayesian      | pymc                        |
+| 4 | SARIMAX (ARIMAX)                 | Time-Series   | statsmodels                 |
+| 5 | Ridge Regression                 | ML baseline   | scikit-learn                |
+| 6 | Random Forest                    | ML ensemble   | scikit-learn                |
+| 7 | XGBoost                          | ML boosting   | xgboost                     |
+| 8 | LSTM                             | Deep Learning | keras                       |
+| 9 | 1D CNN                           | Deep Learning | keras                       |
 
 ## Gold data design
 The main Gold table is match-level with one row per match.
@@ -42,8 +42,9 @@ Two independent statsmodels NegativeBinomial GLMs (home, away) with log link.
 Adds a dispersion parameter for overdispersion.
 
 ### Bayesian Poisson (PyMC)
-Joint generative model with explicit priors over team strength. Expected to
-produce better-calibrated uncertainty estimates than frequentist alternatives.
+Joint generative model with explicit priors over team strength (independent
+marginals). Expected to produce better-calibrated uncertainty estimates than
+frequentist alternatives.
 
 ### SARIMAX (ARIMAX)
 Uses `home_team_match_index` / `away_team_match_index` as the time axis.
@@ -76,19 +77,19 @@ their natural scale and remains model-agnostic.
 Normalization is applied at **training time**, inside each model's pipeline,
 fit only on training data to avoid leakage from validation or test rows.
 
-| # | Model                   | Normalization                                                      |
-|---|-------------------------|--------------------------------------------------------------------|
-| 1 | Poisson GLM             | `StandardScaler` in sklearn `Pipeline` (optimizer convergence)     |
-| 2 | Negative Binomial GLM   | `StandardScaler` in sklearn `Pipeline` (optimizer convergence)     |
-| 3 | Bayesian Poisson (PyMC) | Manual `StandardScaler` fit on train split before passing to PyMC  |
-| 4 | SARIMAX                 | `StandardScaler` on exogenous features before passing to statsmodels |
-| 5 | Ridge Regression        | `StandardScaler` in sklearn `Pipeline` (required: L2 penalty treats all feature magnitudes equally without scaling) |
-| 6 | Random Forest           | None — tree-based, scale-invariant                                 |
-| 7 | XGBoost                 | None — tree-based, scale-invariant                                 |
-| 8 | LSTM                    | `StandardScaler` (required for gradient-based learning stability)  |
-| 9 | 1D CNN                  | `StandardScaler` (required for gradient-based learning stability)  |
+| # | Model                            | Normalization                                                      |
+|---|----------------------------------|--------------------------------------------------------------------|
+| 1 | Poisson GLM                      | `StandardScaler` in sklearn `Pipeline` (optimizer convergence)     |
+| 2 | Negative Binomial GLM            | `StandardScaler` in sklearn `Pipeline` (optimizer convergence)     |
+| 3 | Bayesian Poisson (PyMC)          | Manual `StandardScaler` fit on train split before passing to PyMC  |
+| 4 | SARIMAX                          | `StandardScaler` on exogenous features before passing to statsmodels |
+| 5 | Ridge Regression                 | `StandardScaler` in sklearn `Pipeline` (required: L2 penalty treats all feature magnitudes equally without scaling) |
+| 6 | Random Forest                    | None — tree-based, scale-invariant                                 |
+| 7 | XGBoost                          | None — tree-based, scale-invariant                                 |
+| 8 | LSTM                             | `StandardScaler` (required for gradient-based learning stability)  |
+| 9 | 1D CNN                           | `StandardScaler` (required for gradient-based learning stability)  |
 
-For sklearn-compatible models (1, 2, 5, 6, 7), wrap in an `sklearn.pipeline.Pipeline`
+For sklearn-compatible models (1, 2, 6, 7, 8), wrap in an `sklearn.pipeline.Pipeline`
 so the fitted scaler + estimator are a single serializable artifact. At inference
 time the same pipeline is loaded from MLflow, ensuring the correct transform is
 always applied automatically.
@@ -107,26 +108,25 @@ splits must be strictly time-based (walk-forward) on pre-2022 training data.
 
 ### Method
 Use **Optuna** (TPE sampler) with walk-forward expanding-window time-series
-cross-validation for all 9 models. GLMs and Bayesian Poisson have small search
-spaces and use short Optuna studies; ML and deep learning models use longer
-studies.
+cross-validation for all 9 models. GLMs and Bayesian models have small search
+spaces; ML and deep learning models use longer studies.
 
 Log every trial's parameters and CV score to MLflow so the full tuning history
 is reproducible.
 
 ### Key hyperparameters per model
 
-| # | Model                   | Key hyperparameters                                                                 | Search approach         |
-|---|-------------------------|-------------------------------------------------------------------------------------|-------------------------|
-| 1 | Poisson GLM             | `alpha` (L2 penalty on coefficients)                                                | Short Optuna study      |
-| 2 | Negative Binomial GLM   | `alpha` (initial dispersion parameter)                                              | Short Optuna study      |
-| 3 | Bayesian Poisson (PyMC) | Prior sigma on team strength coefficients; MCMC draws / tuning steps                | Short Optuna study      |
-| 4 | SARIMAX                 | AR/MA order `(p, d, q)` as integers; exogenous feature subsets                      | Optuna over integer orders |
-| 5 | Ridge Regression        | `alpha` ∈ [0.001, 1000] log-scale — most impactful parameter                        | Optuna                  |
-| 6 | Random Forest           | `n_estimators`, `max_depth`, `min_samples_leaf`, `max_features`                     | Optuna                  |
-| 7 | XGBoost                 | `learning_rate`, `max_depth`, `n_estimators`, `subsample`, `colsample_bytree`, `reg_lambda` | Optuna (largest space) |
-| 8 | LSTM                    | `units`, `num_layers`, `dropout`, `learning_rate`, `batch_size`                     | Optuna (expensive)      |
-| 9 | 1D CNN                  | `filters`, `kernel_size`, `dropout`, `learning_rate`                                | Optuna (expensive)      |
+| # | Model                            | Key hyperparameters                                                                 | Search approach         |
+|---|----------------------------------|-------------------------------------------------------------------------------------|-------------------------|
+| 1 | Poisson GLM                      | `alpha` (L2 penalty on coefficients)                                                | Short Optuna study      |
+| 2 | Negative Binomial GLM            | `alpha` (initial dispersion parameter)                                              | Short Optuna study      |
+| 3 | Bayesian Poisson (PyMC)          | Prior sigma on team strength coefficients; MCMC draws / tuning steps                | Optuna (40 trials)      |
+| 4 | SARIMAX                          | AR/MA order `(p, d, q)` as integers; exogenous feature subsets                      | Optuna over integer orders (48 trials, exhaustive grid) |
+| 5 | Ridge Regression                 | `alpha` ∈ [0.001, 1000] log-scale — most impactful parameter                        | Optuna                  |
+| 6 | Random Forest                    | `n_estimators`, `max_depth`, `min_samples_leaf`, `max_features`                     | Optuna (80 trials)      |
+| 7 | XGBoost                          | `learning_rate`, `max_depth`, `n_estimators`, `subsample`, `colsample_bytree`, `reg_lambda` | Optuna (100 trials)    |
+| 8 | LSTM                             | `units`, `num_layers`, `dropout`, `learning_rate`, `batch_size`                     | Optuna (50 trials)      |
+| 9 | 1D CNN                           | `filters`, `kernel_size`, `dropout`, `learning_rate`                                | Optuna (50 trials)      |
 
 ### Notes
 - LSTM and CNN trials are expensive; cap the number of Optuna trials (e.g. 20–30)
@@ -152,27 +152,37 @@ A candidate may be promoted only if:
 - evaluation metrics beat the current production baseline on the primary metric
 - no critical regression appears on secondary checks
 
-The artifact that gets registered and promoted to Production in the MLflow
-model registry is the **refitted** model (trained on the full Gold dataset
-available at run time), not the evaluation model. The evaluation run that
-justified the selection is linked via an `evaluation_run_id` parameter on the
-production-refit run.
+All TOP_K QA finalists are serialized as MLflow pyfunc artifacts during the QA
+phase and registered as versions of `wc_staging` in the MLflow model
+registry. This makes every finalist auditable and available for offline
+comparison, regardless of whether it wins the champion gate. The winner
+receives the `challenger` alias on `wc_staging`.
+
+The artifact that gets registered and promoted via the `champion` alias in a
+separate `wc_production` registered model is a **refitted** model (trained on
+the full Gold dataset available at run time), not the QA evaluation artifact.
+The QA run that justified the selection is linked via an `evaluation_run_id`
+parameter on the production-refit run.
 
 ## Continuous training strategy
 
 Each retrain cycle follows a two-phase training flow:
 
-1. **Evaluation phase** — train all 9 candidates on pre-WC 2022 data,
-   evaluate each on the WC 2022 holdout, log all 9 runs to MLflow tagged
-   `stage=evaluation`. Select the best candidate based on holdout metrics.
+1. **Evaluation phase** — all 9 candidates are tuned (Phase 1, Experimental)
+   and the top 4 by CV NLL advance to QA (Phase 2). Each QA finalist is
+   retrained on pre-WC 2022 data, evaluated on the WC 2022 holdout, and its
+   artifact is registered as a version of `wc_staging` in the MLflow model
+   registry. The finalist with the lowest holdout RPS is selected and
+   receives the `challenger` alias on `wc_staging`.
 2. **Production refit phase** — refit the winning model type and
    hyperparameters on the full Gold dataset available at run time (pre-WC
    2022 + WC 2022 + all matches accumulated since, through today). Log as a
    new MLflow run tagged `stage=production-refit`, with an
-   `evaluation_run_id` parameter linking back to the evaluation run that
-   justified the selection. Register and promote this refitted model to
-   Production in the MLflow model registry.
-3. **Inference + simulation** — load the Production champion from the
+   `evaluation_run_id` parameter linking back to the QA run that justified
+   the selection. Register this refitted model as a version of `wc_production`
+   and promote it via the `champion` alias. The `wc_staging` QA versions are
+   retained for audit and comparison.
+3. **Inference + simulation** — load the `champion`-aliased model from the
    registry, predict upcoming matches, run Monte Carlo simulation, log
    predictions as MLflow artifacts.
 
@@ -201,31 +211,30 @@ purpose is drift detection and auditable model selection history.
 
 ## Feature set strategy per model family
 
-Rolling shot columns (~1,837–2,068 NaN), tactical rolling columns, and
-tactical clusters have NaN for pre-~2020 matches due to sparse statistics
-coverage. Rolling goal columns have minimal NaN (~108–109 out of 6,663
-rows). Different model families handle this as follows:
+Rolling shot columns (~1,837–2,068 NaN) and tactical rolling columns have NaN
+for pre-~2020 matches due to sparse statistics coverage. Rolling goal columns
+have minimal NaN (~108–109 out of 6,663 rows). Different model families handle
+this as follows:
 
-| # | Model                   | Feature set  | NaN handling                                               |
-|---|-------------------------|--------------|------------------------------------------------------------|
-| 1 | Poisson GLM             | Core only    | Shot/tactical features excluded; Core nearly complete       |
-| 2 | Negative Binomial GLM   | Core only    | Shot/tactical features excluded; Core nearly complete       |
-| 3 | Bayesian Poisson (PyMC) | Core only    | Bayesian models need complete data                         |
-| 4 | SARIMAX                 | Core only    | Exogenous matrix must be complete                          |
-| 5 | Ridge Regression        | Core only    | StandardScaler cannot handle NaN                           |
-| 6 | Random Forest           | Core only    | sklearn RF cannot handle NaN natively                      |
-| 7 | XGBoost                 | Full         | Handles NaN natively, learns optimal splits                |
-| 8 | LSTM                    | Core or 2020+| Restrict sequences to 2020+ if using tactical              |
-| 9 | 1D CNN                  | Core or 2020+| Restrict sequences to 2020+ if using tactical              |
+| # | Model                            | Feature set  | NaN handling                                               |
+|---|----------------------------------|--------------|------------------------------------------------------------|
+| 1 | Poisson GLM                      | Core only    | Shot/tactical features excluded; Core nearly complete       |
+| 2 | Negative Binomial GLM            | Core only    | Shot/tactical features excluded; Core nearly complete       |
+| 3 | Bayesian Poisson (PyMC)          | Core only    | Bayesian models need complete data                         |
+| 4 | SARIMAX                          | Core only    | Exogenous matrix must be complete                          |
+| 5 | Ridge Regression                 | Core only    | StandardScaler cannot handle NaN                           |
+| 6 | Random Forest                    | Core only    | sklearn RF cannot handle NaN natively                      |
+| 7 | XGBoost                          | Full         | Handles NaN natively, learns optimal splits                |
+| 8 | LSTM                             | Core or 2020+| Restrict sequences to 2020+ if using tactical              |
+| 9 | 1D CNN                           | Core or 2020+| Restrict sequences to 2020+ if using tactical              |
 
 **Core features (8):** `elo_diff`, `competition_tier`, `is_knockout`,
 `is_neutral`, `home_team_rolling_goals_for`, `home_team_rolling_goals_against`,
 `away_team_rolling_goals_for`, `away_team_rolling_goals_against`. Nearly
 complete across all rows (<2% NaN after dropna).
 
-**Full features (28):** Core + rolling shots (6 columns) + rolling tactical
-(10 columns) + tactical clusters (4 columns). Substantial NaN in pre-~2020
-rows.
+**Full features (24):** Core + rolling shots (6 columns) + rolling tactical
+(10 columns). Substantial NaN in pre-~2020 rows.
 
 ## Evaluation metrics
 
@@ -240,5 +249,8 @@ rows.
   For non-distributional models (Ridge, RF, XGBoost): assume Poisson(predicted_mean).
   Lower is better; 0 = perfect, 1 = worst. Used for QA holdout evaluation and
   champion/challenger gating.
+- **QA reporting:** Holdout NLL (same Poisson NLL as tuning, computed on the WC 2022
+  holdout set). Reported alongside RPS to preserve scoreline-level signal that RPS
+  collapses into three W/D/L buckets. Not used for gating; informational only.
 - **Secondary:** RMSE on predicted expected goals.
 - **Dropped:** Brier score (redundant with RPS for ordered outcomes).

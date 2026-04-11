@@ -52,8 +52,11 @@ and leakage-safe features, and trains nine candidate models spanning five famili
 statistical, Bayesian, time-series, classical machine learning, and deep learning. 
 Models are evaluated in a three-environment structure. An experimental environment selects 
 the top-4 candidates by cross-validation Poisson negative log-likelihood. A subsequent QA environment backtests promoted 
-models against the 2022 FIFA World Cup, and promotes the best model to a deployment environment,
-where it is retrained on the full dataset. A Monte Carlo simulation derives tournament outcome 
+models against the 2022 FIFA World Cup; each finalist is serialized and registered as a
+version of \texttt{wc\_staging} in the MLflow model registry, and the best model receives
+the \texttt{challenger} alias before advancing to a deployment environment where it is
+retrained on the full dataset, registered in a separate \texttt{wc\_production} model, and
+promoted via the \texttt{champion} alias. A Monte Carlo simulation derives tournament outcome 
 probabilities from predicted score distributions. 
 All experiments are tracked with MLflow; data and artifacts are versioned with DVC. We report 
 model performance, feature importance, and discuss threats to validity specific to the national 
@@ -163,12 +166,19 @@ are logged as MLflow run parameters, providing a complete audit trail across cyc
 
 \subsection{Football Score Modeling}
 
-The standard statistical model for football is the bivariate Poisson regression introduced
-by Dixon and Coles~\cite{dixon1997modelling}, in which each team's goals follow an
-independent Poisson distribution parameterized by attack strength, defence weakness, and
-a home advantage term. Extensions include the Negative Binomial distribution, which relaxes
-the equidispersion assumption, and Bayesian variants that produce full posterior predictive
-distributions over score outcomes.
+The foundational statistical model for football score prediction treats each team's goals
+as independent Poisson processes conditioned on attack strength, defence weakness, and a
+home advantage term~\cite{maher1982modelling}. Dixon and Coles~\cite{dixon1997modelling}
+extended this framework with a time-weighting scheme and a low-score correction factor
+that partially accounts for the empirically observed positive correlation between home
+and away goals in matches where few goals are scored.
+Karlis and Ntzoufras~\cite{karlis2003analysis} formalised this correlation through a
+genuine bivariate Poisson model in which a match is decomposed into three independent
+Poisson components: a home-specific rate $\lambda_1$, an away-specific rate $\lambda_2$,
+and a shared rate $\lambda_3$ that induces positive dependence between the two scorelines.
+Extensions include the Negative Binomial distribution, which relaxes the equidispersion
+assumption of the Poisson family, and Bayesian variants that produce full posterior
+predictive distributions over score outcomes.
 
 \tbd{More detail here or in the "Related Work" section?}
 
@@ -223,7 +233,10 @@ Model development follows a structured three-environment pipeline:
   for QA promotion in the MLflow registry.
   \item \textbf{QA}: promoted models are backtested against the 2022 FIFA World Cup.
   The primary KPI is Ranked Probability Score (RPS), with RMSE as secondary metric.
-  The best-performing model is tagged for deployment.
+  Each finalist's artifact is serialized and registered as a version
+  of \texttt{wc\_staging} in the MLflow model registry; the winner receives
+  the \texttt{challenger} alias.
+  The best-performing model advances to the deploy phase.
   \item \textbf{Deploy}: the selected model is retrained on the full Gold dataset,
   serialized as an MLflow pyfunc artifact, and used for tournament simulation.
 \end{enumerate}
@@ -567,7 +580,7 @@ depending on the mode and data growth (Figure~\ref{fig:ct_architecture}).
 When \texttt{mode=auto} and the Gold table has grown by at least 10 rows
 since the last training cycle, all nine candidate models are retrained on
 the updated training split, evaluated on the 2022 World Cup holdout, and
-logged to MLflow. The best candidate is promoted to Production in the MLflow
+logged to MLflow. The best candidate is promoted via the \texttt{champion} alias in the MLflow
 Model Registry. Inference and Monte Carlo simulation follow immediately,
 using the newly promoted champion. If Gold grew by fewer than 10 rows, only
 inference runs. The retraining threshold and the last Gold row count are
@@ -576,7 +589,7 @@ tracked as MLflow run parameters.
 \textbf{Tournament inference.}
 During the tournament, the model is frozen at the parameters established in
 the last pre-tournament retraining cycle. The 30-minute trigger runs in
-\texttt{inference\_only} mode: it loads the Production champion from the
+\texttt{inference\_only} mode: it loads the \texttt{champion}-aliased model from the
 MLflow Model Registry, predicts upcoming matches, runs the Monte Carlo
 tournament simulation, and logs updated predictions as MLflow artifacts.
 No retraining occurs during the tournament.
@@ -628,6 +641,37 @@ Table~\ref{tab:models} lists the nine candidate models.
   \end{tabular}
 \end{table}
 
+\textbf{Note on Poisson GLM:} The Poisson GLM implements the bivariate Poisson
+distribution of Karlis and Ntzoufras~\cite{karlis2003analysis}. A match is modelled
+as three independent Poisson variates, $X_1 \sim \text{Pois}(\lambda_1)$,
+$X_2 \sim \text{Pois}(\lambda_2)$, $X_3 \sim \text{Pois}(\lambda_3)$, where
+$\text{home\_goals} = X_1 + X_3$ and $\text{away\_goals} = X_2 + X_3$.
+The shared component $\lambda_3$ explicitly captures positive score dependence between
+sides. Each rate is parameterised as $\exp(\beta^\top x)$ and all three coefficient
+vectors are estimated jointly by L-BFGS-B maximum likelihood with an L2 penalty.
+This formulation was chosen over the Dixon--Coles~\cite{dixon1997modelling} variant for
+two reasons: (i)~the $\lambda_3$ component models positive score dependence across all
+scorelines rather than applying a correction only to the four lowest outcomes, providing
+a more general dependence structure; and (ii)~the Dixon--Coles time-weighting of older
+matches is largely redundant here, because Elo ratings and 10-match rolling form features
+already impose implicit recency weighting on the feature side.
+A possible extension would be to add explicit likelihood-level time-weighting to the
+Karlis--Ntzoufras model to further downweight older matches beyond what these features
+capture.
+
+\textbf{Note on Negative Binomial GLM:} The Negative Binomial GLM fits two independent
+marginals: one NegBin GLM for home goals and one for away goals, sharing the feature
+matrix but no model parameters. This design reflects two practical considerations.
+First, the bivariate closure that underpins the Karlis--Ntzoufras construction relies on
+Poisson additivity: the sum of independent Poisson variates is again Poisson. Negative
+Binomial variates do not share this property under differing dispersion parameters,
+making an analogous bivariate extension substantially more complex (requiring either
+a shared gamma mixing variable or a copula layer). Second, empirical home/away score
+correlation in football is weak (typically $r < 0.10$), so the gain from a full joint
+model is modest. The NegBin's primary contribution is relaxing the Poisson
+equidispersion assumption; independent marginals retain that benefit without additional
+modelling complexity.
+
 \textbf{Note on SARIMAX:} national team matches are irregularly spaced (3--4 days within
 international windows, up to 6 months between windows). SARIMAX is applied with an integer
 match-index time dimension rather than calendar dates, so the ARIMA component models
@@ -638,6 +682,22 @@ limitation (Section~\ref{sec:threats}).
 \textbf{Note on Bayesian Poisson:} PyMC's NUTS sampler produces full posterior predictive
 distributions, which are ideal for propagating uncertainty into Monte Carlo simulation.
 Variational inference (ADVI) is used as a faster approximation during experimental runs.
+
+\textbf{Note on Bayesian Bivariate Poisson (excluded):} A Bayesian variant of the
+Karlis--Ntzoufras~\cite{karlis2003analysis} bivariate Poisson was implemented and
+tested but excluded from the final candidate set. The custom bivariate Poisson
+log-PMF---implemented in PyTensor ops via \texttt{pm.CustomDist} with a truncated
+$k$-sum---requires PyMC to auto-differentiate through a complex computational graph
+(including \texttt{gammaln}, \texttt{logsumexp}, and 2D tensor operations) at every
+NUTS leapfrog step. This makes each MCMC step approximately 50$\times$ slower than
+the independent-marginals Bayesian Poisson, which uses PyMC's built-in
+\texttt{pm.Poisson} with pre-compiled analytical gradients. In a test run with
+identical hyperparameter ranges, both models achieved nearly identical CV NLL
+($\approx$2.754), indicating that the shared dependence parameter $\lambda_3$ does
+not improve predictive accuracy on this dataset. Given the prohibitive computational
+cost ($\sim$5--6 hours for 40 Optuna trials vs.\ $\sim$7 minutes for the independent
+variant) and no measurable benefit, the model was dropped from the tuning pipeline.
+The implementation is retained in the repository for reference.
 
 \subsection{Hypotheses}
 
@@ -745,6 +805,11 @@ Promoted models are evaluated on 64 matches from the 2022 FIFA World Cup (Qatar)
 Reported KPIs:
 \begin{itemize}
   \item \textbf{Ranked Probability Score (RPS)}: average over all matches; lower is better.
+  Used as the champion/challenger gate metric.
+  \item \textbf{Holdout NLL}: Poisson negative log-likelihood on the holdout set, identical
+  to the tuning objective but computed on the WC~2022 matches. Reported alongside RPS to
+  preserve scoreline-level signal that RPS collapses into three W/D/L buckets. Not used
+  for gating; informational only.
   \item \textbf{RMSE (home goals)}: root mean squared error between the
   predicted home-goal rate $\hat{\lambda}_h$ and the actual home goals.
   \item \textbf{RMSE (away goals)}: same for the away-goal rate
@@ -752,16 +817,24 @@ Reported KPIs:
 \end{itemize}
 
 \subsection{Champion Selection and Production Refit}
-The QA candidate with the lowest holdout RPS is designated the challenger.
-If no production champion exists, the challenger is promoted unconditionally.
+All QA finalists are serialized and registered as versions of
+\texttt{wc\_staging} in the MLflow model registry during the QA phase
+(Section~\ref{sec:experiments}).  These artifacts are trained on the
+pre-WC 2022 split and serve as an audit trail; they are not used for inference.
+
+The QA candidate with the lowest holdout RPS is designated the challenger
+and receives the \texttt{challenger} alias on \texttt{wc\_staging}.
+If no current champion exists, the challenger is promoted unconditionally.
 Otherwise, promotion requires the challenger's holdout RPS to strictly
 improve on the current champion's recorded RPS; if it does not,
 \texttt{ChallengeFailed} is raised and the existing champion is retained.
 On successful promotion, the champion model is refit on \emph{all} available
 Gold data (\texttt{X\_full}, covering 2018 through the latest ingested match)
 using the hyperparameters selected during the experimental phase.
-The refitted model is serialized as an MLflow pyfunc artifact, registered in
-the MLflow Model Registry, and promoted to the \texttt{Production} alias.
+This production-refit artifact is distinct from the QA version:
+it is serialized as a new MLflow pyfunc artifact, registered as a version of
+\texttt{wc\_production}, and promoted via the \texttt{champion} alias.
+The \texttt{wc\_staging} QA versions are retained for audit and comparison.
 The associated MLflow run records the QA holdout metrics
 (\texttt{qa\_holdout\_rps}, \texttt{qa\_holdout\_rmse\_home},
 \texttt{qa\_holdout\_rmse\_away}) together with the full Gold row count and
@@ -772,8 +845,9 @@ the QA run ID for traceability.
 \label{sec:results}
 
 \tbd{Complete after experimental runs. Include: (1) validation set metrics for all 9 models,
-(2) promoted models and gate comparison, (3) QA 2022 WC KPI table, (4) feature importance
-comparison across model families, (5) key figures: metric bar chart, feature importance heatmap.}
+(2) promoted models and gate comparison, (3) QA 2022 WC KPI table (with holdout NLL),
+(4) feature importance comparison across model families, (5) key figures: metric bar chart,
+feature importance heatmap.}
 
 % ============================================================
 \section{Discussion}
@@ -788,6 +862,29 @@ comparison across model families, (5) key figures: metric bar chart, feature imp
 - Discuss PyMC calibration vs.\ GLM.
 - Discuss SARIMAX results without directional expectation.
 - Discuss LSTM/CNN sample size limitations.}
+
+\subsection{Narrow Result Spread}
+
+The holdout RPS values across promoted models are expected to cluster tightly
+(differences on the order of $10^{-3}$). Three structural factors explain this:
+
+\begin{enumerate}
+  \item \textbf{Shared feature ceiling.} All core-feature models consume the
+  same eight features, with Elo differential accounting for the majority of
+  predictive signal. Model architecture differences can only exploit the
+  residual variance beyond what Elo already captures.
+
+  \item \textbf{Low-signal football domain.} National team football is
+  inherently noisy: small squads, irregular calendars, and frequent upsets
+  limit the achievable prediction accuracy for any model family.
+
+  \item \textbf{RPS collapses score distributions.} RPS evaluates three
+  cumulative W/D/L probabilities. Two models that produce meaningfully
+  different goal-rate distributions can nonetheless yield near-identical RPS
+  when their W/D/L marginals agree. Holdout NLL is reported alongside RPS
+  precisely because it preserves scoreline-level differences that RPS
+  discards.
+\end{enumerate}
 
 \subsection{Threats to Validity}
 \label{sec:threats}
