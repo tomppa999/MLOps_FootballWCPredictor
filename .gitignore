@@ -45,3 +45,6 @@ data/interim/
 # Spreadsheets and binary reference files
 *.xlsx
 *.numbers
+
+# One-off scripts (not committed)
+scripts/retro_tag_runs.py

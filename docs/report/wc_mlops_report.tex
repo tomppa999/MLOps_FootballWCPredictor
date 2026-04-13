@@ -50,17 +50,21 @@ World Cup.
 The pipeline implements a Bronze/Silver/Gold data architecture, engineers strictly time-aware 
 and leakage-safe features, and trains nine candidate models spanning five families: 
 statistical, Bayesian, time-series, classical machine learning, and deep learning. 
-Models are evaluated in a three-environment structure. An experimental environment selects 
-the top-4 candidates by cross-validation Poisson negative log-likelihood. A subsequent QA environment backtests promoted 
-models against the 2022 FIFA World Cup; each finalist is serialized and registered as a
-version of \texttt{wc\_staging} in the MLflow model registry, and the best model receives
-the \texttt{challenger} alias before advancing to a deployment environment where it is
-retrained on the full dataset, registered in a separate \texttt{wc\_production} model, and
-promoted via the \texttt{champion} alias. A Monte Carlo simulation derives tournament outcome 
-probabilities from predicted score distributions. 
-All experiments are tracked with MLflow; data and artifacts are versioned with DVC. We report 
-model performance, feature importance, and discuss threats to validity specific to the national 
-team football domain, the data sources and the new FIFA World Cup tournament structure.
+Models are evaluated in a three-environment structure. An experimental environment tunes 
+all nine candidates by cross-validation Poisson negative log-likelihood; all nine advance
+to a QA environment that backtests them against the 2022 FIFA World Cup. Each finalist is
+serialized and registered as a version of \texttt{wc\_staging} in the MLflow model
+registry, and the best model receives the \texttt{challenger} alias before advancing to a
+deployment environment where it is retrained on the full dataset, registered in a separate
+\texttt{wc\_production} model, and promoted via the \texttt{champion} alias. XGBoost is
+selected as champion despite ranking fourth in cross-validation, illustrating a ranking
+reversal between the tuning and holdout metrics that motivated removing the original
+top-four promotion gate. A Monte Carlo simulation derives tournament outcome
+probabilities from predicted score distributions.
+All experiments are tracked with MLflow; data and artifacts are versioned with DVC. We
+report model performance, feature importance, and discuss threats to validity specific to
+the national team football domain, the data sources and the new FIFA World Cup tournament
+structure.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -229,8 +233,8 @@ Model development follows a structured three-environment pipeline:
 \begin{enumerate}
   \item \textbf{Experimental}: all nine candidate models are trained on the pre-WC 2022 
   Gold training split. Hyperparameters are tuned by Optuna using Poisson negative
-  log-likelihood (NLL) as the objective. The top four candidates by CV NLL are selected
-  for QA promotion in the MLflow registry.
+  log-likelihood (NLL) as the objective. All nine candidates advance
+  to QA, sorted by CV NLL.
   \item \textbf{QA}: promoted models are backtested against the 2022 FIFA World Cup.
   The primary KPI is Ranked Probability Score (RPS), with RMSE as secondary metric.
   Each finalist's artifact is serialized and registered as a version
@@ -795,9 +799,30 @@ creating a full search audit trail. The best configuration found by Optuna is us
 the final experimental evaluation and all downstream environments.
 
 \subsection{Promotion Gate}
+\label{sec:promotion_gate}
 
-The experimental promotion gate selects the top four candidates by walk-forward
+All nine candidates advance from the experimental phase to QA, sorted by walk-forward
 cross-validation Poisson NLL using their Optuna-tuned hyperparameters.
+
+The initial pipeline design selected only the top four candidates by CV NLL for QA
+promotion. The first complete pipeline run revealed a ranking reversal between the
+two metrics: the CV NLL ranking (NegBin~$>$~Bayesian~$>$~Poisson~GLM~$>$~XGBoost)
+was inverted on the WC~2022 holdout, where XGBoost achieved the lowest RPS despite
+ranking fourth in CV.  Two observations motivated removing the top-K gate:
+\begin{enumerate}
+  \item The CV NLL spread across all nine models was narrow
+  (2.753--3.010), making the cutoff between rank~4 and rank~5 fragile: a
+  difference of $<0.005$ in CV NLL separated promoted from excluded candidates.
+  \item QA evaluation of all nine models adds approximately two minutes of
+  wall-clock time (the QA phase retrains and evaluates each model on 89
+  holdout matches), negligible compared to the ${\sim}75$-minute
+  experimental phase.
+\end{enumerate}
+Advancing all nine models to QA ensures that no candidate is excluded based
+on a metric that proved to be a poor predictor of holdout performance on this
+dataset.  The champion/challenger gate in the deploy phase
+(Section~\ref{sec:experiments}) remains the sole quality gate for production
+promotion.
 
 \subsection{QA Evaluation — 2022 World Cup Backtest}
 
@@ -844,35 +869,238 @@ the QA run ID for traceability.
 \section{Results}
 \label{sec:results}
 
-\tbd{Complete after experimental runs. Include: (1) validation set metrics for all 9 models,
-(2) promoted models and gate comparison, (3) QA 2022 WC KPI table (with holdout NLL),
-(4) feature importance comparison across model families, (5) key figures: metric bar chart,
-feature importance heatmap.}
+\subsection{Experimental Phase — Cross-Validation Results}
+
+Table~\ref{tab:cv_results} reports the walk-forward cross-validation Poisson NLL
+for all nine candidate models, sorted from best to worst.  The top three models
+by CV NLL are statistical models (NegBin GLM, Bayesian Poisson, Poisson GLM),
+followed by the tree-based models (XGBoost, Random Forest).  Deep learning
+models (LSTM, CNN) and SARIMAX occupy the lower ranks.
+
+\begin{table}[h]
+  \centering
+  \caption{Experimental phase — Walk-forward CV Poisson NLL (lower is better).
+  All nine candidates advance to QA.}
+  \label{tab:cv_results}
+  \begin{tabular}{clc}
+    \toprule
+    Rank & Model & CV NLL \\
+    \midrule
+    1 & Negative Binomial GLM & 2.7532 \\
+    2 & Bayesian Poisson      & 2.7543 \\
+    3 & Poisson GLM           & 2.7564 \\
+    4 & XGBoost               & 2.7647 \\
+    5 & Random Forest         & 2.7690 \\
+    6 & LSTM                  & 2.7922 \\
+    7 & Ridge                 & 2.8376 \\
+    8 & 1D CNN                & 2.9805 \\
+    9 & SARIMAX               & 3.0097 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The spread between the best and worst model is 0.257 in NLL; among the top
+five models, the spread is only 0.016.  This narrow range foreshadows the
+tight QA results and motivates advancing all nine candidates to the holdout
+evaluation (Section~\ref{sec:promotion_gate}).
+
+\subsection{QA Phase — 2022 World Cup Holdout}
+
+Table~\ref{tab:qa_results} reports holdout metrics for all nine candidates
+evaluated on the 89 matches of the 2022 FIFA World Cup.
+
+\begin{table}[h]
+  \centering
+  \caption{QA phase — WC~2022 holdout metrics (sorted by RPS, lower is better).
+  The champion/challenger gate uses holdout RPS as the primary KPI.}
+  \label{tab:qa_results}
+  \begin{tabular}{clcccc}
+    \toprule
+    Rank & Model & \footnotesize{Holdout RPS} & \footnotesize{Holdout NLL}
+         & \footnotesize{RMSE$_h$} & \footnotesize{RMSE$_a$} \\
+    \midrule
+    1 & XGBoost          & \textbf{0.2118} & 2.920 & 1.388 & 1.098 \\
+    2 & LSTM             & 0.2133 & 2.991 & 1.449 & 1.103 \\
+    3 & Ridge            & 0.2136 & 2.952 & 1.416 & 1.081 \\
+    4 & Poisson GLM      & 0.2148 & 2.935 & 1.406 & 1.118 \\
+    5 & Random Forest    & 0.2148 & 2.937 & 1.387 & 1.112 \\
+    6 & Bayesian Poisson & 0.2149 & 2.944 & 1.415 & 1.119 \\
+    7 & NegBin GLM       & 0.2155 & 2.950 & 1.418 & 1.126 \\
+    8 & SARIMAX          & 0.2178 & 3.284 & 1.417 & 1.100 \\
+    9 & 1D CNN           & 0.2296 & 3.037 & 1.553 & 1.061 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+XGBoost wins with a holdout RPS of 0.2118, despite ranking only fourth by
+CV NLL (2.7647).  The CV NLL winner (NegBin GLM, 2.7532) drops to seventh
+in holdout RPS (0.2155).  This ranking reversal is discussed further in
+Section~\ref{sec:discussion}.  Excluding 1D CNN, all remaining eight
+models fall within a 0.006 RPS band (0.2118--0.2178), confirming the
+narrow-spread hypothesis.
+
+XGBoost was deployed as the production champion (holdout
+RPS = 0.2118).  No prior champion existed, so promotion was unconditional.
+
+\subsection{Feature Importance}
+
+Table~\ref{tab:importance} summarises the top-3 features by permutation
+importance (NLL degradation) for each model.  The \texttt{elo\_diff}
+feature dominates across all nine models, with importance scores one to
+two orders of magnitude above any other feature.
+
+\begin{table}[h]
+  \centering
+  \caption{Top-3 features by permutation importance (NLL degradation).
+  \texttt{elo\_diff} ranks first in all nine models.}
+  \label{tab:importance}
+  \begin{tabular}{lccc}
+    \toprule
+    Model & \#1 & \#2 & \#3 \\
+    \midrule
+    Random Forest & \texttt{elo\_diff} \scriptsize{+.118}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.002}
+      & \texttt{comp\_tier} \scriptsize{+.002} \\
+    SARIMAX & \texttt{elo\_diff} \scriptsize{+.111}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001}
+      & \texttt{roll\_goals\_ag$_a$} \scriptsize{+.001} \\
+    LSTM & \texttt{elo\_diff} \scriptsize{+.110}
+      & \texttt{is\_neutral} \scriptsize{+.002}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001} \\
+    NegBin GLM & \texttt{elo\_diff} \scriptsize{+.105}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001}
+      & \texttt{roll\_goals\_ag$_a$} \scriptsize{+.001} \\
+    Bayesian Poisson & \texttt{elo\_diff} \scriptsize{+.104}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001}
+      & \texttt{roll\_goals\_ag$_a$} \scriptsize{+.001} \\
+    Poisson GLM & \texttt{elo\_diff} \scriptsize{+.103}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001}
+      & \texttt{roll\_goals\_ag$_a$} \scriptsize{+.001} \\
+    XGBoost & \texttt{elo\_diff} \scriptsize{+.099}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001}
+      & \texttt{roll\_tac\_poss$_a$} \scriptsize{+.001} \\
+    Ridge & \texttt{elo\_diff} \scriptsize{+.065}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.003}
+      & \texttt{roll\_goals\_ag$_a$} \scriptsize{+.003} \\
+    1D CNN & \texttt{elo\_diff} \scriptsize{+.060}
+      & \texttt{is\_neutral} \scriptsize{+.006}
+      & \texttt{roll\_goals\_for$_a$} \scriptsize{+.004} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Two patterns stand out beyond the \texttt{elo\_diff} dominance.  First,
+XGBoost is the only model to surface a tactical rolling feature
+(\texttt{away\_team\_rolling\_tac\_possession\_pct}) in its top three,
+likely because it is the only candidate that receives the full 24-feature
+set and can learn non-linear splits on the additional tactical columns.
+Second, the deep learning models (LSTM, CNN) assign notably higher
+importance to \texttt{is\_neutral} than any other model family, suggesting
+they rely more heavily on the venue signal to compensate for their weaker
+exploitation of the Elo differential.
 
 % ============================================================
 \section{Discussion}
 \label{sec:discussion}
 
-\tbd{Discuss:
-- H1: did elo\_diff rank first in permutation importance across model families?
-- H2: was Poisson GLM competitive relative to more complex models?
-- H3: did XGBoost outperform linear models, and which interactions mattered?
-- H4: did LSTM and CNN underperform as expected given dataset sparsity?
-- H5: was Bayesian Poisson better calibrated than frequentist alternatives?
-- Discuss PyMC calibration vs.\ GLM.
-- Discuss SARIMAX results without directional expectation.
-- Discuss LSTM/CNN sample size limitations.}
+\subsection{Hypothesis Evaluation}
+
+\textbf{H1: Elo differential is the dominant feature — confirmed.}
+\texttt{elo\_diff} ranks first in permutation importance across all nine
+model families (Table~\ref{tab:importance}), with importance scores ranging
+from $+0.060$ (CNN) to $+0.118$ (Random Forest) — one to two orders of
+magnitude above any other feature.  The secondary features
+(\texttt{rolling\_goals\_against}, \texttt{competition\_tier}) contribute
+importance on the order of $10^{-3}$, confirming that Elo encodes the vast
+majority of accessible predictive signal in this dataset.
+
+\textbf{H2: Poisson GLM as competitive baseline — confirmed.}
+Poisson GLM ranks third in CV NLL (2.756) and fourth in holdout RPS
+(0.2148), within 0.003 of the champion.  It outperforms the
+Bayesian Poisson, NegBin GLM, SARIMAX, and CNN on holdout RPS,
+demonstrating that the classical Poisson assumption provides a strong
+baseline that more complex models struggle to substantially improve upon.
+
+\textbf{H3: XGBoost captures non-linear interactions — partially confirmed.}
+XGBoost wins the holdout evaluation (RPS 0.2118) despite ranking fourth in
+CV NLL, suggesting it captures interactions that improve out-of-sample
+generalisation.  It is also the only model to surface a tactical feature
+(\texttt{away\_team\_rolling\_tac\_possession\_pct}) in its top-three
+importance, enabled by its access to the full 24-feature set.  However,
+the margin over the next-best model (LSTM, 0.2133) is only 0.0015,
+limiting the strength of the conclusion.
+
+\textbf{H4: Deep learning underperforms relative to complexity — partially
+confirmed.}
+CNN ranks last (RPS 0.2296), substantially worse than all other models and
+the only model outside the 0.006 RPS band occupied by the remaining eight.
+This confirms the expected data-sparsity penalty for deep architectures.
+LSTM, however, ranks second (RPS 0.2133), outperforming all statistical
+models and all other ML models except XGBoost.  This may reflect LSTM's
+ability to exploit sequential patterns in the rolling feature window, an
+avenue unavailable to cross-sectional models.  The divergent performance
+between the two deep learning models warrants caution: a single holdout
+set of 89 matches provides limited statistical power to distinguish models
+separated by $<$0.002 in RPS.
+
+\textbf{H5: Bayesian Poisson produces best-calibrated predictions — not
+confirmed.}
+Bayesian Poisson ranks sixth in holdout RPS (0.2149), behind XGBoost,
+LSTM, Ridge, Poisson GLM, and Random Forest.  Its holdout NLL (2.944) is
+also higher than XGBoost's (2.920) and Poisson GLM's (2.935).  The
+posterior predictive distributions produced by ADVI do not translate into
+superior W/D/L calibration on this holdout set.  A possible explanation is
+that ADVI provides a mean-field Gaussian approximation to the true
+posterior, which may underestimate predictive variance and thus lose the
+calibration advantage that full MCMC sampling would provide.
+
+\textbf{SARIMAX.}
+SARIMAX ranks eighth in holdout RPS (0.2178) and last in holdout NLL
+(3.284), substantially higher than all other models.  The integer
+match-index time axis, which treats multi-month gaps identically to
+within-window spacing, likely limits its ability to capture meaningful
+temporal structure (Section~\ref{sec:threats}).
+
+\subsection{CV--Holdout Ranking Reversal}
+
+The most notable result is the ranking reversal between the experimental
+and QA phases.  The top-three CV NLL models (NegBin GLM, Bayesian
+Poisson, Poisson GLM) all drop to the lower half of the holdout RPS
+ranking, while XGBoost rises from fourth to first.  This divergence has
+two plausible explanations:
+
+\begin{enumerate}
+  \item \textbf{Metric mismatch.}  CV NLL operates in goal-count space
+  and rewards models that place probability mass near the observed
+  scoreline.  Holdout RPS collapses the score distribution into three
+  W/D/L buckets.  A model that is well-calibrated at the scoreline level
+  may not be optimal at the outcome-probability level, and vice versa.
+  \item \textbf{Distribution shift.}  The WC~2022 holdout is a
+  tournament-only sample of 89 matches with higher average competitive
+  stakes, more neutral venues, and stronger teams than the training set
+  average.  Models that overfit to the distributional characteristics of
+  the training period (which includes many tier-3 and tier-4 matches) may
+  generalise less well to a tournament environment.  XGBoost's ability to
+  learn non-linear decision boundaries may make it more robust to this
+  shift.
+\end{enumerate}
+
+This reversal was the empirical motivation for removing the original
+top-four promotion gate (Section~\ref{sec:promotion_gate}): had the gate
+remained, LSTM (rank~2 in holdout RPS) and Ridge (rank~3) would have been
+excluded from QA based on a CV metric that proved misleading.
 
 \subsection{Narrow Result Spread}
 
-The holdout RPS values across promoted models are expected to cluster tightly
-(differences on the order of $10^{-3}$). Three structural factors explain this:
+Excluding CNN, the remaining eight models cluster within a 0.006 holdout
+RPS band (0.2118--0.2178).  Three structural factors explain this:
 
 \begin{enumerate}
   \item \textbf{Shared feature ceiling.} All core-feature models consume the
   same eight features, with Elo differential accounting for the majority of
-  predictive signal. Model architecture differences can only exploit the
-  residual variance beyond what Elo already captures.
+  predictive signal (Table~\ref{tab:importance}).  Model architecture
+  differences can only exploit the residual variance beyond what Elo already
+  captures.
 
   \item \textbf{Low-signal football domain.} National team football is
   inherently noisy: small squads, irregular calendars, and frequent upsets
@@ -885,6 +1113,12 @@ The holdout RPS values across promoted models are expected to cluster tightly
   precisely because it preserves scoreline-level differences that RPS
   discards.
 \end{enumerate}
+
+The practical implication is that champion selection in this domain is
+sensitive to the holdout sample: a different 89-match tournament could
+plausibly produce a different ranking among the top eight models.  This
+reinforces the value of advancing all candidates to QA and treating the
+champion/challenger gate as the sole decisive quality threshold.
 
 \subsection{Threats to Validity}
 \label{sec:threats}
@@ -987,9 +1221,36 @@ system with many similar candidates.
 \section{Conclusion}
 \label{sec:conclusion}
 
-\tbd{Summarize contributions, key findings, and which model was selected for deployment.
-Discuss implications for national team prediction and MLOps pipeline design. Outline
-possible improvements.}
+This work presents a structured MLOps pipeline for football World Cup prediction
+that implements a three-environment model lifecycle (Experimental, QA, Deploy)
+with automated experiment tracking, data versioning, and model registry
+management.
+
+Nine candidate models spanning five families were trained and evaluated.
+XGBoost was selected as the production champion based on its holdout RPS
+(0.2118) on the 2022 FIFA World Cup, despite ranking only fourth in
+cross-validation NLL.  This ranking reversal between the tuning and
+evaluation metrics led to an empirically motivated design change: removing
+the original top-four promotion gate in favour of advancing all nine
+candidates to QA, ensuring that no model is excluded based on a metric
+that may not predict holdout performance.
+
+Permutation importance analysis confirmed that Elo differential is the
+dominant feature across all model families, with secondary contributions
+from rolling form and competition tier.  The narrow spread of holdout RPS
+across eight of nine models (0.006 range) reflects the fundamental
+signal ceiling imposed by Elo-dominated features in a low-signal domain.
+
+\textbf{Limitations and future work.}
+The holdout evaluation relies on a single tournament (89 matches), which
+limits statistical power to distinguish closely ranked models.
+Future work could extend the holdout to include multiple tournaments
+(e.g.\ EURO~2024) or employ cross-tournament validation.
+The Monte Carlo simulation layer, which derives tournament outcome
+probabilities from predicted score distributions, is planned but not yet
+integrated.  Additional improvements include full MCMC sampling for the
+Bayesian model (replacing ADVI), calendar-aware time indexing for SARIMAX,
+and automated performance alerting between retraining cycles.
 
 % ============================================================
 \bibliographystyle{IEEEtran}

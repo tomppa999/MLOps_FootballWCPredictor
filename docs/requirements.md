@@ -6,7 +6,7 @@
 - Build Bronze/Silver/Gold data layers with schema validation
 - Train and compare 9 candidate models across 5 model families (see below) using a three-environment pipeline
 - Measure permutation-based feature importance for all models in the experimental environment
-- Tune models by CV Poisson NLL; rank for promotion by CV NLL; promote top 4 to QA environment
+- Tune models by CV Poisson NLL; rank for promotion by CV NLL; promote all 9 to QA environment
 - Backtest QA models against the 2022 World Cup; report RPS and RMSE
 - Promote the single best QA model to deploy environment; refit on the full Gold dataset available at run time
 - Simulate tournament outcomes via Monte Carlo from predicted score distributions
@@ -57,7 +57,7 @@ Match outcomes (W/D/L) are derived downstream from score distributions.
 
 ## Environment pipeline
 
-1. Experimental: all 9 models tuned via Optuna with walk-forward CV on pre-WC 2022 data using Poisson NLL; ranked by CV NLL; top 4 advance
+1. Experimental: all 9 models tuned via Optuna with walk-forward CV on pre-WC 2022 data using Poisson NLL; ranked by CV NLL; all 9 advance
 2. QA: promoted models retrained on full pre-WC 2022 data and backtested against 2022 World Cup holdout; KPIs: RPS, RMSE
 3. Deploy: best QA model refitted on the full Gold dataset available at run time (including WC 2022 and all subsequent matches); evaluation run logged separately for audit; refitted model registered and promoted in MLflow
 

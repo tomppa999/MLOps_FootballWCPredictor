@@ -152,7 +152,7 @@ A candidate may be promoted only if:
 - evaluation metrics beat the current production baseline on the primary metric
 - no critical regression appears on secondary checks
 
-All TOP_K QA finalists are serialized as MLflow pyfunc artifacts during the QA
+All nine QA finalists are serialized as MLflow pyfunc artifacts during the QA
 phase and registered as versions of `wc_staging` in the MLflow model
 registry. This makes every finalist auditable and available for offline
 comparison, regardless of whether it wins the champion gate. The winner
@@ -169,7 +169,7 @@ parameter on the production-refit run.
 Each retrain cycle follows a two-phase training flow:
 
 1. **Evaluation phase** — all 9 candidates are tuned (Phase 1, Experimental)
-   and the top 4 by CV NLL advance to QA (Phase 2). Each QA finalist is
+   and all nine advance to QA (Phase 2). Each QA finalist is
    retrained on pre-WC 2022 data, evaluated on the WC 2022 holdout, and its
    artifact is registered as a version of `wc_staging` in the MLflow model
    registry. The finalist with the lowest holdout RPS is selected and

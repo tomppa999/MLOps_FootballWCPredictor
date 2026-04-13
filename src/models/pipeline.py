@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import tempfile
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -66,7 +67,6 @@ CANDIDATE_MODELS: dict[str, type[BaseModel]] = {
     "cnn": CNNModel,
 }
 
-TOP_K_FOR_QA: int = 4
 RETRAIN_THRESHOLD: int = 10
 
 # ---------------------------------------------------------------------------
@@ -130,12 +130,17 @@ class _ModelWrapper(mlflow.pyfunc.PythonModel):
         return np.column_stack([lam_h, lam_a])
 
 
-def _log_model_artifact(model: BaseModel) -> None:
-    """Log a fitted BaseModel as an MLflow pyfunc model artifact."""
-    mlflow.pyfunc.log_model(
+def _log_model_artifact(model: BaseModel) -> str:
+    """Log a fitted BaseModel as an MLflow pyfunc model artifact.
+
+    Returns the model_uri needed for registration (MLflow 3.x stores
+    model artifacts under a ``models:/`` namespace, not under the run).
+    """
+    model_info = mlflow.pyfunc.log_model(
         name="model",
         python_model=_ModelWrapper(model),
     )
+    return model_info.model_uri
 
 
 # ---------------------------------------------------------------------------
@@ -148,8 +153,9 @@ def run_experimental_phase(
     *,
     n_trials_override: int | None = None,
     models: dict[str, type[BaseModel]] | None = None,
+    pipeline_run_id: str | None = None,
 ) -> list[ExperimentalResult]:
-    """Tune each candidate via walk-forward CV; return top-K by CV RPS."""
+    """Tune each candidate via walk-forward CV; return all sorted by CV NLL."""
     setup_mlflow()
     candidates = models or CANDIDATE_MODELS
     results: list[ExperimentalResult] = []
@@ -170,6 +176,7 @@ def run_experimental_phase(
             splits.y_train,
             cv_folds,
             n_trials=n_trials,
+            pipeline_run_id=pipeline_run_id,
         )
 
         model = model_cls(**best_params)
@@ -181,13 +188,16 @@ def run_experimental_phase(
         with tempfile.TemporaryDirectory() as tmpdir:
             csv_path = Path(tmpdir) / f"importance_{model_name}.csv"
             importance.to_csv(csv_path, index=False)
+            best_tags: dict[str, str] = {
+                "stage": "experimental",
+                "model_name": model_name,
+                "role": "best",
+            }
+            if pipeline_run_id:
+                best_tags["pipeline_run_id"] = pipeline_run_id
             with start_run(
                 run_name=f"best_{model_name}",
-                tags={
-                    "stage": "experimental",
-                    "model_name": model_name,
-                    "role": "best",
-                },
+                tags=best_tags,
             ):
                 log_run(
                     params=best_params,
@@ -210,13 +220,12 @@ def run_experimental_phase(
 
     results.sort(key=lambda r: r.cv_nll)
     _log_importance_summary(results)
-    top_k = results[:TOP_K_FOR_QA]
     logger.info(
-        "Experimental done — top %d: %s",
-        TOP_K_FOR_QA,
-        [(r.model_name, f"{r.cv_nll:.4f}") for r in top_k],
+        "Experimental done — all %d models advance: %s",
+        len(results),
+        [(r.model_name, f"{r.cv_nll:.4f}") for r in results],
     )
-    return top_k
+    return results
 
 
 def _log_importance_summary(results: list[ExperimentalResult]) -> None:
@@ -238,7 +247,11 @@ def _log_importance_summary(results: list[ExperimentalResult]) -> None:
 # ---------------------------------------------------------------------------
 
 
-def run_qa_phase(top_models: list[ExperimentalResult]) -> QAResult:
+def run_qa_phase(
+    top_models: list[ExperimentalResult],
+    *,
+    pipeline_run_id: str | None = None,
+) -> QAResult:
     """Retrain top models on pre-WC data; pick best by WC 2022 holdout RPS.
 
     Each finalist is serialized and registered as a version of wc_staging
@@ -269,9 +282,12 @@ def run_qa_phase(top_models: list[ExperimentalResult]) -> QAResult:
         rmse_h = compute_rmse(lam_h, entry.splits.y_holdout[:, 0])
         rmse_a = compute_rmse(lam_a, entry.splits.y_holdout[:, 1])
 
+        qa_tags: dict[str, str] = {"stage": "qa", "model_name": entry.model_name}
+        if pipeline_run_id:
+            qa_tags["pipeline_run_id"] = pipeline_run_id
         with start_run(
             run_name=f"qa_{entry.model_name}",
-            tags={"stage": "qa", "model_name": entry.model_name},
+            tags=qa_tags,
         ) as run:
             log_run(
                 params=entry.best_params,
@@ -283,10 +299,10 @@ def run_qa_phase(top_models: list[ExperimentalResult]) -> QAResult:
                     "cv_nll": entry.cv_nll,
                 },
             )
-            _log_model_artifact(model)
+            model_uri = _log_model_artifact(model)
             qa_run_id = run.info.run_id
 
-        qa_mv = register_model(qa_run_id, model_name=STAGING_MODEL_NAME)
+        qa_mv = register_model(model_uri=model_uri, model_name=STAGING_MODEL_NAME)
         run_id_to_version[qa_run_id] = qa_mv.version
 
         qa_results.append(
@@ -326,7 +342,11 @@ class ChallengeFailed(Exception):
     """Raised when the challenger does not beat the current production champion."""
 
 
-def run_deploy_phase(winner: QAResult) -> str:
+def run_deploy_phase(
+    winner: QAResult,
+    *,
+    pipeline_run_id: str | None = None,
+) -> str:
     """Refit winner on all Gold data, serialize, register, and promote.
 
     Raises:
@@ -357,9 +377,15 @@ def run_deploy_phase(winner: QAResult) -> str:
     model = winner.model_cls(**winner.best_params)
     model.fit(winner.splits.X_full, winner.splits.y_full)
 
+    deploy_tags: dict[str, str] = {
+        "stage": "production-refit",
+        "model_name": winner.model_name,
+    }
+    if pipeline_run_id:
+        deploy_tags["pipeline_run_id"] = pipeline_run_id
     with start_run(
         run_name=f"deploy_{winner.model_name}",
-        tags={"stage": "production-refit", "model_name": winner.model_name},
+        tags=deploy_tags,
     ) as run:
         log_run(
             params={
@@ -374,10 +400,10 @@ def run_deploy_phase(winner: QAResult) -> str:
                 "qa_holdout_rmse_away": winner.holdout_rmse_away,
             },
         )
-        _log_model_artifact(model)
+        model_uri = _log_model_artifact(model)
         run_id = run.info.run_id
 
-    mv = register_model(run_id, model_name=PRODUCTION_MODEL_NAME)
+    mv = register_model(model_uri=model_uri, model_name=PRODUCTION_MODEL_NAME)
     promote_to_production(version=mv.version)
 
     logger.info(
@@ -404,17 +430,23 @@ def run_full_pipeline(
     if df is None:
         df = load_gold()
 
+    pipeline_run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    logger.info("Pipeline run ID: %s", pipeline_run_id)
+
     logger.info("=== Phase 1: Experimental ===")
     top_k = run_experimental_phase(
-        df, n_trials_override=n_trials_override, models=models,
+        df,
+        n_trials_override=n_trials_override,
+        models=models,
+        pipeline_run_id=pipeline_run_id,
     )
 
     logger.info("=== Phase 2: QA ===")
-    winner = run_qa_phase(top_k)
+    winner = run_qa_phase(top_k, pipeline_run_id=pipeline_run_id)
 
     logger.info("=== Phase 3: Deploy ===")
     try:
-        run_id = run_deploy_phase(winner)
+        run_id = run_deploy_phase(winner, pipeline_run_id=pipeline_run_id)
     except ChallengeFailed as exc:
         logger.info(str(exc))
         return winner.qa_run_id

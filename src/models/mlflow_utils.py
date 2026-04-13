@@ -80,13 +80,17 @@ def log_run(
 
 
 def register_model(
-    run_id: str,
-    artifact_path: str = "model",
+    model_uri: str,
     *,
     model_name: str,
 ) -> ModelVersion:
-    """Register a logged model artifact in the MLflow Model Registry."""
-    model_uri = f"runs:/{run_id}/{artifact_path}"
+    """Register a logged model artifact in the MLflow Model Registry.
+
+    Args:
+        model_uri: URI returned by ``mlflow.pyfunc.log_model`` (typically
+            ``models:/<model_id>`` in MLflow 3.x).
+        model_name: Registered model name in the registry.
+    """
     mv = mlflow.register_model(model_uri, model_name)
     logger.info("Registered %s version %s", model_name, mv.version)
     return mv

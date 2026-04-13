@@ -21,7 +21,7 @@
 12. ~~implement common model training interface (one entry point per model family)~~ (complete)
 13. ~~add MLflow logging for all experimental runs~~ (complete)
 14. ~~compute and log permutation feature importance per model~~ (complete)
-15. ~~implement experimental gate (tuning by Poisson NLL; top-4 by CV NLL promoted)~~ (complete)
+15. ~~implement experimental gate (tuning by Poisson NLL; all 9 promoted to QA)~~ (complete)
 16. ~~implement QA backtesting against 2022 World Cup (RPS primary, RMSE secondary)~~ (complete)
 17. ~~implement deploy retraining on full Gold + MLflow pyfunc serialization~~ (complete)
 18. ~~implement continuous training dispatch in trigger (retrain on 10+ new gold rows, inference-only otherwise)~~ (complete)

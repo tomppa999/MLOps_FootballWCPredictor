@@ -57,6 +57,7 @@ def _make_objective(
     y: np.ndarray,
     cv_folds: list[tuple[np.ndarray, np.ndarray]],
     fixed_params: dict[str, Any] | None = None,
+    pipeline_run_id: str | None = None,
 ):
     """Return an Optuna objective that evaluates *model_cls* via walk-forward CV."""
 
@@ -86,6 +87,14 @@ def _make_objective(
         mean_rmse_h = float(np.mean(fold_rmse_h))
         mean_rmse_a = float(np.mean(fold_rmse_a))
 
+        trial_tags: dict[str, str] = {
+            "stage": "experimental",
+            "model_name": model_cls.__name__,
+            "trial_number": str(trial.number),
+        }
+        if pipeline_run_id:
+            trial_tags["pipeline_run_id"] = pipeline_run_id
+
         with mlflow.start_run(nested=True, run_name=f"trial_{trial.number}"):
             mlflow.log_params(all_params)
             mlflow.log_metric("cv_nll_mean", mean_nll)
@@ -94,13 +103,7 @@ def _make_objective(
             mlflow.log_metric("cv_rmse_away_mean", mean_rmse_a)
             for i, nll_val in enumerate(fold_nll):
                 mlflow.log_metric(f"cv_nll_fold_{i}", nll_val)
-            mlflow.set_tags(
-                {
-                    "stage": "experimental",
-                    "model_name": model_cls.__name__,
-                    "trial_number": str(trial.number),
-                }
-            )
+            mlflow.set_tags(trial_tags)
 
         return mean_nll
 
@@ -123,6 +126,7 @@ def run_tuning(
     fixed_params: dict[str, Any] | None = None,
     experiment_name: str = "wc_prediction",
     random_state: int = 42,
+    pipeline_run_id: str | None = None,
 ) -> tuple[dict[str, Any], optuna.Study]:
     """Run an Optuna TPE study with walk-forward CV, logging every trial to MLflow.
 
@@ -156,6 +160,7 @@ def run_tuning(
         y=y,
         cv_folds=cv_folds,
         fixed_params=fixed_params,
+        pipeline_run_id=pipeline_run_id,
     )
 
     start_time = time.monotonic()
@@ -175,10 +180,16 @@ def run_tuning(
             elapsed,
         )
 
+    tuning_tags: dict[str, str] = {
+        "stage": "experimental",
+        "model_name": model_cls.__name__,
+    }
+    if pipeline_run_id:
+        tuning_tags["pipeline_run_id"] = pipeline_run_id
     with mlflow.start_run(
         experiment_id=experiment_id,
         run_name=f"tuning_{model_cls.__name__}",
-        tags={"stage": "experimental", "model_name": model_cls.__name__},
+        tags=tuning_tags,
     ):
         study.optimize(objective, n_trials=n_trials, callbacks=[_log_trial])
 

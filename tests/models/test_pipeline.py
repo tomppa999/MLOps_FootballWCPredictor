@@ -13,7 +13,6 @@ import pytest
 from src.models.base import BaseModel
 from src.models.data_split import DataSplits
 from src.models.pipeline import (
-    TOP_K_FOR_QA,
     ChallengeFailed,
     ExperimentalResult,
     QAResult,
@@ -145,7 +144,9 @@ def _make_exp_result(
 # ---------------------------------------------------------------------------
 
 
-class TestTopKSelection:
+class TestAllModelsAdvance:
+    """All models now advance to QA (no TOP_K cutoff)."""
+
     def test_sorted_by_cv_nll_ascending(self, fake_splits):
         results = [
             _make_exp_result("worst", 0.50, fake_splits),
@@ -155,32 +156,23 @@ class TestTopKSelection:
             _make_exp_result("ok", 0.30, fake_splits),
         ]
         results.sort(key=lambda r: r.cv_nll)
-        top_k = results[:TOP_K_FOR_QA]
 
-        assert len(top_k) == 4
-        assert top_k[0].model_name == "best"
-        assert top_k[1].model_name == "good"
-        assert top_k[2].model_name == "mid"
-        assert top_k[3].model_name == "ok"
+        assert len(results) == 5
+        assert results[0].model_name == "best"
+        assert results[1].model_name == "good"
+        assert results[2].model_name == "mid"
+        assert results[3].model_name == "ok"
+        assert results[4].model_name == "worst"
 
-    def test_worst_model_excluded(self, fake_splits):
+    def test_all_models_advance(self, fake_splits):
         results = [
             _make_exp_result(f"model_{i}", i * 0.1, fake_splits)
             for i in range(5)
         ]
         results.sort(key=lambda r: r.cv_nll)
-        top_k = results[:TOP_K_FOR_QA]
-        names = {r.model_name for r in top_k}
-        assert "model_4" not in names
-
-    def test_fewer_than_k_models_returns_all(self, fake_splits):
-        results = [
-            _make_exp_result("a", 0.20, fake_splits),
-            _make_exp_result("b", 0.30, fake_splits),
-        ]
-        results.sort(key=lambda r: r.cv_nll)
-        top_k = results[:TOP_K_FOR_QA]
-        assert len(top_k) == 2
+        assert len(results) == 5
+        assert results[0].model_name == "model_0"
+        assert results[-1].model_name == "model_4"
 
 
 # ---------------------------------------------------------------------------
