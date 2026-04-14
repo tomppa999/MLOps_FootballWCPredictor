@@ -166,7 +166,13 @@ parameter on the production-refit run.
 
 ## Continuous training strategy
 
-Each retrain cycle follows a two-phase training flow:
+The pipeline separates **model selection** (one-time) from **model refresh**
+(automated on each data update).
+
+### Initial model selection (first run)
+
+When no production champion exists, the trigger executes the full
+three-phase pipeline:
 
 1. **Evaluation phase** — all 9 candidates are tuned (Phase 1, Experimental)
    and all nine advance to QA (Phase 2). Each QA finalist is
@@ -186,11 +192,24 @@ Each retrain cycle follows a two-phase training flow:
    registry, predict upcoming matches, run Monte Carlo simulation, log
    predictions as MLflow artifacts.
 
+### Champion refit (subsequent runs)
+
+Once a champion exists and Gold has grown by ≥10 rows, the trigger loads the
+champion's model class and hyperparameters from the MLflow registry, refits
+the model on the latest full Gold dataset, registers the new artifact, and
+promotes it. The candidate tournament is not re-run: both the training split
+and the WC 2022 holdout are fixed by date, so routine data updates cannot
+alter model selection. The QA holdout metrics from the original selection
+cycle are forwarded to the refit run for audit trail continuity.
+
+The full tournament can be re-triggered manually if the feature set,
+candidate pool, or evaluation methodology changes.
+
 ### Pre-tournament (now through June 10)
-Daily trigger at 4:30 UTC. When gold grows by 10+ matches since last training
-cycle, execute the full two-phase retrain flow above, then inference +
-simulation. Expected frequency: 2-3 retrain cycles during international
-windows.
+Daily trigger at 4:30 UTC. When Gold grows by 10+ matches since last
+training cycle, refit the champion on the updated Gold dataset, then run
+inference + simulation. Expected frequency: 2-3 refit cycles during
+international windows.
 
 ### Tournament (June 11 - July 19)
 Model is frozen at tournament start. Trigger runs every 30 minutes in
@@ -198,16 +217,17 @@ inference-only mode. Load champion from MLflow registry, predict upcoming
 matches, run Monte Carlo simulation, log predictions as MLflow artifacts.
 
 ### Retraining threshold
-10 new gold rows since last training run. Tracked as MLflow run parameter
-`gold_row_count`. If gold grew by fewer than 10 rows, skip retraining and
+10 new Gold rows since last training run. Tracked as MLflow run parameter
+`gold_row_count`. If Gold grew by fewer than 10 rows, skip retraining and
 run inference only with the current champion.
 
-### Re-evaluation on WC 2022
-Happens every retrain cycle during the evaluation phase. The WC 2022 holdout
-metrics are logged on the evaluation runs and preserved as an audit trail,
-even though the production-refit model trains on all data including WC 2022.
-The champion model type (e.g. XGBoost) is expected to remain stable; the
-purpose is drift detection and auditable model selection history.
+### WC 2022 holdout metrics
+WC 2022 holdout evaluation occurs during the initial model selection cycle.
+The holdout metrics are preserved in the MLflow audit trail and forwarded
+unchanged to subsequent refit runs. Re-evaluation on the same holdout is
+unnecessary because the training split and holdout are both date-fixed —
+additional post-WC data only enters `X_full` and cannot change model
+selection outcomes.
 
 ## Feature set strategy per model family
 

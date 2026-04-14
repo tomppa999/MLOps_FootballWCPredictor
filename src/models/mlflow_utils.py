@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any
+from typing import Any, NamedTuple
 
 import mlflow
 from mlflow.entities.model_registry import ModelVersion
@@ -133,6 +133,83 @@ def get_latest_production_run_id(model_name: str = PRODUCTION_MODEL_NAME) -> str
     except mlflow.exceptions.MlflowException:
         return None
     return mv.run_id
+
+
+# ---------------------------------------------------------------------------
+# Champion metadata
+# ---------------------------------------------------------------------------
+
+_DEPLOY_INTERNAL_PARAMS: frozenset[str] = frozenset({"evaluation_run_id", "gold_row_count"})
+
+
+class ChampionMeta(NamedTuple):
+    """Champion model identity, hyperparameters, and holdout metrics."""
+
+    model_name: str
+    best_params: dict[str, Any]
+    holdout_metrics: dict[str, float]
+
+
+def _cast_params(model_name: str, raw_params: dict[str, str]) -> dict[str, Any]:
+    """Cast MLflow string params back to typed values using SEARCH_SPACES."""
+    from src.models.config import SEARCH_SPACES  # local import avoids circular dep
+
+    space = SEARCH_SPACES.get(model_name, {})
+    result: dict[str, Any] = {}
+    for k, v in raw_params.items():
+        spec = space.get(k)
+        if spec is None:
+            result[k] = v
+            continue
+        t = spec["type"]
+        if t == "int":
+            result[k] = int(v)
+        elif t == "float":
+            result[k] = float(v)
+        elif t == "categorical":
+            for choice in spec.get("choices", []):
+                if str(choice) == v:
+                    result[k] = choice
+                    break
+            else:
+                result[k] = v
+        else:
+            result[k] = v
+    return result
+
+
+def get_champion_metadata(
+    model_name: str = PRODUCTION_MODEL_NAME,
+) -> ChampionMeta:
+    """Return identity, hyperparameters, and holdout metrics of the champion.
+
+    Raises:
+        ValueError: if no champion exists or required metadata is missing.
+    """
+    run_id = get_latest_production_run_id(model_name)
+    if run_id is None:
+        raise ValueError(f"No champion found for registered model '{model_name}'")
+    client = mlflow.tracking.MlflowClient()
+    run_data = client.get_run(run_id).data
+    champion_model_name = run_data.tags.get("model_name")
+    if not champion_model_name:
+        raise ValueError(f"Champion run {run_id} has no 'model_name' tag")
+    raw_params = {
+        k: v
+        for k, v in run_data.params.items()
+        if k not in _DEPLOY_INTERNAL_PARAMS
+    }
+    best_params = _cast_params(champion_model_name, raw_params)
+    holdout_metrics = {
+        k: v
+        for k, v in run_data.metrics.items()
+        if k.startswith("qa_holdout_")
+    }
+    return ChampionMeta(
+        model_name=champion_model_name,
+        best_params=best_params,
+        holdout_metrics=holdout_metrics,
+    )
 
 
 def get_champion_rps(model_name: str = PRODUCTION_MODEL_NAME) -> float | None:

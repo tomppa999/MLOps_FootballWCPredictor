@@ -252,10 +252,12 @@ VALID_MODES = ("auto", "inference_only")
 
 
 def dispatch_training_or_inference(mode: str = "auto") -> None:
-    """Decide whether to retrain candidates or run inference only.
+    """Decide whether to train, refit, or run inference only.
 
-    - 'auto': retrain if gold grew by >= RETRAIN_THRESHOLD rows since last
-      production run, then run inference.  Otherwise inference only.
+    - 'auto': three paths based on state —
+        1. No production champion → run full pipeline (Experimental + QA + Deploy).
+        2. Champion exists, Gold grew by >= RETRAIN_THRESHOLD rows → refit champion.
+        3. Champion exists, delta below threshold → inference only (not yet implemented).
     - 'inference_only': load frozen champion from MLflow, predict + simulate.
     """
     import mlflow  # noqa: PLC0415
@@ -265,7 +267,11 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
         get_latest_production_run_id,
         setup_mlflow,
     )
-    from src.models.pipeline import RETRAIN_THRESHOLD, run_full_pipeline  # noqa: PLC0415
+    from src.models.pipeline import (  # noqa: PLC0415
+        RETRAIN_THRESHOLD,
+        run_champion_refit,
+        run_full_pipeline,
+    )
 
     setup_mlflow()
 
@@ -273,31 +279,30 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
     current_rows = len(df)
     log.info("Gold row count: %d", current_rows)
 
-    should_retrain = False
-
     if mode == "inference_only":
         log.info("Mode is inference_only — skipping retrain check.")
-    else:
-        prod_run_id = get_latest_production_run_id()
-        if prod_run_id is None:
-            log.info("No production model found — triggering initial training.")
-            should_retrain = True
-        else:
-            client = mlflow.tracking.MlflowClient()
-            run_data = client.get_run(prod_run_id).data
-            last_rows = int(run_data.params.get("gold_row_count", "0"))
-            delta = current_rows - last_rows
-            log.info(
-                "Gold delta: %d (current=%d, last=%d)",
-                delta,
-                current_rows,
-                last_rows,
-            )
-            should_retrain = delta >= RETRAIN_THRESHOLD
+        return
 
-    if should_retrain:
-        log.info("Retraining triggered — running full pipeline.")
+    prod_run_id = get_latest_production_run_id()
+    if prod_run_id is None:
+        log.info("No production champion found — running full pipeline.")
         run_full_pipeline(df)
+        return
+
+    client = mlflow.tracking.MlflowClient()
+    run_data = client.get_run(prod_run_id).data
+    last_rows = int(run_data.params.get("gold_row_count", "0"))
+    delta = current_rows - last_rows
+    log.info(
+        "Gold delta: %d (current=%d, last=%d)",
+        delta,
+        current_rows,
+        last_rows,
+    )
+
+    if delta >= RETRAIN_THRESHOLD:
+        log.info("Refit threshold met — refitting champion on fresh data.")
+        run_champion_refit(df)
     else:
         log.info(
             "Retrain threshold not met — inference only (not yet implemented)."

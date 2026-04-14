@@ -322,13 +322,15 @@ class TestDeployPhase:
 
 
 class TestDispatchThreshold:
+    @patch("src.models.pipeline.run_champion_refit")
     @patch("src.models.pipeline.run_full_pipeline")
     @patch("src.models.data_split.load_gold")
     @patch("src.models.mlflow_utils.get_latest_production_run_id")
     @patch("src.models.mlflow_utils.setup_mlflow")
     def test_skip_retrain_when_delta_small(
-        self, mock_setup, mock_prod_id, mock_gold, mock_pipeline
+        self, mock_setup, mock_prod_id, mock_gold, mock_pipeline, mock_refit
     ):
+        """Delta < RETRAIN_THRESHOLD — neither full pipeline nor refit is called."""
         from src.pipeline.trigger import dispatch_training_or_inference
 
         mock_gold.return_value = pd.DataFrame({"x": range(100)})
@@ -343,14 +345,17 @@ class TestDispatchThreshold:
             dispatch_training_or_inference(mode="auto")
 
         mock_pipeline.assert_not_called()
+        mock_refit.assert_not_called()
 
+    @patch("src.models.pipeline.run_champion_refit")
     @patch("src.models.pipeline.run_full_pipeline")
     @patch("src.models.data_split.load_gold")
     @patch("src.models.mlflow_utils.get_latest_production_run_id")
     @patch("src.models.mlflow_utils.setup_mlflow")
-    def test_retrain_when_delta_sufficient(
-        self, mock_setup, mock_prod_id, mock_gold, mock_pipeline
+    def test_refit_when_delta_sufficient(
+        self, mock_setup, mock_prod_id, mock_gold, mock_pipeline, mock_refit
     ):
+        """Delta >= RETRAIN_THRESHOLD with existing champion → refit champion."""
         from src.pipeline.trigger import dispatch_training_or_inference
 
         mock_df = pd.DataFrame({"x": range(110)})
@@ -365,15 +370,18 @@ class TestDispatchThreshold:
         with patch("mlflow.tracking.MlflowClient", return_value=mock_client):
             dispatch_training_or_inference(mode="auto")
 
-        mock_pipeline.assert_called_once_with(mock_df)
+        mock_refit.assert_called_once_with(mock_df)
+        mock_pipeline.assert_not_called()
 
+    @patch("src.models.pipeline.run_champion_refit")
     @patch("src.models.pipeline.run_full_pipeline")
     @patch("src.models.data_split.load_gold")
     @patch("src.models.mlflow_utils.get_latest_production_run_id")
     @patch("src.models.mlflow_utils.setup_mlflow")
     def test_first_run_always_trains(
-        self, mock_setup, mock_prod_id, mock_gold, mock_pipeline
+        self, mock_setup, mock_prod_id, mock_gold, mock_pipeline, mock_refit
     ):
+        """No production champion → full pipeline (Experimental + QA + Deploy)."""
         from src.pipeline.trigger import dispatch_training_or_inference
 
         mock_df = pd.DataFrame({"x": range(50)})
@@ -383,12 +391,14 @@ class TestDispatchThreshold:
         dispatch_training_or_inference(mode="auto")
 
         mock_pipeline.assert_called_once_with(mock_df)
+        mock_refit.assert_not_called()
 
+    @patch("src.models.pipeline.run_champion_refit")
     @patch("src.models.pipeline.run_full_pipeline")
     @patch("src.models.data_split.load_gold")
     @patch("src.models.mlflow_utils.setup_mlflow")
     def test_inference_only_skips_retrain(
-        self, mock_setup, mock_gold, mock_pipeline
+        self, mock_setup, mock_gold, mock_pipeline, mock_refit
     ):
         from src.pipeline.trigger import dispatch_training_or_inference
 
@@ -396,15 +406,17 @@ class TestDispatchThreshold:
         dispatch_training_or_inference(mode="inference_only")
 
         mock_pipeline.assert_not_called()
+        mock_refit.assert_not_called()
 
+    @patch("src.models.pipeline.run_champion_refit")
     @patch("src.models.pipeline.run_full_pipeline")
     @patch("src.models.data_split.load_gold")
     @patch("src.models.mlflow_utils.get_latest_production_run_id")
     @patch("src.models.mlflow_utils.setup_mlflow")
-    def test_exact_threshold_triggers_retrain(
-        self, mock_setup, mock_prod_id, mock_gold, mock_pipeline
+    def test_exact_threshold_triggers_refit(
+        self, mock_setup, mock_prod_id, mock_gold, mock_pipeline, mock_refit
     ):
-        """delta == RETRAIN_THRESHOLD (10) should trigger retraining."""
+        """delta == RETRAIN_THRESHOLD (10) with champion → champion refit, not full pipeline."""
         from src.pipeline.trigger import dispatch_training_or_inference
 
         mock_df = pd.DataFrame({"x": range(110)})
@@ -419,7 +431,8 @@ class TestDispatchThreshold:
         with patch("mlflow.tracking.MlflowClient", return_value=mock_client):
             dispatch_training_or_inference(mode="auto")
 
-        mock_pipeline.assert_called_once_with(mock_df)
+        mock_refit.assert_called_once_with(mock_df)
+        mock_pipeline.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -576,3 +589,77 @@ class TestChampionGate:
         assert isinstance(run_id, str) and len(run_id) > 0
         mock_register.assert_called_once()
         mock_promote.assert_called_once_with(version="3")
+
+
+# ---------------------------------------------------------------------------
+# Champion refit (bypass Experimental + QA on subsequent runs)
+# ---------------------------------------------------------------------------
+
+
+class TestChampionRefit:
+    @patch("src.models.pipeline.promote_to_production")
+    @patch("src.models.pipeline.register_model")
+    @patch("src.models.pipeline.get_champion_metadata")
+    @patch("src.models.pipeline.make_splits")
+    def test_refit_promotes_new_version(
+        self,
+        mock_splits,
+        mock_meta,
+        mock_register,
+        mock_promote,
+        tmp_mlflow,
+        fake_splits,
+    ):
+        """run_champion_refit loads champion metadata, refits on X_full, and promotes."""
+        from src.models.mlflow_utils import ChampionMeta
+        from src.models.pipeline import run_champion_refit
+
+        mock_splits.return_value = fake_splits
+        mock_meta.return_value = ChampionMeta(
+            model_name="ridge",
+            best_params={"alpha": 1.0},
+            holdout_metrics={"qa_holdout_rps": 0.21, "qa_holdout_nll": 2.95},
+        )
+        mock_register.return_value = MagicMock(version="5")
+
+        df = pd.DataFrame({"x": range(50)})
+        run_id = run_champion_refit(df)
+
+        assert isinstance(run_id, str) and len(run_id) > 0
+        mock_meta.assert_called_once()
+        mock_promote.assert_called_once_with(version="5")
+
+    @patch("src.models.pipeline.promote_to_production")
+    @patch("src.models.pipeline.register_model")
+    @patch("src.models.pipeline.get_champion_metadata")
+    @patch("src.models.pipeline.make_splits")
+    def test_refit_forwards_holdout_metrics(
+        self,
+        mock_splits,
+        mock_meta,
+        mock_register,
+        mock_promote,
+        tmp_mlflow,
+        fake_splits,
+    ):
+        """Holdout metrics from the champion run are logged unchanged to the new run."""
+        from src.models.mlflow_utils import ChampionMeta
+        from src.models.pipeline import run_champion_refit
+
+        mock_splits.return_value = fake_splits
+        original_metrics = {"qa_holdout_rps": 0.19, "qa_holdout_nll": 2.88}
+        mock_meta.return_value = ChampionMeta(
+            model_name="ridge",
+            best_params={"alpha": 0.5},
+            holdout_metrics=original_metrics,
+        )
+        mock_register.return_value = MagicMock(version="6")
+
+        run_id = run_champion_refit(pd.DataFrame({"x": range(50)}))
+
+        # Verify the metrics were forwarded by inspecting the MLflow run
+        import mlflow as _mlflow
+
+        run_data = _mlflow.tracking.MlflowClient().get_run(run_id).data
+        assert run_data.metrics["qa_holdout_rps"] == pytest.approx(0.19)
+        assert run_data.metrics["qa_holdout_nll"] == pytest.approx(2.88)

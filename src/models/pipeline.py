@@ -39,6 +39,7 @@ from src.models.evaluation import (
 from src.models.mlflow_utils import (
     PRODUCTION_MODEL_NAME,
     STAGING_MODEL_NAME,
+    get_champion_metadata,
     get_champion_rps,
     log_run,
     promote_to_production,
@@ -411,6 +412,63 @@ def run_deploy_phase(
         winner.model_name,
         run_id,
         mv.version,
+    )
+    return run_id
+
+
+# ---------------------------------------------------------------------------
+# Champion refit (skip experimental + QA; just refit the winner on fresh data)
+# ---------------------------------------------------------------------------
+
+
+def run_champion_refit(df: pd.DataFrame) -> str:
+    """Refit the current production champion on all available Gold data.
+
+    Reads the champion's model class and hyperparameters from MLflow, refits
+    on the full Gold dataset, then registers and promotes the new version.
+    The WC 2022 holdout metrics from the original champion run are forwarded
+    unchanged — re-evaluating after fitting on all data would be misleading
+    because the model has then seen the holdout rows.
+
+    Returns:
+        The MLflow run_id of the refit run.
+    """
+    setup_mlflow()
+    meta = get_champion_metadata()
+    model_cls = CANDIDATE_MODELS[meta.model_name]
+    feature_cols = MODEL_FEATURE_SETS[meta.model_name]
+    dropna = meta.model_name != "xgboost"
+    splits = make_splits(df, feature_cols, dropna=dropna)
+
+    logger.info(
+        "Champion refit: fitting %s on %d Gold rows.",
+        meta.model_name,
+        len(splits.df_full),
+    )
+
+    model = model_cls(**meta.best_params)
+    model.fit(splits.X_full, splits.y_full)
+
+    with start_run(
+        run_name=f"refit_{meta.model_name}",
+        tags={"stage": "champion-refit", "model_name": meta.model_name},
+    ) as run:
+        log_run(
+            params={**meta.best_params, "gold_row_count": str(len(splits.df_full))},
+            metrics=meta.holdout_metrics,
+        )
+        model_uri = _log_model_artifact(model)
+        run_id = run.info.run_id
+
+    mv = register_model(model_uri=model_uri, model_name=PRODUCTION_MODEL_NAME)
+    promote_to_production(version=mv.version)
+
+    logger.info(
+        "Champion refit complete: %s (run_id=%s, version=%s, gold_rows=%d)",
+        meta.model_name,
+        run_id,
+        mv.version,
+        len(splits.df_full),
     )
     return run_id
 
