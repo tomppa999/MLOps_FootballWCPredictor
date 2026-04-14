@@ -48,3 +48,10 @@ data/interim/
 
 # One-off scripts (not committed)
 scripts/retro_tag_runs.py
+
+# Cursor plans and context transfers
+.cursor/plans/
+.cursor/context-transfers/
+
+# Miscellaneous
+data_samples/MLOps_Pipeline_Development_The_OSSARA_Use_Case.pdf

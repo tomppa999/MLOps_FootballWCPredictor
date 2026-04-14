@@ -41,23 +41,25 @@ Ratio features must use safe handling for zero or very small denominators.
 
 ### Tactical profile features (rolling)
 
-The 6 rolling tactical profile columns per side are computed from prior matches
+The 5 rolling tactical profile columns per side are computed from prior matches
 with `stats_tier != 'none'` (same filter as shot features):
 
 | Column | Tactical proxy |
 |---|---|
-| `{side}_team_rolling_tac_possession_pct` | Ball control / possession style |
-| `{side}_team_rolling_tac_shots_on_goal` | Shot profile / attacking directness |
-| `{side}_team_rolling_tac_shots_off_goal` | Shot profile / attacking directness |
-| `{side}_team_rolling_tac_total_shots` | Shot profile / attacking directness |
+| `{side}_team_rolling_tac_total_shots` | Shot volume / attacking directness |
+| `{side}_team_rolling_tac_shot_precision` | Shot accuracy (shots\_on\_goal / total\_shots) |
 | `{side}_team_rolling_tac_fouls` | Aggression / defensive behavior |
 | `{side}_team_rolling_tac_corner_kicks` | Set-piece tendency |
+| `{side}_team_rolling_tac_possession_pct` | Ball control / possession style |
 
-These 6 columns were selected for availability across both `full` and `partial`
-stats tiers (~50% of matches). Detailed columns (`shots_insidebox`,
-`shots_outsidebox`, `total_passes`, `passes_accurate`, `pass_accuracy_pct`,
-`blocked_shots`) are excluded due to poor availability in the `partial` tier
-(~1.6% non-null).
+The original 6-column design (`shots_on_goal`, `shots_off_goal`, `total_shots`,
+`fouls`, `corner_kicks`, `possession_pct`) was consolidated to 5 columns by
+replacing `shots_on_goal` and `shots_off_goal` with `total_shots` +
+`shot_precision` (= shots\_on\_goal / total\_shots), reducing redundancy while
+preserving the same information (see Section 5.2 of the report). Detailed
+columns (`shots_insidebox`, `shots_outsidebox`, `total_passes`,
+`passes_accurate`, `pass_accuracy_pct`, `blocked_shots`) are excluded due to
+poor availability in the `partial` tier (~1.6% non-null).
 
 ### Tactical clustering (dropped)
 
@@ -87,12 +89,12 @@ directly as continuous features instead.
 #### 2026 KO-round home advantage (inference-time only)
 
 For knockout rounds, venue assignment depends on bracket outcomes. The tournament
-simulation layer will carry three host-nation flags (`is_usa`, `is_mexico`,
-`is_canada`) as simulation metadata — **not** Gold features. When the simulation
+simulation carries a `venue_country` mapping (venue city → host country) in
+`data/tournament/wc2026.json` — **not** Gold features. When the simulation
 places a host nation into a KO match at a venue in their country, `is_neutral`
 is overridden to `False` for that simulated match. This works for both
-deterministic and probabilistic (Monte Carlo) inference. Implementation is
-deferred to the tournament simulation module.
+deterministic and probabilistic (Monte Carlo) inference. The mapping is generated
+once by `scripts/scrape_wc2026_bracket.py` and committed to the repo.
 
 competition_tier should be a compact ordinal feature derived from API-Football competition metadata:
 

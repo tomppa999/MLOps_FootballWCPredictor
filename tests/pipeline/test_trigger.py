@@ -385,6 +385,43 @@ def test_main_rejects_invalid_mode():
 
 
 # ---------------------------------------------------------------------------
+# dispatch: inference wiring
+# ---------------------------------------------------------------------------
+
+def test_dispatch_inference_only_calls_inference(mocker):
+    mocker.patch("src.models.data_split.load_gold", return_value=MagicMock(__len__=lambda s: 100))
+    mocker.patch("src.models.mlflow_utils.setup_mlflow")
+    mock_inference = mocker.patch("src.inference.run.run_inference_and_simulation", return_value="inf_run")
+    dispatch_training_or_inference(mode="inference_only")
+    mock_inference.assert_called_once()
+
+
+def test_dispatch_auto_below_threshold_calls_inference(mocker):
+    import mlflow
+    mocker.patch("src.models.data_split.load_gold", return_value=MagicMock(__len__=lambda s: 105))
+    mocker.patch("src.models.mlflow_utils.setup_mlflow")
+    mocker.patch("src.models.mlflow_utils.get_latest_production_run_id", return_value="prod_run")
+    mock_client = MagicMock()
+    mock_client.get_run.return_value.data.params = {"gold_row_count": "100"}
+    mocker.patch("mlflow.tracking.MlflowClient", return_value=mock_client)
+    mock_inference = mocker.patch("src.inference.run.run_inference_and_simulation", return_value="inf_run")
+    mocker.patch("src.models.pipeline.RETRAIN_THRESHOLD", 10)
+    dispatch_training_or_inference(mode="auto")
+    mock_inference.assert_called_once()
+
+
+def test_dispatch_auto_full_pipeline_then_inference(mocker):
+    mocker.patch("src.models.data_split.load_gold", return_value=MagicMock(__len__=lambda s: 100))
+    mocker.patch("src.models.mlflow_utils.setup_mlflow")
+    mocker.patch("src.models.mlflow_utils.get_latest_production_run_id", return_value=None)
+    mock_full = mocker.patch("src.models.pipeline.run_full_pipeline")
+    mock_inference = mocker.patch("src.inference.run.run_inference_and_simulation", return_value="inf_run")
+    dispatch_training_or_inference(mode="auto")
+    mock_full.assert_called_once()
+    mock_inference.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
 # _parse_args
 # ---------------------------------------------------------------------------
 

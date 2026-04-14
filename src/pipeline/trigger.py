@@ -257,11 +257,14 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
     - 'auto': three paths based on state —
         1. No production champion → run full pipeline (Experimental + QA + Deploy).
         2. Champion exists, Gold grew by >= RETRAIN_THRESHOLD rows → refit champion.
-        3. Champion exists, delta below threshold → inference only (not yet implemented).
+        3. Champion exists, delta below threshold → inference only.
     - 'inference_only': load frozen champion from MLflow, predict + simulate.
+
+    All paths end with ``run_inference_and_simulation()``.
     """
     import mlflow  # noqa: PLC0415
 
+    from src.inference.run import run_inference_and_simulation  # noqa: PLC0415
     from src.models.data_split import load_gold  # noqa: PLC0415
     from src.models.mlflow_utils import (  # noqa: PLC0415
         get_latest_production_run_id,
@@ -281,12 +284,14 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
 
     if mode == "inference_only":
         log.info("Mode is inference_only — skipping retrain check.")
+        run_inference_and_simulation()
         return
 
     prod_run_id = get_latest_production_run_id()
     if prod_run_id is None:
         log.info("No production champion found — running full pipeline.")
         run_full_pipeline(df)
+        run_inference_and_simulation()
         return
 
     client = mlflow.tracking.MlflowClient()
@@ -303,10 +308,10 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
     if delta >= RETRAIN_THRESHOLD:
         log.info("Refit threshold met — refitting champion on fresh data.")
         run_champion_refit(df)
+        run_inference_and_simulation()
     else:
-        log.info(
-            "Retrain threshold not met — inference only (not yet implemented)."
-        )
+        log.info("Retrain threshold not met — running inference only.")
+        run_inference_and_simulation()
 
 
 # ---------------------------------------------------------------------------

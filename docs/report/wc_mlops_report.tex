@@ -501,9 +501,9 @@ In the Gold layer, \texttt{override\_neutral\_for\_2026\_hosts()} sets
 This is deterministic because the venue schedule is known before the tournament.
 
 \textbf{Knockout rounds.}  Venue assignment depends on bracket position, which in turn
-depends on group-stage results.  The tournament simulation layer will carry three
-host-nation flags (\texttt{is\_usa}, \texttt{is\_mexico}, \texttt{is\_canada}) as
-simulation metadata, not Gold features.  When the simulation places a host nation into a
+depends on group-stage results.  The tournament simulation carries a
+\texttt{venue\_country} mapping (venue city $\to$ host country) in
+\texttt{wc2026.json}, not Gold features.  When the simulation places a host nation into a
 knockout match at a venue in their country, \texttt{is\_neutral} is overridden to
 \texttt{False} for that simulated match.  This works identically for deterministic
 inference (known bracket) and probabilistic inference (Monte Carlo sampling, where the
@@ -605,10 +605,29 @@ threshold and the last Gold row count are tracked as MLflow run parameters.
 \textbf{Tournament inference.}
 During the tournament, the model is frozen at the parameters established in
 the last pre-tournament refit cycle. The 30-minute trigger runs in
-\texttt{inference\_only} mode: it loads the \texttt{champion}-aliased model from the
-MLflow Model Registry, predicts upcoming matches, runs the Monte Carlo
-tournament simulation, and logs updated predictions as MLflow artifacts.
+\texttt{inference\_only} mode: it first checks for fresh data and, if found,
+runs ingestion and \texttt{dvc repro} to rebuild Silver/Gold with updated
+rolling averages from any newly completed matches. It then loads the
+\texttt{champion}-aliased model from the MLflow Model Registry, predicts
+upcoming matches, runs the Monte Carlo tournament simulation, and logs
+updated predictions as MLflow artifacts. The model artifacts are frozen;
+only the features are recomputed from the latest data.
 No retraining occurs during the tournament.
+
+\textbf{Simulation design.}
+The Monte Carlo tournament simulation (\texttt{src.inference.simulation})
+draws $n_\mathrm{sims} = 10{,}000$ independent tournament paths.
+Group-stage matches are resolved by Poisson scoreline sampling from predicted
+rates. Knockout-round draws after 90~minutes are resolved by sampling extra
+time with the same predicted rates scaled by $30/90$ (reflecting the
+30-minute extra time period relative to 90-minute regulation). If extra time
+also ends in a draw, the outcome is resolved by a 50/50 coin flip, modeling
+penalty shootouts as a symmetric random event. Group-stage tiebreakers follow
+FIFA rules through goal difference, goals scored, and head-to-head results;
+beyond that, fair play points and drawing of lots are approximated by random
+tiebreaking. The $n_\mathrm{sims}$ parameter is configurable; 10{,}000 is
+sufficient for stable tournament-level advancement probabilities without
+excessive runtime.
 
 % ============================================================
 \section{Modeling}
@@ -759,7 +778,7 @@ form the training set (3{,}903 rows). Walk-forward expanding-window
 cross-validation is applied within this set to tune hyperparameters and
 evaluate experimental candidates; the CV folds span the full pre-tournament
 period, including 2022 qualification matches. 
-The 2022 FIFA World Cup (2022-11-20 to 2022-12-18, 89 matches) is held out
+The 2022 FIFA World Cup (2022-11-20 to 2022-12-18, 64 matches) is held out
 as a strict test set for QA evaluation and is never seen during training or
 cross-validation.
 
@@ -926,7 +945,7 @@ evaluation (Section~\ref{sec:promotion_gate}).
 \subsection{QA Phase — 2022 World Cup Holdout}
 
 Table~\ref{tab:qa_results} reports holdout metrics for all nine candidates
-evaluated on the 89 matches of the 2022 FIFA World Cup.
+evaluated on the 64 matches of the 2022 FIFA World Cup.
 
 \begin{table}[h]
   \centering
@@ -1008,8 +1027,8 @@ two orders of magnitude above any other feature.
   \end{tabular}
 \end{table}
 
-Two patterns stand out beyond the \texttt{elo\_diff} dominance.  First,
-XGBoost surfaced one of the tactical rolling features,
+Two patterns stand out beyond the \texttt{elo\_diff} dominance.  
+First, XGBoost actually surfaced one of the tactical rolling features,
 (\texttt{away\_team\_rolling\_tac\_possession\_pct}), in its top three.
 It is the only candidate that receives the full 24-feature set and can learn 
 non-linear splits on the additional tactical columns.
@@ -1164,6 +1183,25 @@ missing value by pandas defaults, home/away side inversions in raw fixtures, and
 timezone misalignments are all identified and mitigated but represent latent fragility in
 the external data contracts.
 
+\subsubsection{Simulation Simplifications}
+
+\textbf{Extra-time rate scaling.}
+The $30/90$ extra-time rate scaling assumes scoring intensity does not change in
+extra time, ignoring fatigue, tactical shifts, and substitution effects.
+
+\textbf{Penalty shootout model.}
+The 50/50 penalty coin flip ignores team-level penalty conversion history,
+goalkeeper quality, and psychological pressure differentials.  This is the
+simplest defensible choice given that no penalty-specific features are available
+in the dataset.
+
+\textbf{Tiebreaker approximation.}
+Group-stage tiebreakers beyond head-to-head results (fair play points, drawing
+of lots) are approximated by random tiebreaking.  This is a very rare edge
+case: tiebreakers beyond head-to-head are needed in a small fraction of
+simulated groups, and predicting disciplinary records adds complexity
+disproportionate to their influence on tournament outcome probabilities.
+
 \subsubsection{Football Domain}
 
 \textbf{Sparse national team calendar.}
@@ -1222,7 +1260,7 @@ champion-refit cycles do not re-evaluate on the WC~2022 holdout
 (Section~\ref{sec:ct}), and automated drift detection techniques such as
 residual monitoring on incoming match results or prediction-distribution
 tracking are not implemented.  For the pre-tournament operational window
-(approximately 2--3 matches per team between the initial training run and
+(approximately 4--5 matches per team between the initial training run and
 tournament start), the sample size is insufficient for statistically
 meaningful drift detection regardless.  Were the pipeline extended to a
 continuous club-football or multi-tournament deployment, rolling evaluation
