@@ -322,6 +322,10 @@ def main(mode: str = "auto") -> int:
     from dotenv import load_dotenv  # noqa: PLC0415
     load_dotenv()
 
+    if os.environ.get("DAGSHUB_USERNAME") and not os.environ.get("MLFLOW_TRACKING_USERNAME"):
+        os.environ["MLFLOW_TRACKING_USERNAME"] = os.environ["DAGSHUB_USERNAME"]
+        os.environ["MLFLOW_TRACKING_PASSWORD"] = os.environ.get("DAGSHUB_TOKEN", "")
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",

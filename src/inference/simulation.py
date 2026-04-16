@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections import Counter
 from pathlib import Path
 from typing import Any, Final
 
@@ -259,6 +260,7 @@ def simulate_tournament(
         Dict with:
           - "advancement": per-team probabilities per round.
           - "group_positions": per-team probabilities for 1st/2nd/3rd(q)/3rd(e)/4th.
+          - "ko_pairings": per-stage pairing frequencies (team_a, team_b, count, frequency).
           - "n_sims": simulation count.
     """
     rng = np.random.default_rng(seed)
@@ -297,6 +299,11 @@ def simulate_tournament(
 
     group_position_counts: dict[str, dict[str, int]] = {
         team: {pos: 0 for pos in GROUP_POSITIONS} for team in all_teams
+    }
+
+    ko_stages = ("R32", "R16", "QF", "SF", "Final")
+    ko_pairing_counts: dict[str, Counter[tuple[str, str]]] = {
+        stage: Counter() for stage in ko_stages
     }
 
     r32_matches = config["r32_matches"]
@@ -360,6 +367,7 @@ def simulate_tournament(
 
             if locked_ko_results and match_num in locked_ko_results:
                 locked = locked_ko_results[match_num]
+                ko_pairing_counts["R32"][tuple(sorted((locked["home"], locked["away"])))] += 1
                 winner = locked["home"] if locked["home_goals"] > locked["away_goals"] else locked["away"]
                 r32_winners[match_num] = winner
                 continue
@@ -375,6 +383,7 @@ def simulate_tournament(
                 r32_winners[match_num] = home_team or away_team or "Unknown"
                 continue
 
+            ko_pairing_counts["R32"][tuple(sorted((home_team, away_team)))] += 1
             rates = rate_lookup.get((home_team, away_team), (1.2, 1.2))
             hg, ag, _ = _resolve_ko_match(rates[0], rates[1], rng)
             winner = home_team if hg > ag else away_team
@@ -395,6 +404,7 @@ def simulate_tournament(
 
             if locked_ko_results and match_num in locked_ko_results:
                 locked = locked_ko_results[match_num]
+                ko_pairing_counts[stage][tuple(sorted((locked["home"], locked["away"])))] += 1
                 winner = locked["home"] if locked["home_goals"] > locked["away_goals"] else locked["away"]
                 ko_winners[match_num] = winner
                 next_stage = stage_map.get(stage)
@@ -412,6 +422,8 @@ def simulate_tournament(
                 winner = home_team or away_team or "Unknown"
                 ko_winners[match_num] = winner
                 continue
+
+            ko_pairing_counts[stage][tuple(sorted((home_team, away_team)))] += 1
 
             rates = rate_lookup.get((home_team, away_team), (1.2, 1.2))
             lh, la = rates
@@ -450,6 +462,18 @@ def simulate_tournament(
     group_positions_df = pd.DataFrame(gp_records).sort_values("p_1st", ascending=False)
     group_positions_df = group_positions_df.reset_index(drop=True)
 
+    pairing_records = []
+    for stage, counter in ko_pairing_counts.items():
+        for (team_a, team_b), count in counter.most_common():
+            pairing_records.append({
+                "stage": stage,
+                "team_a": team_a,
+                "team_b": team_b,
+                "count": count,
+                "frequency": count / n_sims,
+            })
+    ko_pairings_df = pd.DataFrame(pairing_records)
+
     logger.info(
         "Tournament simulation complete: %d sims, %d teams tracked.",
         n_sims,
@@ -459,6 +483,7 @@ def simulate_tournament(
     return {
         "advancement": advancement_df,
         "group_positions": group_positions_df,
+        "ko_pairings": ko_pairings_df,
         "n_sims": n_sims,
     }
 

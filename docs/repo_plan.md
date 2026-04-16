@@ -34,13 +34,18 @@
 23. create Cloud Run Job + two Cloud Scheduler entries (daily 4:30 UTC + tournament every 30 min)
 24. test end-to-end trigger via manual Cloud Run Job execution
 
+Note: `trigger.py` auto-propagates `DAGSHUB_USERNAME`/`DAGSHUB_TOKEN` env vars
+to `MLFLOW_TRACKING_USERNAME`/`MLFLOW_TRACKING_PASSWORD` at startup if the
+MLflow vars are not already set. This avoids duplicating credentials in the
+Cloud Run Job environment configuration.
+
 ### Phase 4 — Inference and simulation pipeline (complete)
 25. ~~generate tournament config (`data/tournament/wc2026.json`): 12 groups, R32 bracket, 495 best-third mappings, KO bracket with venues, venue→country mapping~~ (complete)
-26. ~~implement inference feature builder (`src/inference/features.py`): parse upcoming NS/TBD fixtures from Bronze, compute rolling features reusing Gold machinery~~ (complete)
+26. ~~implement inference feature builder (`src/inference/features.py`): generate all C(48,2)=1128 WC pairings and deterministic group fixtures from `wc2026.json`, parse played WC results from Bronze (filtered to current WC season), compute rolling features reusing Gold machinery~~ (complete)
 27. ~~implement prediction module (`src/inference/predict.py`): load frozen champion from MLflow, predict λ_h/λ_a, compute analytical outcome probs~~ (complete)
 28. ~~implement Monte Carlo simulation (`src/inference/simulation.py`): per-match scoreline sampling, full tournament bracket sim (group stage + best-third ranking + R32 → Final), ET scaling 30/90, penalty coin flip~~ (complete)
-29. ~~implement inference logging (`src/inference/logging.py`): log predictions, scoreline distributions, tournament advancement probs as MLflow artifacts~~ (complete)
-30. ~~implement inference orchestrator (`src/inference/run.py`): features → predict → simulate → log~~ (complete)
+29. ~~implement inference logging (`src/inference/logging.py`): log predictions, scoreline distributions, tournament advancement probs, group-position probs, and KO pairing frequencies as MLflow artifacts~~ (complete)
+30. ~~implement inference orchestrator (`src/inference/run.py`): generate all-pairs + group fixtures → predict all 1128 pairings → filter unplayed group matches for scoreline sampling → simulate with full rate table and locked results → log~~ (complete)
 31. ~~wire `run_inference_and_simulation()` into trigger: runs after every path (full pipeline, refit, inference-only, below-threshold auto)~~ (complete)
 32. ~~add tests for all inference modules (24 tests) + update trigger tests (3 new dispatch tests)~~ (complete)
 33. ~~update docs: fix tactical column count, venue_country mapping, simulation design, ET/penalty/tiebreaker threats to validity, correct holdout match count~~ (complete)

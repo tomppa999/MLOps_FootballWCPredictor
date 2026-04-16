@@ -48,6 +48,8 @@ data/interim/
 
 # One-off scripts (not committed)
 scripts/retro_tag_runs.py
+scripts/scrape_wc2026_bracket.py
+scripts/fix_tags.py
 
 # Cursor plans and context transfers
 .cursor/plans/

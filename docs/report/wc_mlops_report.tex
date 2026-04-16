@@ -607,27 +607,42 @@ During the tournament, the model is frozen at the parameters established in
 the last pre-tournament refit cycle. The 30-minute trigger runs in
 \texttt{inference\_only} mode: it first checks for fresh data and, if found,
 runs ingestion and \texttt{dvc repro} to rebuild Silver/Gold with updated
-rolling averages from any newly completed matches. It then loads the
+rolling averages from any newly completed matches. Already-played WC~2026
+results are parsed from the Bronze fixture files (filtered to the current
+WC season only, so historical tournaments are excluded) and locked into
+the simulation as deterministic constraints. It then loads the
 \texttt{champion}-aliased model from the MLflow Model Registry, predicts
-upcoming matches, runs the Monte Carlo tournament simulation, and logs
-updated predictions as MLflow artifacts. The model artifacts are frozen;
+expected goal rates for all $\binom{48}{2} = 1{,}128$ possible team
+pairings, runs the Monte Carlo tournament simulation with model-derived
+rates for every group-stage and knockout matchup, and logs five
+inference artifacts to MLflow: per-pairing predicted rates, sampled
+scoreline distributions for unplayed group matches, per-team round
+advancement probabilities, per-team group-position probabilities, and
+per-stage knockout pairing frequencies. The model artifacts are frozen;
 only the features are recomputed from the latest data.
 No retraining occurs during the tournament.
 
 \textbf{Simulation design.}
 The Monte Carlo tournament simulation (\texttt{src.inference.simulation})
 draws $n_\mathrm{sims} = 10{,}000$ independent tournament paths.
-Group-stage matches are resolved by Poisson scoreline sampling from predicted
-rates. Knockout-round draws after 90~minutes are resolved by sampling extra
+All $\binom{48}{2}$ team pairings are predicted before simulation, so both
+group-stage and knockout matches use model-derived Poisson rates rather than
+fallback assumptions.
+Group-stage matches are resolved by Poisson scoreline sampling from the
+predicted rates. Knockout-round draws after 90~minutes are resolved by sampling extra
 time with the same predicted rates scaled by $30/90$ (reflecting the
 30-minute extra time period relative to 90-minute regulation). If extra time
 also ends in a draw, the outcome is resolved by a 50/50 coin flip, modeling
 penalty shootouts as a symmetric random event. Group-stage tiebreakers follow
 FIFA rules through goal difference, goals scored, and head-to-head results;
 beyond that, fair play points and drawing of lots are approximated by random
-tiebreaking. The $n_\mathrm{sims}$ parameter is configurable; 10{,}000 is
-sufficient for stable tournament-level advancement probabilities without
-excessive runtime.
+tiebreaking. Across all simulations, the engine tracks which team pairs
+meet at each knockout stage (R32 through Final). The resulting pairing
+frequencies quantify how likely each possible knockout matchup is,
+capturing the combinatorial uncertainty introduced by the
+best-third-place progressive rule. The $n_\mathrm{sims}$ parameter is
+configurable; 10{,}000 is sufficient for stable tournament-level
+advancement probabilities without excessive runtime.
 
 % ============================================================
 \section{Modeling}

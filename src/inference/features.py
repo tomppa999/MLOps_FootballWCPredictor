@@ -40,6 +40,8 @@ _KO_ROUND_TO_OFFSET: Final[dict[str, int]] = {
 
 _FIXTURES_DIR: Final[Path] = Path("data/raw/api_football/fixtures")
 _TEAM_MAPPING_PATH: Final[Path] = Path("data/mappings/team_mapping_master_merged.csv")
+_WC2026_CONFIG_PATH: Final[Path] = Path("data/tournament/wc2026.json")
+_WC_SEASONS: Final[frozenset[int]] = frozenset({2025, 2026})
 
 
 def _load_api_id_to_canonical(mapping_path: Path = _TEAM_MAPPING_PATH) -> dict[int, str]:
@@ -117,6 +119,104 @@ def parse_upcoming_fixtures(
     return df
 
 
+def _load_wc_teams(config_path: Path = _WC2026_CONFIG_PATH) -> list[str]:
+    """Return the flat list of 48 WC 2026 teams from the tournament config."""
+    with open(config_path) as f:
+        config = json.load(f)
+    return [t for teams in config.get("groups", {}).values() for t in teams]
+
+
+def generate_all_wc_pairings(config_path: Path = _WC2026_CONFIG_PATH) -> pd.DataFrame:
+    """Generate all C(48,2) = 1128 ordered team pairings for rate prediction.
+
+    Every pair appears once as (home, away); the simulation mirrors rates for
+    the reverse direction automatically.  All matches use WC-level context
+    features (neutral venue, tier 1).
+    """
+    from itertools import combinations
+
+    teams = _load_wc_teams(config_path)
+    if len(teams) != 48:
+        logger.warning("Expected 48 WC teams, got %d", len(teams))
+
+    base_date = pd.Timestamp("2026-06-11")
+    rows: list[dict] = []
+    for home, away in combinations(sorted(teams), 2):
+        rows.append({
+            "fixture_id": f"wc2026_pair_{home}_{away}",
+            "date_utc": base_date,
+            "home_team": home,
+            "away_team": away,
+            "league_id": 1,
+            "league_name": "World Cup",
+            "season": 2025,
+            "competition_tier": 1,
+            "is_knockout": False,
+            "is_neutral": True,
+        })
+
+    df = pd.DataFrame(rows)
+    df["date_utc"] = pd.to_datetime(df["date_utc"])
+    df = override_neutral_for_2026_hosts(df)
+
+    logger.info("Generated %d WC all-pairs fixtures for rate prediction.", len(df))
+    return df
+
+
+def generate_wc_group_fixtures(config_path: Path = _WC2026_CONFIG_PATH) -> pd.DataFrame:
+    """Generate deterministic 2026 World Cup group-stage fixtures.
+
+    Uses ``groups`` and ``group_matchdays`` from wc2026.json and emits one row
+    per group match (72 rows total for 12 groups x 6 matches).
+    """
+    with open(config_path) as f:
+        config = json.load(f)
+
+    groups: dict[str, list[str]] = config.get("groups", {})
+    matchdays_cfg = config.get("group_matchdays", [])
+    if not groups or not matchdays_cfg:
+        logger.warning("Tournament config missing groups/group_matchdays at %s", config_path)
+        return pd.DataFrame()
+
+    rows: list[dict] = []
+    base_date = pd.Timestamp("2026-06-11", tz="UTC")
+
+    for group_letter, teams in groups.items():
+        if len(teams) != 4:
+            logger.warning("Skipping group %s with invalid team count %d", group_letter, len(teams))
+            continue
+
+        for md in matchdays_cfg:
+            matchday = int(md["matchday"])
+            md_date = base_date + pd.Timedelta(days=matchday - 1)
+            for pair_idx, (home_idx, away_idx) in enumerate(md["pairs"]):
+                home_team = teams[home_idx]
+                away_team = teams[away_idx]
+                rows.append({
+                    "fixture_id": f"wc2026_{group_letter}_md{matchday}_{pair_idx}",
+                    "date_utc": md_date,
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "league_id": 1,
+                    "league_name": "World Cup",
+                    "season": 2025,
+                    "competition_tier": 1,
+                    "is_knockout": False,
+                    "is_neutral": True,
+                })
+
+    if not rows:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+    df["date_utc"] = pd.to_datetime(df["date_utc"], utc=True).dt.tz_localize(None)
+    df = df.sort_values(["date_utc", "fixture_id"]).reset_index(drop=True)
+    df = override_neutral_for_2026_hosts(df)
+
+    logger.info("Generated %d WC 2026 group fixtures from config.", len(df))
+    return df
+
+
 def parse_wc_results(
     fixtures_dir: Path = _FIXTURES_DIR,
     mapping_path: Path = _TEAM_MAPPING_PATH,
@@ -154,6 +254,9 @@ def parse_wc_results(
 
             league = entry.get("league", {})
             if league.get("id") != 1:
+                continue
+            season = league.get("season")
+            if season not in _WC_SEASONS:
                 continue
 
             teams = entry.get("teams", {})

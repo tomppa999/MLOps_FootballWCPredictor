@@ -35,6 +35,8 @@ def log_inference_artifacts(
       - predictions.csv: per-match lambda and outcome probabilities
       - scoreline_distributions.csv: sampled scoreline probabilities
       - tournament_probabilities.csv: per-team advancement by round
+      - group_positions.csv: per-team probabilities for each group finish
+      - ko_pairings.csv: per-stage KO matchup frequencies
 
     Returns the inference MLflow run_id.
     """
@@ -72,6 +74,18 @@ def log_inference_artifacts(
                 tp_path = tmp / "tournament_probabilities.csv"
                 advancement.to_csv(tp_path, index=False)
                 mlflow.log_artifact(str(tp_path))
+
+            group_positions = tournament_results.get("group_positions")
+            if group_positions is not None and not group_positions.empty:
+                gp_path = tmp / "group_positions.csv"
+                group_positions.to_csv(gp_path, index=False)
+                mlflow.log_artifact(str(gp_path))
+
+            ko_pairings = tournament_results.get("ko_pairings")
+            if ko_pairings is not None and not ko_pairings.empty:
+                kp_path = tmp / "ko_pairings.csv"
+                ko_pairings.to_csv(kp_path, index=False)
+                mlflow.log_artifact(str(kp_path))
 
         run_id = run.info.run_id
 

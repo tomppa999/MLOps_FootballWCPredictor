@@ -339,6 +339,89 @@ class TestSimulateTournament:
             total = row["p_1st"] + row["p_2nd"] + row["p_3rd_qualify"] + row["p_3rd_elim"] + row["p_4th"]
             assert abs(total - 1.0) < 1e-6
 
+    def test_returns_ko_pairings(self, tmp_path):
+        config_path = _make_toy_config(tmp_path)
+        result = simulate_tournament(
+            _make_all_pairs_predictions(),
+            n_sims=10,
+            config_path=config_path,
+            seed=42,
+        )
+
+        assert "ko_pairings" in result
+        kp = result["ko_pairings"]
+        assert set(kp.columns) == {"stage", "team_a", "team_b", "count", "frequency"}
+        assert set(kp["stage"].unique()) <= {"R32", "R16", "QF", "SF", "Final"}
+        assert (kp["count"] > 0).all()
+        assert (kp["frequency"] > 0).all()
+        assert (kp["frequency"] <= kp["count"]).all()
+
+    def test_ko_pairings_are_sorted_within_pair(self, tmp_path):
+        """team_a <= team_b alphabetically (sorted tuple key)."""
+        config_path = _make_toy_config(tmp_path)
+        result = simulate_tournament(
+            _make_all_pairs_predictions(),
+            n_sims=10,
+            config_path=config_path,
+            seed=42,
+        )
+        kp = result["ko_pairings"]
+        assert (kp["team_a"] <= kp["team_b"]).all()
+
+    def test_ko_pairings_r32_count_equals_n_sims_times_matches(self, tmp_path):
+        """Total R32 pairing observations = n_sims * 16 R32 matches."""
+        config_path = _make_toy_config(tmp_path)
+        n_sims = 20
+        result = simulate_tournament(
+            _make_all_pairs_predictions(),
+            n_sims=n_sims,
+            config_path=config_path,
+            seed=42,
+        )
+        kp = result["ko_pairings"]
+        r32_total = kp.loc[kp["stage"] == "R32", "count"].sum()
+        assert r32_total == n_sims * 16
+
+    def test_ko_pairings_final_count_equals_n_sims(self, tmp_path):
+        """Exactly one Final per sim, so total Final pairing count = n_sims."""
+        config_path = _make_toy_config(tmp_path)
+        n_sims = 30
+        result = simulate_tournament(
+            _make_all_pairs_predictions(),
+            n_sims=n_sims,
+            config_path=config_path,
+            seed=42,
+        )
+        kp = result["ko_pairings"]
+        final_total = kp.loc[kp["stage"] == "Final", "count"].sum()
+        assert final_total == n_sims
+
+    def test_locked_ko_pairing_has_frequency_one(self, tmp_path):
+        """A locked R32 match should appear with frequency 1.0 for that pairing."""
+        config_path = _make_toy_config(tmp_path)
+        locked_group = {
+            ("T1", "T2"): (3, 0), ("T3", "T4"): (1, 1),
+            ("T1", "T3"): (2, 0), ("T4", "T2"): (0, 2),
+            ("T4", "T1"): (0, 1), ("T2", "T3"): (1, 2),
+        }
+        locked_ko = {
+            73: {"home": "T1", "away": "T9", "home_goals": 2, "away_goals": 0, "decided_by": "FT"}
+        }
+        n_sims = 25
+        result = simulate_tournament(
+            _make_all_pairs_predictions(),
+            n_sims=n_sims,
+            config_path=config_path,
+            seed=0,
+            locked_group_results=locked_group,
+            locked_ko_results=locked_ko,
+        )
+        kp = result["ko_pairings"]
+        pair = tuple(sorted(("T1", "T9")))
+        row = kp[(kp["stage"] == "R32") & (kp["team_a"] == pair[0]) & (kp["team_b"] == pair[1])]
+        assert len(row) == 1
+        assert row.iloc[0]["count"] == n_sims
+
     def test_winner_probabilities_sum_approximately(self, tmp_path):
         config_path = _make_toy_config(tmp_path)
 

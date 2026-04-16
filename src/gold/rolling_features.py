@@ -67,11 +67,13 @@ def _build_team_history(df: pd.DataFrame) -> pd.DataFrame:
             "team": df[team_col],
             "goals_for": pd.to_numeric(df[goals_for_col], errors="coerce"),
             "goals_against": pd.to_numeric(df[goals_against_col], errors="coerce"),
-            "stats_tier": df["stats_tier"],
+            "stats_tier": df["stats_tier"] if "stats_tier" in df.columns else "full",
         }
         for suffix in _RAW_TACTICAL_STATS:
+            col = f"{prefix}_{suffix}"
             cols[suffix] = pd.to_numeric(
-                df[f"{prefix}_{suffix}"], errors="coerce"
+                df[col] if col in df.columns else pd.Series(np.nan, index=df.index),
+                errors="coerce",
             )
 
         records.append(pd.DataFrame(cols))

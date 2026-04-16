@@ -9,6 +9,8 @@ import pytest
 
 from src.inference.features import (
     build_inference_features,
+    generate_all_wc_pairings,
+    generate_wc_group_fixtures,
     parse_upcoming_fixtures,
     parse_wc_results,
 )
@@ -168,6 +170,74 @@ class TestParseUpcomingFixtures:
 
 
 # ---------------------------------------------------------------------------
+# generate_wc_group_fixtures
+# ---------------------------------------------------------------------------
+
+
+class TestGenerateWcGroupFixtures:
+    def test_generates_72_group_fixtures(self):
+        result = generate_wc_group_fixtures()
+        assert len(result) == 72
+        assert set(["fixture_id", "home_team", "away_team", "is_knockout"]).issubset(result.columns)
+        assert result["is_knockout"].eq(False).all()
+
+    def test_uses_group_matchday_pairs_from_config(self, tmp_path):
+        config_path = tmp_path / "wc2026.json"
+        config_path.write_text(json.dumps({
+            "groups": {"A": ["Team1", "Team2", "Team3", "Team4"]},
+            "group_matchdays": [
+                {"matchday": 1, "pairs": [[0, 1], [2, 3]]},
+                {"matchday": 2, "pairs": [[0, 2], [3, 1]]},
+                {"matchday": 3, "pairs": [[3, 0], [1, 2]]},
+            ],
+        }))
+
+        result = generate_wc_group_fixtures(config_path=config_path)
+        assert len(result) == 6
+        pairings = set(zip(result["home_team"], result["away_team"]))
+        assert ("Team1", "Team2") in pairings
+        assert ("Team4", "Team1") in pairings
+
+
+# ---------------------------------------------------------------------------
+# generate_all_wc_pairings
+# ---------------------------------------------------------------------------
+
+
+class TestGenerateAllWcPairings:
+    def test_generates_1128_pairings(self):
+        result = generate_all_wc_pairings()
+        assert len(result) == 1128
+
+    def test_all_48_teams_present(self):
+        result = generate_all_wc_pairings()
+        all_teams = set(result["home_team"]) | set(result["away_team"])
+        assert len(all_teams) == 48
+
+    def test_no_self_matches(self):
+        result = generate_all_wc_pairings()
+        self_matches = result[result["home_team"] == result["away_team"]]
+        assert self_matches.empty
+
+    def test_group_fixtures_are_subset_of_pairings(self):
+        group_df = generate_wc_group_fixtures()
+        pairs_df = generate_all_wc_pairings()
+        pair_set = set(zip(pairs_df["home_team"], pairs_df["away_team"]))
+        reverse_set = {(a, h) for h, a in pair_set}
+        full_set = pair_set | reverse_set
+        for _, row in group_df.iterrows():
+            assert (row["home_team"], row["away_team"]) in full_set
+
+    def test_custom_config(self, tmp_path):
+        config_path = tmp_path / "wc2026.json"
+        config_path.write_text(json.dumps({
+            "groups": {"A": ["T1", "T2", "T3", "T4"]},
+        }))
+        result = generate_all_wc_pairings(config_path=config_path)
+        assert len(result) == 6  # C(4, 2) = 6
+
+
+# ---------------------------------------------------------------------------
 # build_inference_features
 # ---------------------------------------------------------------------------
 
@@ -302,6 +372,21 @@ class TestParseWcResults:
             "id": 2, "status": "NS",
             "league_id": 1, "round": "Group A - 2",
             "home_id": 2, "home_goals": None, "away_id": 25, "away_goals": None,
+        })
+        result = parse_wc_results(fixtures_dir, mapping)
+        assert len(result["group_results"]) == 0
+
+    def test_historical_wc_season_is_excluded(self, tmp_path):
+        fixtures_dir = tmp_path / "fixtures"
+        mapping = tmp_path / "mapping.csv"
+        _write_team_mapping(mapping, [
+            {"name": "France", "api_id": 2},
+            {"name": "Germany", "api_id": 25},
+        ])
+        _write_finished_fixture(fixtures_dir, {
+            "id": 4, "status": "FT",
+            "league_id": 1, "season": 2022, "round": "Group A - 1",
+            "home_id": 2, "home_goals": 1, "away_id": 25, "away_goals": 0,
         })
         result = parse_wc_results(fixtures_dir, mapping)
         assert len(result["group_results"]) == 0
