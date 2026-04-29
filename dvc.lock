@@ -5,9 +5,9 @@ stages:
     deps:
     - path: data/raw
       hash: md5
-      md5: 829279e28433610880544c9a407809f6.dir
-      size: 30648969
-      nfiles: 7197
+      md5: 55702adac655c50a7494db30905547ef.dir
+      size: 30653176
+      nfiles: 7201
     - path: src/silver/
       hash: md5
       md5: ed8cc06a56b5062b32b6512bc1ba7010.dir
@@ -29,12 +29,12 @@ stages:
       nfiles: 10
     - path: src/gold/
       hash: md5
-      md5: f5b87032023f2dc325d4b8cf935377bf.dir
-      size: 34004
-      nfiles: 9
+      md5: 7e8c28baf3c0a06f6fb86a34022a118a.dir
+      size: 38695
+      nfiles: 10
     outs:
     - path: data/gold
       hash: md5
-      md5: c207c5331fac0528bab2f2c74431a7f5.dir
-      size: 406051
+      md5: 88890f3c1ac825f043984964b6890a69.dir
+      size: 451988
       nfiles: 1
