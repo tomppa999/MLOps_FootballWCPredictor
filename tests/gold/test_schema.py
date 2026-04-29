@@ -33,6 +33,11 @@ def _make_valid_gold_row() -> dict:
     row["home_elo_pre"] = 1800.0
     row["away_elo_pre"] = 1700.0
     row["elo_diff"] = 100.0
+    row["elo_sum"] = 3500.0
+    row["home_days_since_last_match"] = 7.0
+    row["away_days_since_last_match"] = 10.0
+    row["rest_diff"] = -3.0
+    row["is_cross_confederation"] = True
     row["home_goals"] = 3
     row["away_goals"] = 0
     return row

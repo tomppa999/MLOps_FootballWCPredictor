@@ -1,4 +1,8 @@
-"""Tests for the three-phase training pipeline and trigger threshold gating."""
+"""Tests for the three-phase training pipeline.
+
+Trigger-dispatch gating (full pipeline vs champion refit vs inference-only)
+is covered in ``tests/pipeline/test_trigger.py``.
+"""
 
 from __future__ import annotations
 
@@ -314,125 +318,6 @@ class TestDeployPhase:
         model_artifacts = client.list_artifacts(run_id, "model")
         artifact_names = [a.path for a in model_artifacts]
         assert any("MLmodel" in p for p in artifact_names)
-
-
-# ---------------------------------------------------------------------------
-# Trigger threshold gating
-# ---------------------------------------------------------------------------
-
-
-class TestDispatchThreshold:
-    @patch("src.models.pipeline.run_champion_refit")
-    @patch("src.models.pipeline.run_full_pipeline")
-    @patch("src.models.data_split.load_gold")
-    @patch("src.models.mlflow_utils.get_latest_production_run_id")
-    @patch("src.models.mlflow_utils.setup_mlflow")
-    def test_skip_retrain_when_delta_small(
-        self, mock_setup, mock_prod_id, mock_gold, mock_pipeline, mock_refit
-    ):
-        """Delta < RETRAIN_THRESHOLD — neither full pipeline nor refit is called."""
-        from src.pipeline.trigger import dispatch_training_or_inference
-
-        mock_gold.return_value = pd.DataFrame({"x": range(100)})
-        mock_prod_id.return_value = "run_existing"
-
-        mock_client = MagicMock()
-        mock_run = MagicMock()
-        mock_run.data.params = {"gold_row_count": "95"}
-        mock_client.get_run.return_value = mock_run
-
-        with patch("mlflow.tracking.MlflowClient", return_value=mock_client):
-            dispatch_training_or_inference(mode="auto")
-
-        mock_pipeline.assert_not_called()
-        mock_refit.assert_not_called()
-
-    @patch("src.models.pipeline.run_champion_refit")
-    @patch("src.models.pipeline.run_full_pipeline")
-    @patch("src.models.data_split.load_gold")
-    @patch("src.models.mlflow_utils.get_latest_production_run_id")
-    @patch("src.models.mlflow_utils.setup_mlflow")
-    def test_refit_when_delta_sufficient(
-        self, mock_setup, mock_prod_id, mock_gold, mock_pipeline, mock_refit
-    ):
-        """Delta >= RETRAIN_THRESHOLD with existing champion → refit champion."""
-        from src.pipeline.trigger import dispatch_training_or_inference
-
-        mock_df = pd.DataFrame({"x": range(110)})
-        mock_gold.return_value = mock_df
-        mock_prod_id.return_value = "run_existing"
-
-        mock_client = MagicMock()
-        mock_run = MagicMock()
-        mock_run.data.params = {"gold_row_count": "95"}
-        mock_client.get_run.return_value = mock_run
-
-        with patch("mlflow.tracking.MlflowClient", return_value=mock_client):
-            dispatch_training_or_inference(mode="auto")
-
-        mock_refit.assert_called_once_with(mock_df)
-        mock_pipeline.assert_not_called()
-
-    @patch("src.models.pipeline.run_champion_refit")
-    @patch("src.models.pipeline.run_full_pipeline")
-    @patch("src.models.data_split.load_gold")
-    @patch("src.models.mlflow_utils.get_latest_production_run_id")
-    @patch("src.models.mlflow_utils.setup_mlflow")
-    def test_first_run_always_trains(
-        self, mock_setup, mock_prod_id, mock_gold, mock_pipeline, mock_refit
-    ):
-        """No production champion → full pipeline (Experimental + QA + Deploy)."""
-        from src.pipeline.trigger import dispatch_training_or_inference
-
-        mock_df = pd.DataFrame({"x": range(50)})
-        mock_gold.return_value = mock_df
-        mock_prod_id.return_value = None
-
-        dispatch_training_or_inference(mode="auto")
-
-        mock_pipeline.assert_called_once_with(mock_df)
-        mock_refit.assert_not_called()
-
-    @patch("src.models.pipeline.run_champion_refit")
-    @patch("src.models.pipeline.run_full_pipeline")
-    @patch("src.models.data_split.load_gold")
-    @patch("src.models.mlflow_utils.setup_mlflow")
-    def test_inference_only_skips_retrain(
-        self, mock_setup, mock_gold, mock_pipeline, mock_refit
-    ):
-        from src.pipeline.trigger import dispatch_training_or_inference
-
-        mock_gold.return_value = pd.DataFrame({"x": range(100)})
-        dispatch_training_or_inference(mode="inference_only")
-
-        mock_pipeline.assert_not_called()
-        mock_refit.assert_not_called()
-
-    @patch("src.models.pipeline.run_champion_refit")
-    @patch("src.models.pipeline.run_full_pipeline")
-    @patch("src.models.data_split.load_gold")
-    @patch("src.models.mlflow_utils.get_latest_production_run_id")
-    @patch("src.models.mlflow_utils.setup_mlflow")
-    def test_exact_threshold_triggers_refit(
-        self, mock_setup, mock_prod_id, mock_gold, mock_pipeline, mock_refit
-    ):
-        """delta == RETRAIN_THRESHOLD (10) with champion → champion refit, not full pipeline."""
-        from src.pipeline.trigger import dispatch_training_or_inference
-
-        mock_df = pd.DataFrame({"x": range(110)})
-        mock_gold.return_value = mock_df
-        mock_prod_id.return_value = "run_existing"
-
-        mock_client = MagicMock()
-        mock_run = MagicMock()
-        mock_run.data.params = {"gold_row_count": "100"}
-        mock_client.get_run.return_value = mock_run
-
-        with patch("mlflow.tracking.MlflowClient", return_value=mock_client):
-            dispatch_training_or_inference(mode="auto")
-
-        mock_refit.assert_called_once_with(mock_df)
-        mock_pipeline.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

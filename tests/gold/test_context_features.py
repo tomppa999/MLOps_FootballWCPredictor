@@ -4,7 +4,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.gold.context_features import add_elo_diff, override_neutral_for_2026_hosts
+from src.gold.context_features import (
+    add_elo_diff,
+    add_elo_sum,
+    add_is_cross_confederation,
+    override_neutral_for_2026_hosts,
+)
 
 
 class TestEloDiff:
@@ -89,3 +94,95 @@ class TestNeutralOverride2026:
         original_val = df["is_neutral"].iloc[0]
         _ = override_neutral_for_2026_hosts(df)
         assert df["is_neutral"].iloc[0] == original_val
+
+
+class TestEloSum:
+    def test_basic_sum(self):
+        df = pd.DataFrame({
+            "home_elo_pre": [1800.0, 1500.0],
+            "away_elo_pre": [1600.0, 1700.0],
+        })
+        result = add_elo_sum(df)
+        assert result["elo_sum"].tolist() == pytest.approx([3400.0, 3200.0])
+
+    def test_nan_propagates_home(self):
+        df = pd.DataFrame({
+            "home_elo_pre": [np.nan],
+            "away_elo_pre": [1600.0],
+        })
+        result = add_elo_sum(df)
+        assert pd.isna(result["elo_sum"].iloc[0])
+
+    def test_nan_propagates_away(self):
+        df = pd.DataFrame({
+            "home_elo_pre": [1800.0],
+            "away_elo_pre": [np.nan],
+        })
+        result = add_elo_sum(df)
+        assert pd.isna(result["elo_sum"].iloc[0])
+
+    def test_does_not_mutate_input(self):
+        df = pd.DataFrame({
+            "home_elo_pre": [1800.0],
+            "away_elo_pre": [1600.0],
+        })
+        _ = add_elo_sum(df)
+        assert "elo_sum" not in df.columns
+
+
+class TestIsCrossConfederation:
+    def test_different_confederations_true(self):
+        df = pd.DataFrame({
+            "home_confederation": ["UEFA"],
+            "away_confederation": ["CONMEBOL"],
+        })
+        result = add_is_cross_confederation(df)
+        assert bool(result["is_cross_confederation"].iloc[0]) is True
+
+    def test_same_confederation_false(self):
+        df = pd.DataFrame({
+            "home_confederation": ["UEFA"],
+            "away_confederation": ["UEFA"],
+        })
+        result = add_is_cross_confederation(df)
+        assert bool(result["is_cross_confederation"].iloc[0]) is False
+
+    def test_home_missing_propagates_na(self):
+        df = pd.DataFrame({
+            "home_confederation": [None],
+            "away_confederation": ["UEFA"],
+        })
+        result = add_is_cross_confederation(df)
+        assert pd.isna(result["is_cross_confederation"].iloc[0])
+
+    def test_away_missing_propagates_na(self):
+        df = pd.DataFrame({
+            "home_confederation": ["UEFA"],
+            "away_confederation": [None],
+        })
+        result = add_is_cross_confederation(df)
+        assert pd.isna(result["is_cross_confederation"].iloc[0])
+
+    def test_both_missing_propagates_na(self):
+        df = pd.DataFrame({
+            "home_confederation": [None],
+            "away_confederation": [None],
+        })
+        result = add_is_cross_confederation(df)
+        assert pd.isna(result["is_cross_confederation"].iloc[0])
+
+    def test_dtype_is_nullable_boolean(self):
+        df = pd.DataFrame({
+            "home_confederation": ["UEFA", "AFC", None],
+            "away_confederation": ["CONMEBOL", "AFC", "UEFA"],
+        })
+        result = add_is_cross_confederation(df)
+        assert result["is_cross_confederation"].dtype.name == "boolean"
+
+    def test_does_not_mutate_input(self):
+        df = pd.DataFrame({
+            "home_confederation": ["UEFA"],
+            "away_confederation": ["CONMEBOL"],
+        })
+        _ = add_is_cross_confederation(df)
+        assert "is_cross_confederation" not in df.columns

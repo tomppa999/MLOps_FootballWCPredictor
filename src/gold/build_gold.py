@@ -18,9 +18,15 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.gold.context_features import add_elo_diff, override_neutral_for_2026_hosts
+from src.gold.context_features import (
+    add_elo_diff,
+    add_elo_sum,
+    add_is_cross_confederation,
+    override_neutral_for_2026_hosts,
+)
 from src.gold.rolling_features import compute_rolling_features
 from src.gold.schema import GOLD_COLUMNS, apply_gold_dtypes, validate_gold
+from src.gold.temporal_features import add_days_since_last_match
 
 logger = logging.getLogger(__name__)
 
@@ -76,9 +82,15 @@ def build_gold(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("Computing rolling features...")
     df = compute_rolling_features(df)
 
+    # Temporal features (per-team rest, time-aware)
+    logger.info("Adding temporal features...")
+    df = add_days_since_last_match(df)
+
     # Context features
     logger.info("Adding context features...")
     df = add_elo_diff(df)
+    df = add_elo_sum(df)
+    df = add_is_cross_confederation(df)
     df = override_neutral_for_2026_hosts(df)
 
     # Select and reorder to Gold schema

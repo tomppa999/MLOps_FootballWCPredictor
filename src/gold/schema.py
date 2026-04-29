@@ -36,12 +36,20 @@ CONTEXT_COLUMNS: Final[list[str]] = [
     "competition_tier",
     "is_knockout",
     "is_neutral",
+    "is_cross_confederation",
 ]
 
 STRENGTH_COLUMNS: Final[list[str]] = [
     "home_elo_pre",
     "away_elo_pre",
     "elo_diff",
+    "elo_sum",
+]
+
+TEMPORAL_COLUMNS: Final[list[str]] = [
+    "home_days_since_last_match",
+    "away_days_since_last_match",
+    "rest_diff",
 ]
 
 ROLLING_GOALS_COLUMNS: Final[list[str]] = [
@@ -84,6 +92,7 @@ GOLD_COLUMNS: Final[list[str]] = (
     + MATCH_INDEX_COLUMNS
     + CONTEXT_COLUMNS
     + STRENGTH_COLUMNS
+    + TEMPORAL_COLUMNS
     + ROLLING_GOALS_COLUMNS
     + ROLLING_SHOT_COLUMNS
     + ROLLING_TACTICAL_COLUMNS
@@ -94,6 +103,7 @@ GOLD_COLUMNS: Final[list[str]] = (
 FEATURE_COLUMNS: Final[list[str]] = (
     CONTEXT_COLUMNS
     + STRENGTH_COLUMNS
+    + TEMPORAL_COLUMNS
     + ROLLING_GOALS_COLUMNS
     + ROLLING_SHOT_COLUMNS
     + ROLLING_TACTICAL_COLUMNS
@@ -112,9 +122,14 @@ GOLD_DTYPES: Final[dict[str, str]] = {
     "competition_tier": "Int8",
     "is_knockout": "boolean",
     "is_neutral": "boolean",
+    "is_cross_confederation": "boolean",
     "home_elo_pre": "Float64",
     "away_elo_pre": "Float64",
     "elo_diff": "Float64",
+    "elo_sum": "Float64",
+    "home_days_since_last_match": "Float64",
+    "away_days_since_last_match": "Float64",
+    "rest_diff": "Float64",
     "home_team_rolling_goals_for": "Float64",
     "home_team_rolling_goals_against": "Float64",
     "away_team_rolling_goals_for": "Float64",
