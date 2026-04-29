@@ -19,7 +19,7 @@ from src.inference.features import (
     parse_wc_results,
 )
 from src.inference.logging import log_inference_artifacts
-from src.inference.predict import run_prediction
+from src.inference.predict import run_prediction, run_prediction_all_models
 from src.inference.simulation import (
     sample_scorelines,
     scoreline_distribution,
@@ -69,6 +69,16 @@ def run_inference_and_simulation(
     all_predictions_df = run_prediction(all_features)
     logger.info("All-pairs predictions: %d rows", len(all_predictions_df))
 
+    # Long-format predictions across champion + 8 shadow candidates. Best-
+    # effort: a shadow failure must not block the simulation pipeline.
+    try:
+        all_models_predictions_df = run_prediction_all_models(all_features)
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "All-model prediction failed — continuing with champion only.",
+        )
+        all_models_predictions_df = None
+
     # Identify unplayed group fixtures for scoreline sampling artifact.
     all_group_fixtures = generate_wc_group_fixtures()
     locked_group_keys = set(wc_results["group_results"].keys())
@@ -117,6 +127,7 @@ def run_inference_and_simulation(
         tournament_results=tournament_results,
         n_sims=n_sims,
         gold_row_count=len(gold_df),
+        all_models_predictions_df=all_models_predictions_df,
     )
 
     logger.info("=== Inference complete (run_id=%s) ===", run_id)

@@ -225,10 +225,11 @@ with three downstream model environments (Figure~\ref{fig:architecture}).
 
 \subsection{Three-Environment Model Lifecycle}
 
-Model development follows a structured three-environment pipeline:
+Model development follows a structured three-environment pipeline backed
+by three registered MLflow models:
 
 \begin{enumerate}
-  \item \textbf{Experimental}: all nine candidate models are trained on the pre-WC 2022 
+  \item \textbf{Experimental}: all nine candidate models are trained on the pre-WC 2022
   Gold training split. Hyperparameters are tuned by Optuna using Poisson negative
   log-likelihood (NLL) as the objective. All nine candidates advance
   to QA, sorted by CV NLL.
@@ -239,8 +240,18 @@ Model development follows a structured three-environment pipeline:
   the \texttt{challenger} alias.
   The best-performing model advances to the deploy phase.
   \item \textbf{Deploy}: the selected model is retrained on the full Gold dataset,
-  serialized as an MLflow pyfunc artifact, and used for tournament simulation.
+  serialized as an MLflow pyfunc artifact, registered as \texttt{wc\_production}, and used for tournament simulation.
 \end{enumerate}
+
+A third registered model, \texttt{wc\_shadow}, holds the eight
+non-champion candidates refit on the same full pre-WC~2026 Gold data as
+the champion, reusing each candidate's Optuna-tuned hyperparameters.
+\texttt{wc\_staging} is the permanent WC~2022 audit trail (training data
+ends at the QA cutoff); \texttt{wc\_production} holds only the champion
+and feeds the tournament simulation; \texttt{wc\_shadow} feeds the
+live-monitoring leaderboard so all nine models can be compared apples-to-
+apples on WC~2026 matches without confounding model family with data
+recency.
 
 \subsection{Tool Stack}
 
@@ -602,6 +613,24 @@ feature set, candidate pool, or evaluation methodology changes.
 If Gold grew by fewer than 10 rows, only inference runs.  The retraining
 threshold and the last Gold row count are tracked as MLflow run parameters.
 
+\textbf{Shadow refit.}
+Whenever a champion refit (or full pipeline) runs, a follow-up
+\texttt{run\_shadow\_refit} fits the eight non-champion candidates on the
+same full Gold dataset using each candidate's Optuna-tuned
+\texttt{best\_params} loaded from the registry. No re-tuning takes place
+inside the refit path --- model selection is frozen, and re-running
+Optuna would both invalidate that contract and add roughly 75 minutes to
+every cycle. Each refit is logged as a new MLflow run tagged
+\texttt{stage=shadow-refit} and registered as a version of
+\texttt{wc\_shadow}; the cold-start case (first install, before
+\texttt{wc\_shadow} contains anything) falls back to the
+\texttt{wc\_staging} version with the matching \texttt{model\_name} tag,
+i.e.\ the QA-phase artifact for that candidate. Shadow refits never feed
+the tournament simulation; they exist only to keep the eight
+non-champion candidates in sync with the champion's data window so the
+monitoring leaderboard (Section~\ref{sec:monitoring_design}) compares
+model families on a like-for-like basis.
+
 \textbf{Tournament inference.}
 During the tournament, the model is frozen at the parameters established in
 the last pre-tournament refit cycle. The 30-minute trigger runs in
@@ -885,7 +914,12 @@ Reported KPIs:
 All QA finalists are serialized and registered as versions of
 \texttt{wc\_staging} in the MLflow model registry during the QA phase
 (Section~\ref{sec:experiments}).  These artifacts are trained on the
-pre-WC 2022 split and serve as an audit trail; they are not used for inference.
+pre-WC~2022 split and serve as the permanent audit trail for the
+WC~2022 holdout numbers reported in Section~\ref{sec:results}; they are
+\emph{not} used for inference, and they are explicitly distinct from
+\texttt{wc\_shadow}, the registered model that holds the eight
+non-champion candidates refit on the full pre-WC~2026 Gold dataset for
+live-monitoring purposes (Section~\ref{sec:monitoring_design}).
 
 The QA candidate with the lowest holdout RPS is designated the challenger
 and receives the \texttt{challenger} alias on \texttt{wc\_staging}.
@@ -1000,7 +1034,12 @@ RPS = 0.2118).  No prior champion existed, so promotion was unconditional.
 Table~\ref{tab:importance} summarises the top-3 features by permutation
 importance (NLL degradation) for each model.  The \texttt{elo\_diff}
 feature dominates across all nine models, with importance scores one to
-two orders of magnitude above any other feature.
+two orders of magnitude above any other feature.  Permutation importance
+is computed on experimental-phase CV folds over the full 2018--2026
+training window, i.e.\ on a distribution where the large majority of
+matches are non-neutral (qualifiers, friendlies, Nations League);
+home/away labels are therefore meaningful, in contrast to the
+near-fully-neutral 2022 World Cup holdout used in QA.
 
 \begin{table}[h]
   \centering
@@ -1042,11 +1081,17 @@ two orders of magnitude above any other feature.
   \end{tabular}
 \end{table}
 
-Two patterns stand out beyond the \texttt{elo\_diff} dominance.  
-First, XGBoost actually surfaced one of the tactical rolling features,
-(\texttt{away\_team\_rolling\_tac\_possession\_pct}), in its top three.
-It is the only candidate that receives the full 24-feature set and can learn 
-non-linear splits on the additional tactical columns.
+Two patterns stand out beyond the \texttt{elo\_diff} dominance.
+First, XGBoost is the only candidate whose top three contains a tactical
+rolling feature (\texttt{away\_team\_rolling\_tac\_possession\_pct}).
+This is partly structural --- XGBoost is the only model that receives
+the full 24-feature set, so the other eight were never offered the
+tactical columns to rank --- but the feature is still chosen over the
+six other tactical columns that XGBoost did have access to, and
+specifically in its \emph{away}-side variant.  The permutation gain is
+small ($+0.001$ $\Delta$ RPS) and should be read as suggestive rather
+than conclusive; possible interpretations are developed in
+Section~\ref{sec:discussion}.
 Second, the deep learning models (LSTM, CNN) assign notably higher
 importance to \texttt{is\_neutral} than any other model family, suggesting
 they rely more heavily on the venue signal to compensate for their weaker
@@ -1077,11 +1122,24 @@ baseline that more complex models struggle to substantially improve upon.
 \textbf{H3: XGBoost captures non-linear interactions — partially confirmed.}
 XGBoost wins the holdout evaluation (RPS 0.2118) despite ranking fourth in
 CV NLL, suggesting it captures interactions that improve out-of-sample
-generalisation.  It is also the only model to surface a tactical feature
-(\texttt{away\_team\_rolling\_tac\_possession\_pct}) in its top-three
-importance, enabled by its access to the full 24-feature set.  However,
-the margin over the next-best model (LSTM, 0.2133) is only 0.0015, which
-limits the strength of the conclusion.
+generalisation.  It is also the only model whose top-three importance
+contains a tactical feature
+(\texttt{away\_team\_rolling\_tac\_possession\_pct}), enabled by its access
+to the full 24-feature set.  One plausible reading is that rolling
+possession is a \emph{dominance} marker that partially overlaps with
+\texttt{elo\_diff} --- consistent with the volume-and-dominance continuum
+observed in the clustering experiment (Figure~\ref{fig:cluster_k}) --- but
+encodes a residual playstyle axis that Elo, which scores results rather
+than the manner in which they are obtained, does not fully absorb.  The
+fact that it is specifically the \emph{away}-side variant that surfaces is
+suggestive: home possession is confounded with the home-advantage effect,
+whereas sustained away possession has to be imposed against both the
+opponent and the venue, making it a cleaner proxy for proactive style
+that XGBoost can then combine non-linearly with \texttt{elo\_diff}.
+Importantly, the permutation importance is only $+0.001$ $\Delta$ RPS,
+and the holdout margin over the next-best model (LSTM, 0.2133) is only
+0.0015, so this interpretation is offered as a hypothesis rather than a
+confirmed mechanism.
 
 \textbf{H4: Deep learning underperforms relative to complexity — partially
 confirmed.}
@@ -1268,18 +1326,51 @@ proxy for WC~2026 performance.  This is inherent to the single-holdout
 design and cannot be mitigated without access to a more recent tournament of
 comparable scope; it represents a fundamental assumption of the project.
 
-\textbf{Passive monitoring.}
-MLflow records all training metrics and artifacts, but there is no automated
-alerting if deployed model performance degrades between runs.  Subsequent
-champion-refit cycles do not re-evaluate on the WC~2022 holdout
-(Section~\ref{sec:ct}), and automated drift detection techniques such as
-residual monitoring on incoming match results or prediction-distribution
-tracking are not implemented.  For the pre-tournament operational window
-(approximately 4--5 matches per team between the initial training run and
-tournament start), the sample size is insufficient for statistically
-meaningful drift detection regardless.  Were the pipeline extended to a
-continuous club-football or multi-tournament deployment, rolling evaluation
-windows and active drift monitoring would be necessary additions.
+\textbf{Active per-model monitoring during WC~2026.}
+\label{sec:monitoring_design}%
+Tournament-window monitoring is implemented as live scoring rather than
+mid-tournament selection. Every 30-minute inference cycle predicts each
+of the $\binom{48}{2}=1{,}128$ possible WC~2026 pairings with all nine
+models (champion plus eight \texttt{wc\_shadow} versions) and logs the
+long-format result as \texttt{predictions\_all\_models.csv} alongside
+the existing champion-only \texttt{predictions.csv}. After each WC~2026
+match settles, a monitoring step joins the actual scoreline with the
+most recent inference whose timestamp is \emph{strictly} earlier than
+kickoff --- the strict inequality is essential: a later inference cycle
+already has the result inside Gold, so picking it would leak post-match
+information into the evaluation. Per-match RPS, Poisson NLL,
+$\text{RMSE}_{h}$ and $\text{RMSE}_{a}$ are computed for each of the
+nine models from the predicted Poisson rates without rounding (rounding
+$\hat{\lambda}_h$, $\hat{\lambda}_a$ to integer scorelines would
+collapse calibration information). Results are written to per-model
+runs named \texttt{monitor\_<model\_name>} tagged
+\texttt{stage=monitoring}, with metrics logged at \texttt{step=match\_index}
+so the time series is browsable in the MLflow UI, and the cumulative
+long-format leaderboard \texttt{wc2026\_monitoring.csv} is re-attached
+to each run every cycle (overwrite-style, so the latest run for each
+model holds the complete table).
+
+For each model, a rolling-mean RPS over the last 16 scored matches
+($\approx$1.5 group-stage matchdays) is compared against
+$1.3 \times$~that model's WC~2022 holdout RPS baseline; a breach emits
+a single \texttt{logger.warning} line captured by Cloud Logging. A
+model with fewer than 16 scored matches is silently skipped to suppress
+early-tournament noise. Alerting iterates over the champion and all
+eight shadow candidates; a champion alert is a manual investigation
+trigger, while shadow alerts are informational signals that an
+alternate candidate is degrading. No automated promotion occurs under
+any alert condition --- that would violate the project's code-based-
+deployment rule (Section~\ref{sec:ct}). Mid-tournament retraining is
+also out of scope: $\sim$5~weeks of WC matches is too short a sample
+for either statistically meaningful drift detection or for re-tuning a
+frozen production system to be operationally responsible.
+
+Outside this active leaderboard, MLflow continues to record all
+training metrics and artifacts as the long-term audit log. Were the
+pipeline extended to continuous club-football or multi-tournament
+deployment, the same per-match scoring contract would extend naturally
+to longer windows, with rolling-mean and CUSUM-style drift triggers
+swapped in for the fixed 16-match window used here.
 
 
 \textbf{Elo source reliability.}
@@ -1332,8 +1423,8 @@ limits statistical power to distinguish closely ranked models.
 Future work could extend the holdout to include multiple tournaments
 (e.g.\ EURO~2024) or employ cross-tournament validation.
 Additional improvements include full MCMC sampling for the
-Bayesian model (replacing ADVI), calendar-aware time indexing for SARIMAX,
-and automated performance alerting between retraining cycles.
+Bayesian model (replacing ADVI) and calendar-aware time indexing for
+SARIMAX.
 
 % ============================================================
 \bibliographystyle{IEEEtran}

@@ -50,9 +50,12 @@ Cloud Run Job environment configuration.
 32. ~~add tests for all inference modules (24 tests) + update trigger tests (3 new dispatch tests)~~ (complete)
 33. ~~update docs: fix tactical column count, venue_country mapping, simulation design, ET/penalty/tiebreaker threats to validity, correct holdout match count~~ (complete)
 
-### Phase 5 — Monitoring and deployment
-34. add monitoring outputs (drift, performance)
-35. add DagsHub integration
+### Phase 5 — Monitoring and deployment (complete)
+34a. ~~add `wc_shadow` registered model: refit 8 non-champion candidates on full pre-WC 2026 Gold using stored Optuna `best_params`; backfill script + automatic Path A / Path B refit~~ (complete)
+34b. ~~add per-model live monitoring: score every settled WC 2026 match against pre-kickoff predictions for all 9 models, log per-match RPS / NLL / RMSE to MLflow with `step=match_index`~~ (complete)
+34c. ~~add per-model alerting: rolling-mean RPS over last 16 scored matches vs `1.3 × WC2022 baseline` → `logger.warning` per breach; manual investigation only, no auto-promotion~~ (complete)
+34d. ~~cumulative `wc2026_monitoring.csv` artifact attached to `monitor_<model_name>` runs (long-format leaderboard, overwrite-style per cycle)~~ (complete)
+35. ~~add DagsHub integration~~ (complete)
 
 ## Design rules
 - local-first

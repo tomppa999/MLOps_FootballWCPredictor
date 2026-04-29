@@ -38,7 +38,9 @@ from src.models.evaluation import (
 )
 from src.models.mlflow_utils import (
     PRODUCTION_MODEL_NAME,
+    SHADOW_MODEL_NAME,
     STAGING_MODEL_NAME,
+    get_all_shadow_metadata,
     get_champion_metadata,
     get_champion_rps,
     log_run,
@@ -471,6 +473,85 @@ def run_champion_refit(df: pd.DataFrame) -> str:
         len(splits.df_full),
     )
     return run_id
+
+
+# ---------------------------------------------------------------------------
+# Shadow refit (8 non-champion candidates on full Gold, frozen hyperparameters)
+# ---------------------------------------------------------------------------
+
+
+def run_shadow_refit(df: pd.DataFrame) -> list[str]:
+    """Refit all non-champion candidates on full Gold using stored best_params.
+
+    Reads each candidate's Optuna-tuned ``best_params`` from the shadow
+    registry (``wc_shadow``) with cold-start fallback to ``wc_staging``,
+    refits on the full Gold dataset, and registers the result as a new
+    version of ``wc_shadow`` tagged with the candidate name. NEVER re-tunes.
+
+    The current champion is excluded — it is refit by ``run_champion_refit``
+    on the same data, so a duplicate refit would waste compute.
+
+    Returns:
+        List of MLflow run_ids, one per refit shadow candidate.
+    """
+    setup_mlflow()
+    champion = get_champion_metadata()
+    candidate_names = [n for n in CANDIDATE_MODELS if n != champion.model_name]
+    shadow_metas = get_all_shadow_metadata(
+        candidate_names,
+        exclude_model_name=champion.model_name,
+    )
+
+    run_ids: list[str] = []
+    for meta in shadow_metas:
+        if meta.model_name == champion.model_name:
+            continue  # defensive guard
+        if meta.model_name not in CANDIDATE_MODELS:
+            logger.warning(
+                "Shadow candidate %s not in CANDIDATE_MODELS — skipping.",
+                meta.model_name,
+            )
+            continue
+
+        model_cls = CANDIDATE_MODELS[meta.model_name]
+        feature_cols = MODEL_FEATURE_SETS[meta.model_name]
+        dropna = meta.model_name != "xgboost"
+        splits = make_splits(df, feature_cols, dropna=dropna)
+
+        logger.info(
+            "Shadow refit: fitting %s on %d Gold rows.",
+            meta.model_name,
+            len(splits.df_full),
+        )
+        model = model_cls(**meta.best_params)
+        model.fit(splits.X_full, splits.y_full)
+
+        with start_run(
+            run_name=f"shadow_refit_{meta.model_name}",
+            tags={"stage": "shadow-refit", "model_name": meta.model_name},
+        ) as run:
+            log_run(
+                params={
+                    **meta.best_params,
+                    "gold_row_count": str(len(splits.df_full)),
+                },
+                metrics=meta.holdout_metrics,
+            )
+            model_uri = _log_model_artifact(model)
+            run_id = run.info.run_id
+
+        mv = register_model(model_uri=model_uri, model_name=SHADOW_MODEL_NAME)
+        logger.info(
+            "Shadow refit complete: %s (run_id=%s, version=%s, gold_rows=%d)",
+            meta.model_name,
+            run_id,
+            mv.version,
+            len(splits.df_full),
+        )
+        run_ids.append(run_id)
+
+    logger.info("Shadow refit done — %d candidates registered.", len(run_ids))
+    return run_ids
 
 
 # ---------------------------------------------------------------------------

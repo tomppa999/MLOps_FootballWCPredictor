@@ -28,11 +28,16 @@ def log_inference_artifacts(
     *,
     n_sims: int,
     gold_row_count: int,
+    all_models_predictions_df: pd.DataFrame | None = None,
 ) -> str:
     """Start an MLflow run tagged stage=inference and log all artifacts.
 
     Logged artifacts:
-      - predictions.csv: per-match lambda and outcome probabilities
+      - predictions.csv: champion-only λ_h/λ_a + outcome probs (input to
+        the tournament simulation).
+      - predictions_all_models.csv: long-format predictions for the
+        champion plus every shadow model — input to the monitoring layer.
+        Only logged when ``all_models_predictions_df`` is provided.
       - scoreline_distributions.csv: sampled scoreline probabilities
       - tournament_probabilities.csv: per-team advancement by round
       - group_positions.csv: per-team probabilities for each group finish
@@ -63,6 +68,11 @@ def log_inference_artifacts(
             pred_path = tmp / "predictions.csv"
             predictions_df.to_csv(pred_path, index=False)
             mlflow.log_artifact(str(pred_path))
+
+            if all_models_predictions_df is not None and not all_models_predictions_df.empty:
+                all_path = tmp / "predictions_all_models.csv"
+                all_models_predictions_df.to_csv(all_path, index=False)
+                mlflow.log_artifact(str(all_path))
 
             if scoreline_dist is not None and not scoreline_dist.empty:
                 sl_path = tmp / "scoreline_distributions.csv"

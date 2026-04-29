@@ -15,6 +15,7 @@ TRACKING_URI: str = os.environ.get("MLFLOW_TRACKING_URI", "file:./mlruns")
 EXPERIMENT_NAME: str = "wc_prediction"
 STAGING_MODEL_NAME: str = "wc_staging"
 PRODUCTION_MODEL_NAME: str = "wc_production"
+SHADOW_MODEL_NAME: str = "wc_shadow"
 
 
 def setup_mlflow(tracking_uri: str = TRACKING_URI) -> None:
@@ -223,3 +224,139 @@ def get_champion_rps(model_name: str = PRODUCTION_MODEL_NAME) -> float | None:
     client = mlflow.tracking.MlflowClient()
     metrics = client.get_run(run_id).data.metrics
     return metrics.get("qa_holdout_rps")
+
+
+# ---------------------------------------------------------------------------
+# Shadow metadata (wc_shadow with cold-start fallback to wc_staging)
+# ---------------------------------------------------------------------------
+
+
+def _latest_version_with_model_tag(
+    registered_model: str,
+    model_name: str,
+) -> ModelVersion | None:
+    """Return the most recently created version of ``registered_model`` whose
+    backing run has tag ``model_name=<x>``.
+
+    Walks model versions newest-first and inspects each underlying run.
+    Returns ``None`` if no matching version exists.
+    """
+    client = mlflow.tracking.MlflowClient()
+    try:
+        versions = client.search_model_versions(f"name='{registered_model}'")
+    except mlflow.exceptions.MlflowException:
+        return None
+
+    versions = sorted(
+        versions,
+        key=lambda mv: int(mv.version),
+        reverse=True,
+    )
+    for mv in versions:
+        try:
+            run = client.get_run(mv.run_id)
+        except mlflow.exceptions.MlflowException:
+            continue
+        if run.data.tags.get("model_name") == model_name:
+            return mv
+    return None
+
+
+def get_shadow_metadata(
+    model_name: str,
+    *,
+    shadow_model: str = SHADOW_MODEL_NAME,
+    staging_model: str = STAGING_MODEL_NAME,
+) -> ChampionMeta:
+    """Return identity, best_params, and holdout metrics for a shadow candidate.
+
+    Looks up the latest ``wc_shadow`` version with tag ``model_name=<x>``.
+    Falls back to the latest ``wc_staging`` version with the same tag if no
+    shadow version exists yet (cold-start, before the first backfill).
+
+    Mirrors :func:`get_champion_metadata` so integer hyperparameters survive
+    the MLflow string round-trip via :func:`_cast_params`.
+
+    Raises:
+        ValueError: if neither registry surfaces a version with that tag.
+    """
+    mv = _latest_version_with_model_tag(shadow_model, model_name)
+    source = shadow_model
+    if mv is None:
+        mv = _latest_version_with_model_tag(staging_model, model_name)
+        source = staging_model
+    if mv is None:
+        raise ValueError(
+            f"No registered version found for model_name='{model_name}' in "
+            f"either '{shadow_model}' or '{staging_model}'."
+        )
+
+    client = mlflow.tracking.MlflowClient()
+    run_data = client.get_run(mv.run_id).data
+    raw_params = {
+        k: v
+        for k, v in run_data.params.items()
+        if k not in _DEPLOY_INTERNAL_PARAMS
+    }
+    best_params = _cast_params(model_name, raw_params)
+    holdout_metrics = {
+        k: v
+        for k, v in run_data.metrics.items()
+        if k.startswith("qa_holdout_") or k.startswith("holdout_")
+    }
+    logger.info(
+        "Loaded shadow metadata for %s from %s v%s (run=%s)",
+        model_name,
+        source,
+        mv.version,
+        mv.run_id,
+    )
+    return ChampionMeta(
+        model_name=model_name,
+        best_params=best_params,
+        holdout_metrics=holdout_metrics,
+    )
+
+
+def get_all_shadow_metadata(
+    candidate_names: list[str],
+    *,
+    exclude_model_name: str | None = None,
+) -> list[ChampionMeta]:
+    """Return one ChampionMeta per non-excluded candidate.
+
+    Args:
+        candidate_names: All registered candidate model names (e.g. the
+            keys of ``CANDIDATE_MODELS``).
+        exclude_model_name: Optional name to skip — typically the current
+            champion, which is already refit by ``run_champion_refit``.
+    """
+    out: list[ChampionMeta] = []
+    for name in candidate_names:
+        if exclude_model_name is not None and name == exclude_model_name:
+            continue
+        out.append(get_shadow_metadata(name))
+    return out
+
+
+def load_shadow_model(
+    model_name: str,
+    *,
+    shadow_model: str = SHADOW_MODEL_NAME,
+    staging_model: str = STAGING_MODEL_NAME,
+) -> Any:
+    """Load the latest shadow pyfunc artifact for the given candidate.
+
+    Falls back to the latest ``wc_staging`` version with the same tag if no
+    shadow version exists yet (cold-start). Mirrors the resolution order
+    used by :func:`get_shadow_metadata`.
+    """
+    mv = _latest_version_with_model_tag(shadow_model, model_name)
+    if mv is None:
+        mv = _latest_version_with_model_tag(staging_model, model_name)
+    if mv is None:
+        raise ValueError(
+            f"No registered version found for model_name='{model_name}' in "
+            f"either '{shadow_model}' or '{staging_model}'."
+        )
+    return mlflow.pyfunc.load_model(f"runs:/{mv.run_id}/model")

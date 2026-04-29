@@ -251,6 +251,24 @@ def run_dvc_pipeline() -> None:
 VALID_MODES = ("auto", "inference_only")
 
 
+def _safe_monitoring_step() -> None:
+    """Best-effort monitoring hook. A failure here must not gate the pipeline."""
+    try:
+        from src.monitoring.monitor import run_monitoring_step  # noqa: PLC0415
+        run_monitoring_step()
+    except Exception:
+        log.exception("Monitoring step failed; continuing pipeline.")
+
+
+def _safe_shadow_refit(df) -> None:
+    """Best-effort shadow refit. A failure here must not gate the pipeline."""
+    try:
+        from src.models.pipeline import run_shadow_refit  # noqa: PLC0415
+        run_shadow_refit(df)
+    except Exception:
+        log.exception("Shadow refit failed; continuing pipeline.")
+
+
 def dispatch_training_or_inference(mode: str = "auto") -> None:
     """Decide whether to train, refit, or run inference only.
 
@@ -260,7 +278,10 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
         3. Champion exists, delta below threshold → inference only.
     - 'inference_only': load frozen champion from MLflow, predict + simulate.
 
-    All paths end with ``run_inference_and_simulation()``.
+    All paths end with ``run_inference_and_simulation()`` followed by a
+    best-effort monitoring step. Paths A and B (full pipeline / champion
+    refit) also refresh the 8 ``wc_shadow`` candidates against the same
+    full-Gold dataset, reusing each candidate's frozen Optuna best_params.
     """
     import mlflow  # noqa: PLC0415
 
@@ -285,13 +306,16 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
     if mode == "inference_only":
         log.info("Mode is inference_only — skipping retrain check.")
         run_inference_and_simulation()
+        _safe_monitoring_step()
         return
 
     prod_run_id = get_latest_production_run_id()
     if prod_run_id is None:
         log.info("No production champion found — running full pipeline.")
         run_full_pipeline(df)
+        _safe_shadow_refit(df)
         run_inference_and_simulation()
+        _safe_monitoring_step()
         return
 
     client = mlflow.tracking.MlflowClient()
@@ -308,10 +332,13 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
     if delta >= RETRAIN_THRESHOLD:
         log.info("Refit threshold met — refitting champion on fresh data.")
         run_champion_refit(df)
+        _safe_shadow_refit(df)
         run_inference_and_simulation()
+        _safe_monitoring_step()
     else:
         log.info("Retrain threshold not met — running inference only.")
         run_inference_and_simulation()
+        _safe_monitoring_step()
 
 
 # ---------------------------------------------------------------------------
