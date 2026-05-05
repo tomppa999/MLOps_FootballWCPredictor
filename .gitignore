@@ -8,6 +8,7 @@ src/*.egg-info/
 # Environment
 .env
 *.env
+.streamlit/
 
 # Type checking / linting
 .mypy_cache/
