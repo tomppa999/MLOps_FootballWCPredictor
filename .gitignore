@@ -8,7 +8,11 @@ src/*.egg-info/
 # Environment
 .env
 *.env
+
+# Streamlit
 .streamlit/
+#environment.txt
+#runtime.txt
 
 # Type checking / linting
 .mypy_cache/
