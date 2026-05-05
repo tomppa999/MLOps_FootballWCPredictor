@@ -105,7 +105,8 @@ Section~\ref{sec:pipeline} details the data pipeline.
 Section~\ref{sec:modeling} describes the modeling approach, model candidates, and hypotheses.
 Section~\ref{sec:experiments} defines the experimental setup.
 Section~\ref{sec:results} presents results.
-Section~\ref{sec:discussion} discusses findings and threats to validity.
+Section~\ref{sec:discussion} discusses findings.
+Section~\ref{sec:threats} addresses threats to validity.
 Section~\ref{sec:conclusion} concludes.
 
 % ============================================================
@@ -1410,10 +1411,11 @@ plausibly produce a different ranking among the top eight models.  This
 reinforces the value of advancing all candidates to QA and treating the
 champion/challenger gate as the sole decisive quality threshold.
 
-\subsection{Threats to Validity}
+% ============================================================
+\section{Threats to Validity}
 \label{sec:threats}
 
-\subsubsection{Data Quality}
+\subsection{Data Quality}
 
 \textbf{Sparse statistics coverage.}
 Approximately 51\% of matches contain any per-match statistics; coverage is substantially
@@ -1435,7 +1437,7 @@ missing value by pandas defaults, home/away side inversions in raw fixtures, and
 timezone misalignments are all identified and mitigated but represent latent fragility in
 the external data contracts.
 
-\subsubsection{Simulation Simplifications}
+\subsection{Simulation Simplifications}
 
 \textbf{Extra-time rate scaling.}
 The $30/90$ extra-time rate scaling assumes scoring intensity does not change in
@@ -1454,7 +1456,7 @@ case: tiebreakers beyond head-to-head are needed in a small fraction of
 simulated groups, and predicting disciplinary records adds complexity
 disproportionate to their influence on tournament outcome probabilities.
 
-\subsubsection{Football Domain}
+\subsection{Football Domain}
 
 \textbf{Sparse national team calendar.}
 National teams play 6--12 matches per year, compared to 40+ for club teams. Rolling form
@@ -1499,7 +1501,7 @@ rather than competitively.
 The training corpus contains too few  late group-stage matches from such scenarios (EURO since 2016, 
 AFCON since 2019) to isolate or quantify its impact on goal counts.
 
-\subsubsection{Pipeline and Monitoring}
+\subsection{Pipeline and Monitoring}
 
 \textbf{Holdout temporal distance.}
 The WC~2022 holdout is four years removed from the prediction target
@@ -1615,9 +1617,22 @@ The holdout evaluation relies on a single tournament (89 matches), which
 limits statistical power to distinguish closely ranked models.
 Future work could extend the holdout to include multiple tournaments
 (e.g.\ EURO~2024) or employ cross-tournament validation.
-Additional improvements include full MCMC sampling for the
+Additional modeling improvements include full MCMC sampling for the
 Bayesian model (replacing ADVI) and calendar-aware time indexing for
 SARIMAX.
+
+A planned extension uses the 30-minute inference cycle during the
+WC~2026 group stage to study how sequential result revelation within a
+matchday reshapes tournament outcome probabilities under the expanded
+format.  The best-third-place rule couples all twelve groups: a result in
+Group~A can shift advancement probabilities in Group~L.  By storing
+simulation snapshots after each completed match, the analysis will track
+per-team probability trajectories across matchdays, identify which
+structural features (proximity to the third-place boundary, number of
+groups already completed, kickoff time slot) drive disproportionate
+probability swings, and quantify the progressive resolution of tournament
+uncertainty via Shannon entropy of the advancement probability
+distribution.
 
 % ============================================================
 \bibliographystyle{IEEEtran}
