@@ -17,6 +17,7 @@ dependencies = [
   "keras>=3.0.0",
   "jax>=0.4.0",
   "jaxlib>=0.4.0",
+  "plotly>=5.22.0",
 ]
 
 [project.optional-dependencies]
