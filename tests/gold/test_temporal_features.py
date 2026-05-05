@@ -4,6 +4,12 @@ Covers ``days_since_last_match`` (per-team, time-aware) and ``rest_diff``.
 The function reshapes Gold-shape rows into a team-centric history, sorts by
 team and date, and uses ``shift(1)`` per team to compute the gap to that
 team's previous match. First appearances must be NaN.
+
+These columns proxy national-team squad cohesion (*Eingespieltheit*),
+not player rest -- at international cadence players play 4-6 club matches
+between national-team windows. The variable name ``rest_diff`` is retained
+from the initial design hypothesis. See ``docs/feature_spec.md`` and report
+Section 7.2 for the framing.
 """
 
 import numpy as np

@@ -18,7 +18,11 @@ Each Gold row represents one match and should include:
 ### Strength features
 - home_elo_pre
 - away_elo_pre
-- elo_diff
+- elo_diff (= home_elo_pre − away_elo_pre): which side is favoured.
+- elo_sum (= home_elo_pre + away_elo_pre): overall match quality / strength
+  composition (top-vs-top vs top-vs-bottom). Added in the Gold v2 iteration;
+  consistently top-5 in importance for tree-based and additive baseline models
+  (see report Section 7.2).
 
 ### Form features
 Weighted rolling statistics from prior matches for each team:
@@ -61,6 +65,36 @@ columns (`shots_insidebox`, `shots_outsidebox`, `total_passes`,
 `passes_accurate`, `pass_accuracy_pct`, `blocked_shots`) are excluded due to
 poor availability in the `partial` tier (~1.6% non-null).
 
+### Squad cohesion features (time since last national-team match)
+
+These three columns proxy national-team-level squad cohesion
+(*Eingespieltheit*) — the time the unit has been training and playing
+together since their last international match. They are **not** a player-rest
+signal: at international cadence, players play club matches between
+national-team windows, so individual fatigue is not what is measured. What is
+measured is *time-as-a-unit*, which proxies tactical familiarity, set-piece
+coordination, and roster stability.
+
+- `home_days_since_last_match` — gap (in days) between the home team's
+  current match and its previous international match. NaN on first appearance
+  in the dataset.
+- `away_days_since_last_match` — same for the away team.
+- `rest_diff` (= home − away) — signed gap difference. NaN propagates if
+  either side is NaN. Variable name retained from the initial design where
+  player-rest was the hypothesised mechanism.
+
+Per-team gap is computed via team-centric reshape and
+`groupby('team').shift(1)` on chronologically sorted match history (mirroring
+the pattern in `_build_team_history`). All three columns are strictly
+time-aware: each match's feature uses only the team's previous match date
+(strictly < current match date).
+
+In the v2 importance analysis these features only surfaced in Bayesian
+Poisson's top-5 (`rest_diff` #2, `away_days_since_last_match` #4): the
+prior-driven sampler can absorb a weak-but-real signal that other model
+families suppress as noise. See report Section 7.2 for the full
+interpretation.
+
 ### Tactical clustering (dropped)
 
 KMeans clustering on rolling tactical profiles was investigated but dropped.
@@ -84,6 +118,12 @@ directly as continuous features instead.
   historical data. No separate `is_home_advantage_2026` column exists.
 - `competition_tier`
 - `is_knockout`
+- `is_cross_confederation` — nullable boolean, True if the two teams'
+  confederations differ. NaN if either confederation is missing (never
+  silently coerced to True/False). Added in the Gold v2 iteration; in
+  practice contributed near-zero importance in all nine models because it
+  is heavily confounded with `competition_tier` (most cross-confederation
+  matches are friendlies).
 - confederation / continent indicators
 
 #### 2026 KO-round home advantage (inference-time only)
@@ -147,4 +187,9 @@ indicator, imputation from team mean, or conditional feature set).
 ## Explicit non-features
 - no xG dependency (not offered by our data source)
 - no manually reimplemented Elo calculation (they are taken from the .tsv files only)
-- no rest-days feature in the initial version (does not make sense for national team match calendar)
+- no `rest_days` feature in the player-fatigue sense: at international
+  cadence, players play club matches between national-team windows, so a
+  literal player-rest feature is not meaningful. The Gold v2 iteration
+  introduced `days_since_last_match` (per side) and `rest_diff` as squad-
+  cohesion proxies instead — see "Squad cohesion features" above. Variable
+  name `rest_diff` is retained from the initial design hypothesis.

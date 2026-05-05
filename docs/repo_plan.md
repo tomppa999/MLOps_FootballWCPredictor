@@ -57,6 +57,14 @@ Cloud Run Job environment configuration.
 34d. ~~cumulative `wc2026_monitoring.csv` artifact attached to `monitor_<model_name>` runs (long-format leaderboard, overwrite-style per cycle)~~ (complete)
 35. ~~add DagsHub integration~~ (complete)
 
+### Phase 6 — Gold v2 feature iteration (complete)
+36a. ~~anchor v1 baseline in `docs/feature_v2_baseline.md` (run `b57274ad…`, holdout RPS 0.2118, gold rows 6663)~~ (complete)
+36b. ~~add 5 leakage-safe Gold v2 features: `elo_sum`, `is_cross_confederation`, `home_days_since_last_match`, `away_days_since_last_match`, `rest_diff` — all join `CORE_FEATURE_COLUMNS` (8 → 13; `FULL_FEATURE_COLUMNS` 24 → 29)~~ (complete)
+36c. ~~`dvc repro gold` (gold rows 6663 → 6784)~~ (complete)
+36d. ~~full retrain — `pipeline_run_id` `20260429T161823Z`~~ (complete)
+36e. ~~auto-promotion gate fired: v2 XGBoost (RPS 0.2109) replaces v1 XGBoost (RPS 0.2118) in `wc_production`, version 4~~ (complete)
+36f. ~~document v1 → v2 iteration in report Section 7.2 and update `feature_spec.md` with squad-cohesion framing for the temporal features~~ (complete)
+
 ## Design rules
 - local-first
 - small modules
