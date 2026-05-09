@@ -332,10 +332,25 @@ def get_all_shadow_metadata(
             champion, which is already refit by ``run_champion_refit``.
     """
     out: list[ChampionMeta] = []
+    skipped: list[str] = []
     for name in candidate_names:
         if exclude_model_name is not None and name == exclude_model_name:
             continue
-        out.append(get_shadow_metadata(name))
+        try:
+            out.append(get_shadow_metadata(name))
+        except ValueError:
+            logger.warning(
+                "No registry version for shadow candidate '%s' — skipping. "
+                "Run the full pipeline to register this candidate first.",
+                name,
+            )
+            skipped.append(name)
+    if skipped:
+        logger.warning(
+            "Shadow metadata lookup skipped %d candidate(s): %s",
+            len(skipped),
+            skipped,
+        )
     return out
 
 
