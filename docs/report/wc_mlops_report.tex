@@ -42,9 +42,8 @@ A Multi-Model Comparison with Structured Model Promotion}
 % ============================================================
 \begin{abstract}
 Predicting football World Cup outcomes is a challenging statistical problem because of many 
-factors, such as the irregular and sparse nature of national team match data, the hetero-
-geneity of competition formats, and the high variance inherent in low-scoring sports. 
-In this work, we present a structured MLOps pipeline that automates the full lifecycle 
+factors, such as the irregular and sparse nature of national team match data and the high variance inherent in low-scoring sports. 
+In this work, we present a structured MLOps pipeline that automates the entire lifecycle 
 from raw data ingestion from two separate sources to the simulation of the 2026 FIFA
 World Cup. 
 The pipeline implements a Bronze/Silver/Gold data architecture, engineers strictly time-aware 
@@ -1222,7 +1221,7 @@ which may underestimate predictive variance and thus lose the calibration
 advantage that full MCMC sampling would provide.  Bayesian Poisson is,
 however, the one model that exploits the squad-cohesion signal added in
 the Gold v2 iteration (\texttt{rest\_diff} ranks second in its
-importance) --- consistent with prior-driven samplers being more receptive
+importance). This is consistent with prior-driven samplers being more receptive
 to weak-but-real signals than maximum-likelihood baselines
 (Section~\ref{sec:gold_v2}).
 
@@ -1252,7 +1251,7 @@ splits, same Optuna budgets --- only the feature columns changed.
 \textbf{Outcome.}
 The full pipeline re-ran end-to-end.  The auto-promotion gate
 (Section~\ref{sec:promotion_gate}) accepted v2 XGBoost over v1 XGBoost:
-holdout RPS $0.2109$ vs $0.2118$ ($\Delta\,$RPS $= -0.0009$) --- a narrow but
+holdout RPS $0.2109$ vs $0.2118$ ($\Delta\,$RPS $= -0.0009$), a narrow but
 real improvement that triggered registration as \texttt{wc\_production}
 version~4.  The CV NLL phase regressed slightly across the board
 ($\Delta \approx +0.005$ to $+0.06$), consistent with feature additions
@@ -1330,8 +1329,8 @@ Poisson (top-5 entries at \#2 and \#4); the other eight models suppress
 these as noise.  The interpretation is that prior-driven samplers can
 absorb weak-but-real signals where maximum-likelihood baselines cannot,
 and at international cadence the cohesion gap between teams is mostly
-noise across most matchups but carries real information when one side
-has had a recent training window or tournament and the other has not.
+noise across most matchups but carries real information when the composition of one side
+changed significantly since the most recent training and match window.
 \texttt{is\_cross\_confederation} is invisible in all model importances:
 it is heavily confounded with \texttt{competition\_tier} (most
 cross-confederation matches are friendlies), so the model already had
@@ -1344,8 +1343,8 @@ The auto-promotion machinery did its job: it accepted a marginal-but-real
 improvement and would have rejected one that fell below the prior
 champion's holdout bar.  This is the iteration loop the MLOps design is
 built for; v2 demonstrates the loop closing on real data without manual
-intervention.  The mixed per-model results --- winners, losers, and one
-invisible feature --- also illustrate that the gate is doing meaningful
+intervention.  The mixed per-model results (winners, losers, and one
+invisible feature) also illustrate that the gate is doing meaningful
 selection rather than rubber-stamping.  Both v1 and v2 artifacts remain
 in the MLflow registry as versioned production candidates, so the
 iteration is auditable end-to-end.
@@ -1421,7 +1420,7 @@ champion/challenger gate as the sole decisive quality threshold.
 Approximately 51\% of matches contain any per-match statistics; coverage is substantially
 lower for CAF, AFC, and OFC confederation matches. Models that include statistics-based
 features operate on a reduced effective training set for non-European and non-South-American
-teams, which are disproportionately represented in the later World Cup stages.
+teams, which may reduce reliability when predicting their matches against the UEFA and CONMEBOL teams that are disproportionately represented in later World Cup stages.
 
 \textbf{Dual-source identity mismatch.}
 API-Football and Elo use different team name conventions and country codes. Resolution
@@ -1490,7 +1489,7 @@ probabilities of knockout stage match-ups and minor implications for the last gr
 consequence, over 60\% of all knockout stage match-ups are non-deterministic. A single goal difference 
 in any group can restructure the entire knockout tree, which in turn increases the sensitivity of 
 tournament win-probability estimates to group-stage prediction errors.
-(2) The effect of qualification arithmetic on final-matchday play style is plausible across major 
+(2) The effect of qualification arithmetic on final group matchday play style is plausible across major 
 tournaments and has been visible occasionally (e.g., when a draw may serve both teams' interests, such 
 as in the famous "Disgrace of Gijón"), which is why FIFA and continental confederations all moved 
 to simultaneous final-matchday kickoffs in each group many years ago. 
@@ -1498,7 +1497,7 @@ Modern best-third-placed-teams formats reintroduce a variant of this effect: gro
 kicks off later can observe completed results from earlier groups and calculate the exact result needed 
 to qualify as one of the best third-placed teams. The creates an incentive to play to a target scoreline 
 rather than competitively.
-The training corpus contains too few  late group-stage matches from such scenarios (EURO since 2016, 
+The training corpus contains too few  late group-stage matches from such scenarios (EURO 2020 and 2024, 
 AFCON since 2019) to isolate or quantify its impact on goal counts.
 
 \subsection{Pipeline and Monitoring}
@@ -1563,7 +1562,7 @@ Elo ratings are fetched from a third-party website (eloratings.net). By default,
 files are preserved and reused if not explicitly overwritten to provide implicit continuity against 
 transient outages. A forced refresh during a source outage would fail without updating the data, 
 which effectively leaves the last successfully downloaded snapshot in place. Given that Elo ratings 
-change slowly between individual matches, short-term staleness is not expected to affect model predictions.
+change slowly between individual matches, short-term staleness is not expected to affect model predictions significantly.
 
 \textbf{Residual ordinal bias in RPS.}
 RPS is an ordinal metric with three categories (home win, draw, away win). Because draw
