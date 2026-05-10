@@ -35,6 +35,11 @@ A Multi-Model Comparison with Structured Model Promotion}
   \IEEEauthorblockA{\textit{Tampere University}\\{}
   {Tampere, Finland}\\
   {tom.farnschlaeder@tuni.fi}}
+  \and
+  \IEEEauthorblockN{Sergio Moreschini}
+  \IEEEauthorblockA{\textit{Tampere University}\\{}
+  {Tampere, Finland}\\
+  {sergio.moreschini@tuni.fi}}
 }
 
 \maketitle
@@ -97,8 +102,7 @@ This work makes two contributions:
 \end{itemize}
 
 The remainder of the paper is structured as follows.
-Section~\ref{sec:background} covers background on MLOps and football score modeling.
-Section~\ref{sec:related} reviews related work.
+Section~\ref{sec:background} covers background on MLOps and football score modeling, including relevant prior work.
 Section~\ref{sec:architecture} describes the system architecture.
 Section~\ref{sec:pipeline} details the data pipeline.
 Section~\ref{sec:modeling} describes the modeling approach, model candidates, and hypotheses.
@@ -181,21 +185,16 @@ Extensions include the Negative Binomial distribution, which relaxes the equidis
 assumption of the Poisson family, and Bayesian variants that produce full posterior
 predictive distributions over score outcomes.
 
-\tbd{More detail here or in the "Related Work" section?}
-
 For national team football specifically, team strength is commonly represented by Elo
-ratings~\cite{eloratings}, which update multiplicatively after each match and provide a
-continuous, cross-confederation measure of team quality without requiring squad-level data.
-
-\tbd{More details and formula; either here or in the "Data Sources" section}
-
-% ============================================================
-\section{Related Work}
-\label{sec:related}
-
-\tbd{Summarise a few papers: Dixon-Coles extensions, tournament simulation, MLOps use cases
-in sports, and general MLOps pipeline papers. Include \cite{ossara2023} as a structural
-reference for pipeline design.}
+ratings~\cite{eloratings}, which update after each match according to
+$R_n = R_o + K \times (W - W_e)$,
+where $R_o$ is the pre-match rating, $K$ is a weight constant scaled by tournament
+prestige (20 for friendlies up to 60 for World Cup finals) and adjusted upward for
+larger goal margins, $W$ is the result (1\,/\,0.5\,/\,0), and
+$W_e = 1\,/\,(10^{-dr/400}+1)$ is the expected win probability derived from the rating
+difference $dr$ (with a 100-point home-field bonus added to the home team's rating).
+This formulation provides a continuous, cross-confederation measure of team quality
+without requiring squad-level data.
 
 % ============================================================
 \section{System Architecture}
