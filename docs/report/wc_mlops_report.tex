@@ -307,39 +307,35 @@ Figure~\ref{fig:gantt} shows the project timeline.
   \gantttitle{6}{7}\gantttitle{13}{7}\gantttitle{20}{7}\gantttitle{27}{7}%
   \gantttitle{4}{7}\gantttitle{11}{7} \\
 
-  % --- Data & Features (complete) ---
-  \ganttgroup{Data \& Features}{2026-03-09}{2026-03-31} \\
+  % --- Data Pipeline ---
+  \ganttgroup{Data Pipeline}{2026-03-09}{2026-04-30} \\
   \ganttbar{Bronze ingestion}{2026-03-09}{2026-03-15} \\
   \ganttbar{Silver pipeline}{2026-03-16}{2026-03-20} \\
-  \ganttbar{Gold (v1, v2)}{2026-03-23}{2026-03-31}%
-  \ganttbar{}{2026-04-27}{2026-04-30} \\
+  \ganttbar{Gold v1}{2026-03-23}{2026-03-31} \\
+  \ganttbar{Gold v2}{2026-04-27}{2026-04-30} \\
 
-  % --- Modeling & Infrastructure (complete) ---
-  \ganttgroup{Modeling \& Infrastructure}{2026-03-30}{2026-04-06} \\
+  % --- Modeling ---
+  \ganttgroup{Modeling}{2026-03-30}{2026-04-19} \\
   \ganttbar{Experimental env}{2026-03-30}{2026-04-06} \\
   \ganttbar{Pipeline trigger}{2026-03-30}{2026-04-06} \\
   \ganttbar{QA env}{2026-04-01}{2026-04-06} \\
   \ganttbar{Deploy env}{2026-04-03}{2026-04-06} \\
-
-  % --- Simulation (complete) ---
-  \ganttgroup{Simulation}{2026-04-13}{2026-04-19} \\
   \ganttbar{MC simulation}{2026-04-13}{2026-04-19} \\
 
-  % --- Monitoring ---
+  % --- Monitoring & Deployment ---
+  \ganttgroup{Monitoring \& Deployment}{2026-04-27}{2026-05-17} \\
   \ganttbar{Monitoring}{2026-04-27}{2026-05-02} \\
-
-  % --- Cloud deployment ---
   \ganttbar{Cloud deployment}{2026-05-11}{2026-05-17} \\
 
   % --- Report (continuous) ---
   \ganttbar{Report write-up}{2026-03-09}{2026-05-17} \\
 \end{ganttchart}
-\caption{Project timeline (weekly granularity). Data and features pipeline complete by
-31~March~2026. All modeling environments and pipeline trigger implemented week of
-6~April~2026. Monte Carlo simulation implemented week of 13~April. Gold v2 feature
-iteration and monitoring implemented last week of April. Cloud deployment (Docker,
-Cloud Run Jobs, Cloud Scheduler) planned for week of 11~May~2026. Report write-up is
-ongoing throughout.}
+\caption{Project timeline (weekly granularity). Data pipeline: Bronze and Silver
+complete by 20~March; Gold v1 by 31~March; Gold v2 feature iteration last week of
+April. Modeling: all environments and pipeline trigger implemented week of
+6~April; Monte Carlo simulation week of 13~April. Monitoring \& Deployment:
+monitoring implemented last week of April; cloud deployment (Docker, Cloud Run Jobs,
+Cloud Scheduler) week of 11~May~2026. Report write-up is ongoing throughout.}
 \label{fig:gantt}
 \end{figure*}
 
