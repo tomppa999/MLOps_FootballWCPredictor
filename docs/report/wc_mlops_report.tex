@@ -77,7 +77,7 @@ Monte Carlo simulation, data pipeline, feature engineering
 \section{Introduction}
 
 Predicting the outcome of football matches has attracted substantial academic interest,
-largely following the seminal work of Dixon and Coles~\cite{dixon1997modelling}, who
+largely following the seminal work of Maher~\cite{maher1982modelling}, who
 demonstrated that match scores can be approximated as independent Poisson processes
 conditioned on team-level attack and defense strength parameters. 
 
@@ -141,7 +141,7 @@ out of scope for a single-tournament deployment.
 
 \textbf{Tools-oriented perspective (Databricks).}
 Databricks defines MLOps as the union of three operational domains:
-$\text{MLOps} = \text{DevOps} + \text{DataOps} + \text{ModelOps}$~\cite{databricks_mlops}.
+$\text{MLOps} = \text{DevOps} + \text{DataOps} + \text{ModelOps}$~\cite{databricks_bigbook}.
 DataOps covers data management and reproducibility; ModelOps covers model lifecycle
 management, deployment, and governance. The OSSARA case study~\cite{ossara2023} provides
 a concrete instantiation of this decomposition. In this project, \textbf{DVC} implements
@@ -175,7 +175,7 @@ The foundational statistical model for football score prediction treats each tea
 as independent Poisson processes conditioned on attack strength, defence weakness, and a
 home advantage term~\cite{maher1982modelling}. Dixon and Coles~\cite{dixon1997modelling}
 extended this framework with a time-weighting scheme and a low-score correction factor
-that partially accounts for the empirically observed positive correlation between home
+that partially accounts for the empirically observed negative correlation between home
 and away goals in matches where few goals are scored.
 Karlis and Ntzoufras~\cite{karlis2003analysis} formalised this correlation through a
 genuine bivariate Poisson model in which a match is decomposed into three independent
@@ -202,7 +202,7 @@ without requiring squad-level data.
 
 \subsection{Overview}
 
-The pipeline follows a Bronze/Silver/Gold data architecture~\cite{google_mlops},
+The pipeline follows a Bronze/Silver/Gold data architecture~\cite{databricks_bigbook},
 with three downstream model environments (Figure~\ref{fig:architecture}).
 
 \begin{itemize}
