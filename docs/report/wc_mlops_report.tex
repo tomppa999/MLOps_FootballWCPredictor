@@ -433,14 +433,20 @@ It is produced by \texttt{src.gold.build\_gold} with the following transformatio
 
 \begin{itemize}
   \item \textbf{Rolling form features}: for each team entering a match, we compute
-  rolling means over the last 10 prior matches (strictly before the match date):
-  goals for/against (all matches), and shot statistics (total shots, shot accuracy,
-  conversion rate) from prior matches with \texttt{stats\_tier} $\neq$ \texttt{none}.
+  rolling means of goals for and goals against over the last 10 prior matches (strictly
+  before the match date), using all matches regardless of statistics availability.
   Features are computed from the team's perspective regardless of home/away side.
+  For teams with fewer than 10 prior matches in the dataset, the window expands to cover
+  all available history; only a team's very first match receives a NaN for all rolling
+  features.
 
-  \item \textbf{Rolling tactical profiles}: five per-side rolling mean columns
-  serve as input to tactical clustering.
-  The five features are: \texttt{total\_shots} (attacking volume),
+  \item \textbf{Rolling tactical profiles}: eight per-side rolling mean columns
+  capture shot-level and tactical style, computed only from prior matches with
+  \texttt{stats\_tier} $\neq$ \texttt{none}.
+  Three columns encode shot-level form: \texttt{rolling\_shots} (mean total shots),
+  \texttt{rolling\_shot\_accuracy} (shots on goal / total shots), and
+  \texttt{rolling\_conversion} (goals / shots on goal).
+  Five columns encode tactical style: \texttt{total\_shots} (attacking volume),
   \texttt{shot\_precision} (shots on goal / total shots, NaN-safe for zero denominator),
   \texttt{fouls} (aggressiveness / pressing intensity),
   \texttt{corner\_kicks} (territorial pressure near the opponent goal),
@@ -449,16 +455,18 @@ It is produced by \texttt{src.gold.build\_gold} with the following transformatio
   The original data includes \texttt{shots\_on\_goal}, \texttt{shots\_off\_goal},
   and \texttt{total\_shots} as three separate features, but since these are linearly
   dependent (on-target + off-target $=$ total), taking all of them into account
-  individually would triple-weight the shots dimension in Euclidean clustering space while adding no orthogonal information. Replacing them with volume (\texttt{total\_shots}) and precision
-  (\texttt{shot\_precision}) recovers two genuinely independent attacking signals.
+  individually would triple-weight the shots dimension in Euclidean clustering space
+  while adding no orthogonal information. Replacing them with volume
+  (\texttt{total\_shots}) and precision (\texttt{shot\_precision}) recovers two
+  genuinely independent attacking signals.
   Opponent-suffered statistics (e.g.\ shots conceded) were considered but excluded:
   they confound the team's own tactical style with the quality of opponents faced in
   the rolling window.
   Other detailed columns (e.g.\ \texttt{shots\_insidebox}, \texttt{total\_passes}) are
   excluded due to sparse availability in the \texttt{partial} stats tier
   ($\sim$1.6\% non-null).
-  These ten columns (five statistics $\times$ two sides) are used directly as continuous
-  model features.
+  These sixteen columns (eight statistics $\times$ two sides) are used directly as
+  continuous model features.
 
   \item \textbf{Tactical clustering (investigated, not used)}: \texttt{StandardScaler}
   + \texttt{KMeans} clustering on the five rolling tactical columns was evaluated as a
@@ -1476,6 +1484,10 @@ disproportionate to their influence on tournament outcome probabilities.
 National teams play 6--12 matches per year, compared to 40+ for club teams. Rolling form
 features, Elo stability, and statistics are computed over substantially smaller per-team
 samples, which amplifies noise throughout the feature set.
+The 10-match rolling window spans approximately 1--2 years at international cadence,
+which means short-term form swings are smoothed out; this is defensible at national team
+level, where abrupt multi-match form shifts are rarer than in club football due to the
+infrequent and high-stakes nature of international fixtures.
 
 \textbf{Long gaps between international windows.}
 SARIMAX's integer-indexed time dimension treats all consecutive match observations as

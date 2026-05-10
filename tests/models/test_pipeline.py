@@ -440,7 +440,7 @@ class TestChampionGate:
             splits=fake_splits,
             feature_cols=[f"f{i}" for i in range(8)],
         )
-        with pytest.raises(ChallengeFailed, match="does not beat champion"):
+        with pytest.raises(ChallengeFailed, match="does not strictly improve"):
             run_deploy_phase(qa)
 
         mock_register.assert_not_called()
@@ -449,10 +449,10 @@ class TestChampionGate:
     @patch("src.models.pipeline.promote_to_production")
     @patch("src.models.pipeline.register_model")
     @patch("src.models.pipeline.get_champion_rps")
-    def test_challenger_ties_promotes(
+    def test_challenger_ties_raises(
         self, mock_champion_rps, mock_register, mock_promote, tmp_mlflow, fake_splits
     ):
-        """Challenger RPS == champion RPS → tie → promotion happens (newer model)."""
+        """Challenger RPS == champion RPS → tie → ChallengeFailed (strict improvement required)."""
         mock_champion_rps.return_value = 0.25
         mock_register.return_value = MagicMock(version="3")
 
@@ -461,7 +461,7 @@ class TestChampionGate:
             model_cls=_FakeModel,
             best_params={},
             cv_nll=0.20,
-            holdout_rps=0.25,  # equal to champion
+            holdout_rps=0.25,  # equal to champion — not a strict improvement
             holdout_nll=2.75,
             holdout_rmse_home=1.0,
             holdout_rmse_away=0.8,
@@ -469,11 +469,10 @@ class TestChampionGate:
             splits=fake_splits,
             feature_cols=[f"f{i}" for i in range(8)],
         )
-        run_id = run_deploy_phase(qa)
+        with pytest.raises(ChallengeFailed, match="does not strictly improve"):
+            run_deploy_phase(qa)
 
-        assert isinstance(run_id, str) and len(run_id) > 0
-        mock_register.assert_called_once()
-        mock_promote.assert_called_once_with(version="3")
+        mock_promote.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

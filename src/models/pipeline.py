@@ -362,10 +362,10 @@ def run_deploy_phase(
     setup_mlflow()
 
     champion_rps = get_champion_rps()
-    if champion_rps is not None and winner.holdout_rps > champion_rps:
+    if champion_rps is not None and winner.holdout_rps >= champion_rps:
         raise ChallengeFailed(
             f"Challenger {winner.model_name} holdout RPS {winner.holdout_rps:.4f} "
-            f"does not beat champion RPS {champion_rps:.4f} — promotion skipped."
+            f"does not strictly improve champion RPS {champion_rps:.4f} — promotion skipped."
         )
     if champion_rps is None:
         logger.info("No existing champion — first-run promotion.")
