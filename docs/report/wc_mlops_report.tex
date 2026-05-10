@@ -274,6 +274,7 @@ recency.
     Code versioning & Git \\
     Testing & pytest \\
     Containerization & Docker \\
+    Dashboard & Streamlit, Plotly \\
     Remote collaboration & DagsHub \\
     Cloud deployment & Cloud Run Jobs \\
     \bottomrule
@@ -310,7 +311,6 @@ Figure~\ref{fig:gantt} shows the project timeline.
   \ganttgroup{Data \& Features}{2026-03-09}{2026-03-31} \\
   \ganttbar{Bronze ingestion}{2026-03-09}{2026-03-15} \\
   \ganttbar{Silver pipeline}{2026-03-16}{2026-03-20} \\
-  \ganttmilestone{Prof.\ meeting \#1}{2026-03-20} \\
   \ganttbar{Gold (v1, v2)}{2026-03-23}{2026-03-31}%
   \ganttbar{}{2026-04-27}{2026-04-30} \\
 
@@ -321,21 +321,25 @@ Figure~\ref{fig:gantt} shows the project timeline.
   \ganttbar{QA env}{2026-04-01}{2026-04-06} \\
   \ganttbar{Deploy env}{2026-04-03}{2026-04-06} \\
 
-  % --- Simulation (planned) ---
+  % --- Simulation (complete) ---
   \ganttgroup{Simulation}{2026-04-13}{2026-04-19} \\
-  \ganttbar[bar incomplete/.style={fill=gray!20}]{MC simulation}{2026-04-13}{2026-04-19} \\
+  \ganttbar{MC simulation}{2026-04-13}{2026-04-19} \\
 
   % --- Monitoring ---
   \ganttbar{Monitoring}{2026-04-27}{2026-05-02} \\
+
+  % --- Cloud deployment ---
+  \ganttbar{Cloud deployment}{2026-05-11}{2026-05-17} \\
 
   % --- Report (continuous) ---
   \ganttbar{Report write-up}{2026-03-09}{2026-05-17} \\
 \end{ganttchart}
 \caption{Project timeline (weekly granularity). Data and features pipeline complete by
 31~March~2026. All modeling environments and pipeline trigger implemented week of
-6~April~2026. Monte Carlo simulation planned for week of 13~April. Gold v2 feature
-iteration and monitoring implemented last week of April. Report write-up is ongoing
-throughout. First professor meeting: 20~March~2026.}
+6~April~2026. Monte Carlo simulation implemented week of 13~April. Gold v2 feature
+iteration and monitoring implemented last week of April. Cloud deployment (Docker,
+Cloud Run Jobs, Cloud Scheduler) planned for week of 11~May~2026. Report write-up is
+ongoing throughout.}
 \label{fig:gantt}
 \end{figure*}
 
@@ -874,9 +878,18 @@ Match-level RPS values are averaged across all matches to yield a single summary
 
 \subsection{Tuning Objective: Poisson Negative Log-Likelihood}
 
-While RPS evaluates outcome-level calibration, it collapses the full score distribution
-into three W/D/L buckets and is therefore insensitive to goal-rate accuracy.
-The hyperparameter tuning loop uses the Poisson negative log-likelihood (NLL) instead:
+RPS is a natural evaluation metric for tournament prediction, since the downstream
+application cares about which team advances, i.e.\ outcome-level probabilities, but
+it is poorly suited as a \emph{tuning} objective for two reasons.
+First, RPS collapses the full score distribution into three ordered W/D/L buckets and
+is therefore insensitive to goal-rate accuracy: a model that predicts
+$\hat{\lambda}_h = 1.8$ and one that predicts $\hat{\lambda}_h = 2.5$ receive
+identical RPS when both imply the same $P(\text{home win})$.
+Second, because draw occupies the middle ordinal position, a confident but incorrect
+draw prediction never incurs the maximum RPS penalty, creating a subtle incentive
+toward draw-hedging in any optimisation loop gated solely by RPS.
+
+The hyperparameter tuning loop therefore uses Poisson negative log-likelihood (NLL):
 \begin{equation}
   \text{NLL} = -\frac{1}{N}\sum_{i=1}^{N}
   \bigl[\log P(h_i \mid \hat{\lambda}_{h,i})
@@ -884,10 +897,16 @@ The hyperparameter tuning loop uses the Poisson negative log-likelihood (NLL) in
 \end{equation}
 where $h_i, a_i$ are the observed goals and $\hat{\lambda}_{h,i}, \hat{\lambda}_{a,i}$
 are the predicted Poisson rates. NLL directly rewards placing probability mass near
-the actual scoreline, aligning the tuning signal with the model architecture (all
-candidates output goal-rate parameters). RPS remains the gating metric
-for QA evaluation and the champion/challenger gate, where downstream
-W/D/L calibration is the quantity of interest.
+the actual scoreline, is agnostic to outcome ordering, and aligns the tuning signal
+with the model architecture (all candidates output goal-rate parameters rather than
+outcome classes).
+
+RPS remains the gating metric for QA evaluation and champion selection because the
+end goal of the pipeline is tournament simulation, where the quantity of operational
+interest is the probability that a team wins, draws, or loses each match (and, by
+extension, how far it advances). The two metrics thus serve complementary roles:
+NLL trains the best possible scoreline predictor; RPS selects the model whose
+scoreline predictions translate most faithfully into outcome probabilities.
 
 \subsection{Hyperparameter Tuning}
 
@@ -1081,7 +1100,7 @@ near-fully-neutral 2022 World Cup holdout used in QA.
 
 \begin{table}[h]
   \centering
-  \caption{Top-3 features by permutation importance (NLL degradation).
+  \caption{Top-3 features by permutation importance (RPS degradation).
   \texttt{elo\_diff} ranks first in all nine models.}
   \label{tab:importance}
   \begin{tabular}{lccc}
@@ -1565,17 +1584,21 @@ which effectively leaves the last successfully downloaded snapshot in place. Giv
 change slowly between individual matches, short-term staleness is not expected to affect model predictions significantly.
 
 \textbf{Residual ordinal bias in RPS.}
-RPS is an ordinal metric with three categories (home win, draw, away win). Because draw
-occupies the middle position, a confident but wrong draw prediction never incurs the
-maximum penalty, creating a subtle incentive toward draw-hedging in any decision gated
-by RPS. This bias was removed from the hyperparameter tuning loop by switching to
-Poisson NLL, which operates in goal-count space and is agnostic to outcome ordering.
-However, QA evaluation and the champion/challenger gate still use RPS.
-At these stages, the bias is mitigated by the coarseness of the
-comparison (a small number of fundamentally different model families) and by the fact
-that goal-rate accuracy is already enforced during tuning. The residual effect is
-expected to be negligible for this pipeline but would warrant monitoring in a production
-system with many similar candidates.
+As discussed in Section~\ref{sec:experiments}, RPS's ordinal structure creates a
+draw-hedging incentive that was removed from hyperparameter tuning by switching to
+Poisson NLL. However, QA evaluation and the champion/challenger gate still use RPS.
+Because hyperparameter tuning operates entirely in NLL space, the champion's
+predicted score distributions are shaped without any RPS-induced incentive;
+RPS is applied only \emph{after} training to select among candidates whose
+goal-rate parameters are already fixed. Empirically, the champion's
+group-stage draw probabilities range from 7.1\% (England--Ghana) to 30.3\%
+(Turkey--Paraguay, Switzerland--Canada, Cape Verde--Saudi Arabia) with a
+mean of 21.9\%, consistent with the historical base rate of World Cup group
+draws ($\approx$25\%) rather than with systematic draw-hedging.
+Because all nine candidates are tuned on NLL, share the same Elo-dominated
+feature set, and produce outcome probabilities through the same Poisson-grid
+conversion, structurally similar draw distributions are expected across model
+families; however, per-model distributions are not examined here.
 
 % ============================================================
 \section{Conclusion}
