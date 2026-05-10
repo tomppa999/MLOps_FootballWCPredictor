@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import tempfile
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -172,6 +173,7 @@ def run_experimental_phase(
         n_trials = n_trials_override or DEFAULT_N_TRIALS[model_name]
 
         logger.info("Tuning %s (%d trials)…", model_name, n_trials)
+        t0 = time.time()
         best_params, study = run_tuning(
             model_cls,
             search_space,
@@ -204,7 +206,10 @@ def run_experimental_phase(
             ):
                 log_run(
                     params=best_params,
-                    metrics={"cv_nll": study.best_value},
+                    metrics={
+                        "cv_nll": study.best_value,
+                        "experimental_wall_sec": time.time() - t0,
+                    },
                 )
                 mlflow.log_artifact(str(csv_path), artifact_path="importance")
 
@@ -266,6 +271,7 @@ def run_qa_phase(
     run_id_to_version: dict[str, str] = {}
 
     for entry in top_models:
+        t0 = time.time()
         model = entry.model_cls(**entry.best_params)
         model.fit(entry.splits.X_train, entry.splits.y_train)
 
@@ -300,6 +306,7 @@ def run_qa_phase(
                     "holdout_rmse_home": rmse_h,
                     "holdout_rmse_away": rmse_a,
                     "cv_nll": entry.cv_nll,
+                    "qa_wall_sec": time.time() - t0,
                 },
             )
             model_uri = _log_model_artifact(model)
@@ -377,6 +384,7 @@ def run_deploy_phase(
             champion_rps,
         )
 
+    t0 = time.time()
     model = winner.model_cls(**winner.best_params)
     model.fit(winner.splits.X_full, winner.splits.y_full)
 
@@ -401,6 +409,7 @@ def run_deploy_phase(
                 "qa_holdout_nll": winner.holdout_nll,
                 "qa_holdout_rmse_home": winner.holdout_rmse_home,
                 "qa_holdout_rmse_away": winner.holdout_rmse_away,
+                "deploy_wall_sec": time.time() - t0,
             },
         )
         model_uri = _log_model_artifact(model)
@@ -448,6 +457,7 @@ def run_champion_refit(df: pd.DataFrame) -> str:
         len(splits.df_full),
     )
 
+    t0 = time.time()
     model = model_cls(**meta.best_params)
     model.fit(splits.X_full, splits.y_full)
 
@@ -457,7 +467,7 @@ def run_champion_refit(df: pd.DataFrame) -> str:
     ) as run:
         log_run(
             params={**meta.best_params, "gold_row_count": str(len(splits.df_full))},
-            metrics=meta.holdout_metrics,
+            metrics={**meta.holdout_metrics, "refit_wall_sec": time.time() - t0},
         )
         model_uri = _log_model_artifact(model)
         run_id = run.info.run_id
@@ -523,6 +533,7 @@ def run_shadow_refit(df: pd.DataFrame) -> list[str]:
             meta.model_name,
             len(splits.df_full),
         )
+        t0 = time.time()
         model = model_cls(**meta.best_params)
         model.fit(splits.X_full, splits.y_full)
 
@@ -535,7 +546,7 @@ def run_shadow_refit(df: pd.DataFrame) -> list[str]:
                     **meta.best_params,
                     "gold_row_count": str(len(splits.df_full)),
                 },
-                metrics=meta.holdout_metrics,
+                metrics={**meta.holdout_metrics, "shadow_wall_sec": time.time() - t0},
             )
             model_uri = _log_model_artifact(model)
             run_id = run.info.run_id

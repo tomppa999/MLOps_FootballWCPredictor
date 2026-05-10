@@ -658,8 +658,8 @@ Whenever a champion refit (or full pipeline) runs, a follow-up
 same full Gold dataset using each candidate's Optuna-tuned
 \texttt{best\_params} loaded from the registry. No re-tuning takes place
 inside the refit path: model selection is frozen, and re-running
-Optuna would both invalidate that contract and add roughly 75 minutes to
-every cycle. Each refit is logged as a new MLflow run tagged
+Optuna would both invalidate that contract and add several hours (hardware-dependent)
+to every cycle. Each refit is logged as a new MLflow run tagged
 \texttt{stage=shadow-refit} and registered as a version of
 \texttt{wc\_shadow}; the cold-start case (first install, before
 \texttt{wc\_shadow} contains anything) falls back to the
@@ -938,7 +938,7 @@ despite ranking fourth in CV.  Two observations motivated removing the top-K gat
   difference of $<0.005$ in CV NLL separated promoted from excluded candidates.
   \item QA evaluation of all nine models adds approximately two minutes of
   wall-clock time (the QA phase retrains and evaluates each model on 89
-  holdout matches), negligible compared to the ${\sim}75$-minute
+  holdout matches), negligible compared to the multi-hour
   experimental phase.
 \end{enumerate}
 Advancing all nine models to QA ensures that no candidate is excluded based
@@ -1002,7 +1002,7 @@ QA holdout metrics are forwarded unchanged to the new MLflow run, preserving
 audit continuity without re-evaluating on the fixed WC~2022 holdout (which
 would produce identical results, since neither the training split nor the
 holdout changes with new data).  This separation of model selection from
-model refresh avoids a redundant ${\sim}75$-minute candidate tournament on
+model refresh avoids a redundant multi-hour candidate tournament on
 every data update while maintaining a complete versioned history of
 production artifacts in MLflow.
 
@@ -1484,10 +1484,10 @@ disproportionate to their influence on tournament outcome probabilities.
 National teams play 6--12 matches per year, compared to 40+ for club teams. Rolling form
 features, Elo stability, and statistics are computed over substantially smaller per-team
 samples, which amplifies noise throughout the feature set.
-The 10-match rolling window spans approximately 1--2 years at international cadence,
+The 10-match rolling window spans approximately 1--1.5 years at international cadence,
 which means short-term form swings are smoothed out; this is defensible at national team
 level, where abrupt multi-match form shifts are rarer than in club football due to the
-infrequent and high-stakes nature of international fixtures.
+infrequent nature of international fixtures.
 
 \textbf{Long gaps between international windows.}
 SARIMAX's integer-indexed time dimension treats all consecutive match observations as
