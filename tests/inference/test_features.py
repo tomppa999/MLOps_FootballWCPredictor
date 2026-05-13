@@ -8,11 +8,13 @@ import pandas as pd
 import pytest
 
 from src.inference.features import (
+    _get_latest_elo,
     build_inference_features,
     generate_all_wc_pairings,
     generate_wc_group_fixtures,
     parse_upcoming_fixtures,
     parse_wc_results,
+    wc_results_to_gold_rows,
 )
 
 
@@ -482,3 +484,269 @@ class TestParseWcResults:
         assert result["group_results"] == {}
         assert result["ko_results"] == {}
         assert result["next_matchday"] == 1
+
+    def test_finished_fixtures_populated(self, tmp_path):
+        fixtures_dir = tmp_path / "fixtures"
+        mapping = tmp_path / "mapping.csv"
+        _write_team_mapping(mapping, [
+            {"name": "France", "api_id": 2},
+            {"name": "Germany", "api_id": 25},
+        ])
+        _write_finished_fixture(fixtures_dir, {
+            "id": 1, "status": "FT",
+            "date": "2026-06-12T18:00:00+00:00",
+            "league_id": 1, "round": "Group A - 1",
+            "home_id": 2, "home_name": "France",
+            "away_id": 25, "away_name": "Germany",
+            "home_goals": 2, "away_goals": 1,
+        })
+        result = parse_wc_results(fixtures_dir, mapping)
+        assert len(result["finished_fixtures"]) == 1
+        row = result["finished_fixtures"][0]
+        assert row["home_team"] == "France"
+        assert row["away_team"] == "Germany"
+        assert row["home_goals"] == 2
+        assert row["away_goals"] == 1
+        assert row["is_knockout"] is False
+
+    def test_ko_fixture_has_is_knockout_true(self, tmp_path):
+        fixtures_dir = tmp_path / "fixtures"
+        mapping = tmp_path / "mapping.csv"
+        _write_team_mapping(mapping, [
+            {"name": "France", "api_id": 2},
+            {"name": "Germany", "api_id": 25},
+        ])
+        _write_finished_fixture(fixtures_dir, {
+            "id": 10, "status": "AET",
+            "league_id": 1, "round": "Round of 16 - 1",
+            "home_id": 2, "home_goals": 2, "away_id": 25, "away_goals": 1,
+        })
+        result = parse_wc_results(fixtures_dir, mapping)
+        assert result["finished_fixtures"][0]["is_knockout"] is True
+
+
+# ---------------------------------------------------------------------------
+# wc_results_to_gold_rows
+# ---------------------------------------------------------------------------
+
+
+class TestWcResultsToGoldRows:
+    def test_empty_when_no_finished_fixtures(self):
+        result = wc_results_to_gold_rows({"finished_fixtures": []})
+        assert result.empty
+
+    def test_empty_when_key_missing(self):
+        result = wc_results_to_gold_rows({"group_results": {}})
+        assert result.empty
+
+    def test_produces_gold_compatible_rows(self):
+        wc_results = {
+            "finished_fixtures": [
+                {
+                    "fixture_id": 50001,
+                    "date_utc": "2026-06-12T18:00:00+00:00",
+                    "home_team": "France",
+                    "away_team": "Germany",
+                    "home_goals": 2,
+                    "away_goals": 1,
+                    "is_knockout": False,
+                },
+                {
+                    "fixture_id": 50002,
+                    "date_utc": "2026-06-16T20:00:00+00:00",
+                    "home_team": "Brazil",
+                    "away_team": "Argentina",
+                    "home_goals": 0,
+                    "away_goals": 0,
+                    "is_knockout": False,
+                },
+            ],
+        }
+        result = wc_results_to_gold_rows(wc_results)
+        assert len(result) == 2
+        assert result["stats_tier"].eq("none").all()
+        assert result["competition_tier"].eq(1).all()
+        assert result["is_neutral"].eq(True).all()
+        assert result["league_id"].eq(1).all()
+        assert result["season"].eq(2026).all()
+        assert result.iloc[0]["home_goals"] == 2
+        assert result.iloc[1]["home_goals"] == 0
+
+    def test_dates_are_tz_naive(self):
+        wc_results = {
+            "finished_fixtures": [{
+                "fixture_id": 50001,
+                "date_utc": "2026-06-12T18:00:00+00:00",
+                "home_team": "France",
+                "away_team": "Germany",
+                "home_goals": 1,
+                "away_goals": 0,
+                "is_knockout": False,
+            }],
+        }
+        result = wc_results_to_gold_rows(wc_results)
+        assert result["date_utc"].dt.tz is None
+
+    def test_sorted_by_date(self):
+        wc_results = {
+            "finished_fixtures": [
+                {
+                    "fixture_id": 50002,
+                    "date_utc": "2026-06-16T20:00:00+00:00",
+                    "home_team": "Brazil",
+                    "away_team": "Argentina",
+                    "home_goals": 1,
+                    "away_goals": 1,
+                    "is_knockout": False,
+                },
+                {
+                    "fixture_id": 50001,
+                    "date_utc": "2026-06-12T18:00:00+00:00",
+                    "home_team": "France",
+                    "away_team": "Germany",
+                    "home_goals": 2,
+                    "away_goals": 1,
+                    "is_knockout": False,
+                },
+            ],
+        }
+        result = wc_results_to_gold_rows(wc_results)
+        assert result.iloc[0]["fixture_id"] == 50001
+        assert result.iloc[1]["fixture_id"] == 50002
+
+
+# ---------------------------------------------------------------------------
+# _get_latest_elo — NaN-skipping with augmented Gold
+# ---------------------------------------------------------------------------
+
+
+class TestGetLatestEloWithAugmentedGold:
+    def test_skips_nan_elo_from_wc_rows(self):
+        """WC result rows have NaN Elo; the function should return the last real Elo."""
+        gold = pd.DataFrame([
+            {
+                "date_utc": pd.Timestamp("2026-05-01"),
+                "home_team": "France",
+                "away_team": "Germany",
+                "home_elo_pre": 2050.0,
+                "away_elo_pre": 1990.0,
+            },
+            {
+                "date_utc": pd.Timestamp("2026-06-12"),
+                "home_team": "France",
+                "away_team": "Brazil",
+                "home_elo_pre": np.nan,
+                "away_elo_pre": np.nan,
+            },
+        ])
+        elo = _get_latest_elo(gold, "France", pd.Timestamp("2026-07-01"))
+        assert elo == 2050.0
+
+    def test_returns_nan_when_no_elo_exists(self):
+        gold = pd.DataFrame([
+            {
+                "date_utc": pd.Timestamp("2026-06-12"),
+                "home_team": "NewTeam",
+                "away_team": "Brazil",
+                "home_elo_pre": np.nan,
+                "away_elo_pre": 1800.0,
+            },
+        ])
+        elo = _get_latest_elo(gold, "NewTeam", pd.Timestamp("2026-07-01"))
+        assert np.isnan(elo)
+
+
+# ---------------------------------------------------------------------------
+# Augmented Gold path — rolling features include WC results
+# ---------------------------------------------------------------------------
+
+
+class TestAugmentedGoldRollingFeatures:
+    def test_wc_result_goals_appear_in_rolling_averages(self):
+        """A later-dated fixture should see WC result goals in rolling averages."""
+        gold_df = _make_gold_df()
+        gold_df["date_utc"] = pd.to_datetime(gold_df["date_utc"])
+
+        wc_row = pd.DataFrame([{
+            "fixture_id": 99001,
+            "date_utc": pd.Timestamp("2026-06-12"),
+            "home_team": "France",
+            "away_team": "Germany",
+            "home_goals": 5,
+            "away_goals": 0,
+            "stats_tier": "none",
+            "competition_tier": 1,
+            "is_knockout": False,
+            "is_neutral": True,
+            "league_id": 1,
+            "league_name": "World Cup",
+            "season": 2026,
+        }])
+        augmented = pd.concat([gold_df, wc_row], ignore_index=True)
+        augmented = augmented.sort_values("date_utc").reset_index(drop=True)
+
+        upcoming = pd.DataFrame([{
+            "fixture_id": "wc2026_pair_France_Brazil",
+            "date_utc": pd.Timestamp("2026-06-20"),
+            "home_team": "France",
+            "away_team": "Germany",
+            "league_id": 1,
+            "league_name": "World Cup",
+            "season": 2026,
+            "competition_tier": 1,
+            "is_knockout": False,
+            "is_neutral": True,
+        }])
+
+        features_with = build_inference_features(upcoming, augmented)
+        features_without = build_inference_features(upcoming, gold_df)
+
+        rolling_with = features_with.iloc[0]["home_team_rolling_goals_for"]
+        rolling_without = features_without.iloc[0]["home_team_rolling_goals_for"]
+        assert rolling_with > rolling_without, (
+            "Rolling goals_for should be higher when WC 5-0 result is included"
+        )
+
+    def test_wc_result_does_not_affect_shot_rolling(self):
+        """WC rows with stats_tier='none' should not change shot rolling averages."""
+        gold_df = _make_gold_df()
+        gold_df["date_utc"] = pd.to_datetime(gold_df["date_utc"])
+
+        wc_row = pd.DataFrame([{
+            "fixture_id": 99001,
+            "date_utc": pd.Timestamp("2026-06-12"),
+            "home_team": "France",
+            "away_team": "Germany",
+            "home_goals": 5,
+            "away_goals": 0,
+            "stats_tier": "none",
+            "competition_tier": 1,
+            "is_knockout": False,
+            "is_neutral": True,
+            "league_id": 1,
+            "league_name": "World Cup",
+            "season": 2026,
+        }])
+        augmented = pd.concat([gold_df, wc_row], ignore_index=True)
+
+        upcoming = pd.DataFrame([{
+            "fixture_id": "wc2026_pair_France_Brazil",
+            "date_utc": pd.Timestamp("2026-06-20"),
+            "home_team": "France",
+            "away_team": "Germany",
+            "league_id": 1,
+            "league_name": "World Cup",
+            "season": 2026,
+            "competition_tier": 1,
+            "is_knockout": False,
+            "is_neutral": True,
+        }])
+
+        features_with = build_inference_features(upcoming, augmented)
+        features_without = build_inference_features(upcoming, gold_df)
+
+        shots_with = features_with.iloc[0]["home_team_rolling_shots"]
+        shots_without = features_without.iloc[0]["home_team_rolling_shots"]
+        assert shots_with == shots_without, (
+            "Shot rolling should be unchanged — WC rows have stats_tier='none'"
+        )

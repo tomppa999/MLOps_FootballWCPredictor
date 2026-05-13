@@ -17,6 +17,7 @@ from src.inference.features import (
     generate_all_wc_pairings,
     generate_wc_group_fixtures,
     parse_wc_results,
+    wc_results_to_gold_rows,
 )
 from src.inference.logging import log_inference_artifacts
 from src.inference.predict import run_prediction, run_prediction_all_models
@@ -58,14 +59,32 @@ def run_inference_and_simulation(
         wc_results["next_matchday"],
     )
 
+    # Augment Gold with finished WC results so rolling features for later
+    # tournament matches incorporate earlier WC scores (Phase 4).
+    wc_gold_rows = wc_results_to_gold_rows(wc_results)
+    if not wc_gold_rows.empty:
+        augmented_gold = pd.concat([gold_df, wc_gold_rows], ignore_index=True)
+        augmented_gold = augmented_gold.sort_values("date_utc").reset_index(drop=True)
+        latest_wc_date = wc_gold_rows["date_utc"].max()
+        reference_date = latest_wc_date + pd.Timedelta(days=1)
+        logger.info(
+            "Augmented Gold with %d WC result rows (%d total), reference_date=%s",
+            len(wc_gold_rows),
+            len(augmented_gold),
+            reference_date.date(),
+        )
+    else:
+        augmented_gold = gold_df
+        reference_date = None
+
     # Predict all C(48,2) = 1128 WC pairings so the simulation has
     # model-derived rates for every possible KO matchup.
-    all_pairings = generate_all_wc_pairings()
+    all_pairings = generate_all_wc_pairings(reference_date=reference_date)
     if all_pairings.empty:
         logger.warning("No WC pairings generated — skipping inference.")
         return ""
 
-    all_features = build_inference_features(all_pairings, gold_df)
+    all_features = build_inference_features(all_pairings, augmented_gold)
     all_predictions_df = run_prediction(all_features)
     logger.info("All-pairs predictions: %d rows", len(all_predictions_df))
 

@@ -79,7 +79,11 @@ def make_splits(
         df = df.dropna(subset=feature_cols + target_cols).reset_index(drop=True)
 
     train_mask = df["date_utc"] < WC_2022_START
-    holdout_mask = (df["date_utc"] >= WC_2022_START) & (df["date_utc"] <= WC_2022_END)
+    holdout_mask = (
+        (df["date_utc"] >= WC_2022_START)
+        & (df["date_utc"] <= WC_2022_END)
+        & (df["competition_tier"] == 1)
+    )
 
     df_train = df.loc[train_mask].reset_index(drop=True)
     df_holdout = df.loc[holdout_mask].reset_index(drop=True)

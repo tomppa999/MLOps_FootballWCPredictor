@@ -34,6 +34,7 @@ def _make_gold_df(n: int = 200) -> pd.DataFrame:
             "f2": rng.standard_normal(n),
             "home_goals": rng.integers(0, 5, size=n),
             "away_goals": rng.integers(0, 5, size=n),
+            "competition_tier": 1,
         }
     )
 
@@ -97,6 +98,27 @@ class TestMakeSplits:
         splits = make_splits(df, _FEATURE_COLS, _TARGET_COLS)
         if len(splits.df_train) > 0:
             assert splits.df_train["date_utc"].max() < pd.Timestamp(WC_2022_START)
+
+    def test_holdout_excludes_non_wc_competitions(self):
+        """Friendlies in the WC 2022 date window must not appear in holdout."""
+        rng = np.random.default_rng(42)
+        wc_dates = pd.date_range(WC_2022_START, WC_2022_END, freq="2D")
+        n_wc = len(wc_dates)
+
+        wc_rows = pd.DataFrame({
+            "date_utc": wc_dates,
+            "f1": rng.standard_normal(n_wc),
+            "f2": rng.standard_normal(n_wc),
+            "home_goals": rng.integers(0, 5, size=n_wc),
+            "away_goals": rng.integers(0, 5, size=n_wc),
+            "competition_tier": [1] * (n_wc - 2) + [4, 4],
+        })
+        pre_wc = _make_gold_df(200)
+        df = pd.concat([pre_wc, wc_rows], ignore_index=True)
+
+        splits = make_splits(df, _FEATURE_COLS, _TARGET_COLS)
+        assert len(splits.df_holdout) == n_wc - 2
+        assert (splits.df_holdout["competition_tier"] == 1).all()
 
 
 # ---------------------------------------------------------------------------

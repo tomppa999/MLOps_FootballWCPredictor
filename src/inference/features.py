@@ -127,12 +127,20 @@ def _load_wc_teams(config_path: Path = _WC2026_CONFIG_PATH) -> list[str]:
     return [t for teams in config.get("groups", {}).values() for t in teams]
 
 
-def generate_all_wc_pairings(config_path: Path = _WC2026_CONFIG_PATH) -> pd.DataFrame:
+def generate_all_wc_pairings(
+    config_path: Path = _WC2026_CONFIG_PATH,
+    reference_date: pd.Timestamp | None = None,
+) -> pd.DataFrame:
     """Generate all C(48,2) = 1128 ordered team pairings for rate prediction.
 
     Every pair appears once as (home, away); the simulation mirrors rates for
     the reverse direction automatically.  All matches use WC-level context
     features (neutral venue, tier 1).
+
+    When *reference_date* is given the pairings use that date so that
+    ``build_inference_features`` rolling lookups (``date_utc < match_date``)
+    include any WC result rows appended to Gold that are dated before it.
+    Defaults to ``2026-06-11`` (tournament opening day).
     """
     from itertools import combinations
 
@@ -140,7 +148,7 @@ def generate_all_wc_pairings(config_path: Path = _WC2026_CONFIG_PATH) -> pd.Data
     if len(teams) != 48:
         logger.warning("Expected 48 WC teams, got %d", len(teams))
 
-    base_date = pd.Timestamp("2026-06-11")
+    base_date = reference_date if reference_date is not None else pd.Timestamp("2026-06-11")
     rows: list[dict] = []
     for home, away in combinations(sorted(teams), 2):
         rows.append({
@@ -249,11 +257,12 @@ def parse_wc_results(
     fixture_files = sorted(fixtures_dir.glob("*/fixtures.json"))
     if not fixture_files:
         logger.warning("No fixtures.json files found for WC results parsing.")
-        return {"group_results": {}, "ko_results": {}, "next_matchday": 1}
+        return {"group_results": {}, "ko_results": {}, "next_matchday": 1, "finished_fixtures": []}
 
     id_to_name = _load_api_id_to_canonical(mapping_path)
     group_results: dict[tuple[str, str], tuple[int, int]] = {}
     ko_results: dict[int, dict] = {}
+    finished_fixtures: list[dict] = []
     max_group_matchday: int = 0
 
     for fp in fixture_files:
@@ -288,6 +297,16 @@ def parse_wc_results(
             home_goals, away_goals = int(hg_raw), int(ag_raw)
 
             round_str: str = league.get("round", "")
+            is_ko = not round_str.lower().startswith("group")
+            finished_fixtures.append({
+                "fixture_id": fixture.get("id"),
+                "date_utc": fixture.get("date"),
+                "home_team": home_name,
+                "away_team": away_name,
+                "home_goals": home_goals,
+                "away_goals": away_goals,
+                "is_knockout": is_ko,
+            })
             round_lower = round_str.lower()
 
             if round_lower.startswith("group"):
@@ -344,7 +363,33 @@ def parse_wc_results(
         "group_results": group_results,
         "ko_results": ko_results,
         "next_matchday": next_matchday,
+        "finished_fixtures": finished_fixtures,
     }
+
+
+def wc_results_to_gold_rows(wc_results: dict) -> pd.DataFrame:
+    """Convert finished WC fixtures into Gold-compatible rows for rolling features.
+
+    The returned DataFrame carries ``stats_tier="none"`` so that
+    ``_rolling_for_team`` includes these rows for goal rolling averages
+    but skips them for shot/tactical features (which require real stats).
+    """
+    rows = wc_results.get("finished_fixtures", [])
+    if not rows:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+    df["date_utc"] = pd.to_datetime(df["date_utc"], utc=True).dt.tz_localize(None)
+    df["stats_tier"] = "none"
+    df["competition_tier"] = 1
+    df["is_neutral"] = True
+    df["league_id"] = 1
+    df["league_name"] = "World Cup"
+    df["season"] = 2026
+    df = df.sort_values("date_utc").reset_index(drop=True)
+
+    logger.info("Built %d Gold-compatible WC result rows.", len(df))
+    return df
 
 
 def _get_latest_elo(
@@ -361,8 +406,12 @@ def _get_latest_elo(
     if match_date is not None:
         df = df[df["date_utc"] < match_date]
 
-    team_home = df.loc[df["home_team"] == team, ["date_utc", "home_elo_pre"]]
-    team_away = df.loc[df["away_team"] == team, ["date_utc", "away_elo_pre"]]
+    team_home = df.loc[df["home_team"] == team, ["date_utc", "home_elo_pre"]].dropna(
+        subset=["home_elo_pre"]
+    )
+    team_away = df.loc[df["away_team"] == team, ["date_utc", "away_elo_pre"]].dropna(
+        subset=["away_elo_pre"]
+    )
 
     latest = pd.NaT
     elo = np.nan
