@@ -37,7 +37,6 @@ def _make_valid_gold_row() -> dict:
     row["home_days_since_last_match"] = 7.0
     row["away_days_since_last_match"] = 10.0
     row["rest_diff"] = -3.0
-    row["is_cross_confederation"] = True
     row["home_goals"] = 3
     row["away_goals"] = 0
     return row

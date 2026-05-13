@@ -24,20 +24,21 @@ TARGET_COLS: Final[list[str]] = TARGET_COLUMNS
 # Rolling goals are included here (~108–109 NaN / 6,663 rows).
 # Rolling shots and tactical columns have substantial NaN (~1,800–2,100)
 # and are Full-only; only XGBoost handles NaN natively.
-# Gold v2 expansion: ``elo_sum`` (strength), ``is_cross_confederation``
-# (lives in CONTEXT_COLUMNS), and the three TEMPORAL_COLUMNS join Core.
+# Gold v2 expansion: ``elo_sum`` (strength) and the three
+# TEMPORAL_COLUMNS join Core.  ``is_cross_confederation`` was removed
+# (invisible in all model importances, confounded with competition_tier).
 CORE_FEATURE_COLUMNS: Final[list[str]] = (
     ["elo_diff", "elo_sum"]
     + CONTEXT_COLUMNS
     + TEMPORAL_COLUMNS
     + ROLLING_GOALS_COLUMNS
-)  # 13 features
+)  # 12 features
 
 FULL_FEATURE_COLUMNS: Final[list[str]] = (
     CORE_FEATURE_COLUMNS
     + ROLLING_SHOT_COLUMNS
     + ROLLING_TACTICAL_COLUMNS
-)  # 29 features (13 core + 6 rolling shot + 10 rolling tactical)
+)  # 28 features (12 core + 6 rolling shot + 10 rolling tactical)
 
 # Which feature set each model uses
 MODEL_FEATURE_SETS: Final[dict[str, list[str]]] = {

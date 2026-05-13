@@ -83,82 +83,114 @@
     {
       "match": 73,
       "home": "2A",
-      "away": "2B"
+      "away": "2B",
+      "venue": "Los Angeles",
+      "date": "2026-06-28"
     },
     {
       "match": 74,
       "home": "1E",
-      "away": "3A/B/C/D/F"
+      "away": "3A/B/C/D/F",
+      "venue": "Boston",
+      "date": "2026-06-29"
     },
     {
       "match": 75,
       "home": "1F",
-      "away": "2C"
+      "away": "2C",
+      "venue": "Monterrey",
+      "date": "2026-06-29"
     },
     {
       "match": 76,
       "home": "1C",
-      "away": "2F"
+      "away": "2F",
+      "venue": "Houston",
+      "date": "2026-06-29"
     },
     {
       "match": 77,
       "home": "1I",
-      "away": "3C/D/F/G/H"
+      "away": "3C/D/F/G/H",
+      "venue": "East Rutherford",
+      "date": "2026-06-30"
     },
     {
       "match": 78,
       "home": "2E",
-      "away": "2I"
+      "away": "2I",
+      "venue": "Dallas",
+      "date": "2026-06-30"
     },
     {
       "match": 79,
       "home": "1A",
-      "away": "3C/E/F/H/I"
+      "away": "3C/E/F/H/I",
+      "venue": "Mexico City",
+      "date": "2026-06-30"
     },
     {
       "match": 80,
       "home": "1L",
-      "away": "3E/H/I/J/K"
+      "away": "3E/H/I/J/K",
+      "venue": "Atlanta",
+      "date": "2026-07-01"
     },
     {
       "match": 81,
       "home": "1D",
-      "away": "3B/E/F/I/J"
+      "away": "3B/E/F/I/J",
+      "venue": "San Francisco",
+      "date": "2026-07-01"
     },
     {
       "match": 82,
       "home": "1G",
-      "away": "3A/E/H/I/J"
+      "away": "3A/E/H/I/J",
+      "venue": "Seattle",
+      "date": "2026-07-01"
     },
     {
       "match": 83,
       "home": "2K",
-      "away": "2L"
+      "away": "2L",
+      "venue": "Toronto",
+      "date": "2026-07-02"
     },
     {
       "match": 84,
       "home": "1H",
-      "away": "2J"
+      "away": "2J",
+      "venue": "Los Angeles",
+      "date": "2026-07-02"
     },
     {
       "match": 85,
       "home": "1B",
-      "away": "3E/F/G/I/J"
+      "away": "3E/F/G/I/J",
+      "venue": "Vancouver",
+      "date": "2026-07-02"
     },
     {
       "match": 86,
       "home": "1J",
-      "away": "2H"
+      "away": "2H",
+      "venue": "Miami",
+      "date": "2026-07-03"
     },
     {
       "match": 87,
       "home": "1K",
-      "away": "3D/E/I/J/L"
+      "away": "3D/E/I/J/L",
+      "venue": "Kansas City",
+      "date": "2026-07-03"
     },
     {
       "match": 88,
       "home": "2D",
-      "away": "2G"
+      "away": "2G",
+      "venue": "Dallas",
+      "date": "2026-07-03"
     }
   ],
   "best_third_mappings": {
@@ -5119,105 +5151,120 @@
       "stage": "R16",
       "home_from": "W74",
       "away_from": "W77",
-      "venue": "Philadelphia"
+      "venue": "Philadelphia",
+      "date": "2026-07-04"
     },
     {
       "match": 90,
       "stage": "R16",
       "home_from": "W73",
       "away_from": "W75",
-      "venue": "Houston"
+      "venue": "Houston",
+      "date": "2026-07-04"
     },
     {
       "match": 91,
       "stage": "R16",
       "home_from": "W76",
       "away_from": "W78",
-      "venue": "East Rutherford"
+      "venue": "East Rutherford",
+      "date": "2026-07-05"
     },
     {
       "match": 92,
       "stage": "R16",
       "home_from": "W79",
       "away_from": "W80",
-      "venue": "Mexico City"
+      "venue": "Mexico City",
+      "date": "2026-07-05"
     },
     {
       "match": 93,
       "stage": "R16",
       "home_from": "W83",
       "away_from": "W84",
-      "venue": "Dallas"
+      "venue": "Dallas",
+      "date": "2026-07-06"
     },
     {
       "match": 94,
       "stage": "R16",
       "home_from": "W81",
       "away_from": "W82",
-      "venue": "Seattle"
+      "venue": "Seattle",
+      "date": "2026-07-06"
     },
     {
       "match": 95,
       "stage": "R16",
       "home_from": "W86",
       "away_from": "W88",
-      "venue": "Atlanta"
+      "venue": "Atlanta",
+      "date": "2026-07-07"
     },
     {
       "match": 96,
       "stage": "R16",
       "home_from": "W85",
       "away_from": "W87",
-      "venue": "Vancouver"
+      "venue": "Vancouver",
+      "date": "2026-07-07"
     },
     {
       "match": 97,
       "stage": "QF",
       "home_from": "W89",
       "away_from": "W90",
-      "venue": "Boston"
+      "venue": "Boston",
+      "date": "2026-07-09"
     },
     {
       "match": 98,
       "stage": "QF",
       "home_from": "W93",
       "away_from": "W94",
-      "venue": "Los Angeles"
+      "venue": "Los Angeles",
+      "date": "2026-07-10"
     },
     {
       "match": 99,
       "stage": "QF",
       "home_from": "W91",
       "away_from": "W92",
-      "venue": "Miami"
+      "venue": "Miami",
+      "date": "2026-07-11"
     },
     {
       "match": 100,
       "stage": "QF",
       "home_from": "W95",
       "away_from": "W96",
-      "venue": "Kansas City"
+      "venue": "Kansas City",
+      "date": "2026-07-12"
     },
     {
       "match": 101,
       "stage": "SF",
       "home_from": "W97",
       "away_from": "W98",
-      "venue": "Dallas"
+      "venue": "Dallas",
+      "date": "2026-07-14"
     },
     {
       "match": 102,
       "stage": "SF",
       "home_from": "W99",
       "away_from": "W100",
-      "venue": "Atlanta"
+      "venue": "Atlanta",
+      "date": "2026-07-15"
     },
     {
       "match": 103,
       "stage": "Final",
       "home_from": "W101",
       "away_from": "W102",
-      "venue": "East Rutherford"
+      "venue": "East Rutherford",
+      "date": "2026-07-19"
     }
   ],
   "venue_country": {
@@ -5278,5 +5325,19 @@
         ]
       ]
     }
-  ]
+  ],
+"group_schedule": {
+    "A": {"1": "2026-06-11", "2": "2026-06-18", "3": "2026-06-24"},
+    "B": {"1": "2026-06-12", "2": "2026-06-18", "3": "2026-06-24"},
+    "C": {"1": "2026-06-13", "2": "2026-06-19", "3": "2026-06-24"},
+    "D": {"1": "2026-06-13", "2": "2026-06-19", "3": "2026-06-25"},
+    "E": {"1": "2026-06-14", "2": "2026-06-20", "3": "2026-06-25"},
+    "F": {"1": "2026-06-14", "2": "2026-06-20", "3": "2026-06-25"},
+    "G": {"1": "2026-06-15", "2": "2026-06-21", "3": "2026-06-26"},
+    "H": {"1": "2026-06-15", "2": "2026-06-21", "3": "2026-06-26"},
+    "I": {"1": "2026-06-16", "2": "2026-06-22", "3": "2026-06-26"},
+    "J": {"1": "2026-06-16", "2": "2026-06-22", "3": "2026-06-27"},
+    "K": {"1": "2026-06-17", "2": "2026-06-23", "3": "2026-06-27"},
+    "L": {"1": "2026-06-17", "2": "2026-06-23", "3": "2026-06-27"}
+  }
 }

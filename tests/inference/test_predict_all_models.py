@@ -88,10 +88,11 @@ def test_each_model_uses_its_own_feature_slice(
     features = _make_features()
     run_prediction_all_models(features, candidate_names=["xgboost", "ridge"])
 
-    # Champion (xgboost) was called with FULL features; ridge with CORE only.
+    from src.models.config import CORE_FEATURE_COLUMNS, FULL_FEATURE_COLUMNS
+
     champion_call = champion.predict.call_args.args[0]
-    assert champion_call.shape[1] == 24  # FULL_FEATURE_COLUMNS
+    assert champion_call.shape[1] == len(FULL_FEATURE_COLUMNS)
 
     assert len(shadow_calls) == 1
     ridge_input = shadow_calls[0]
-    assert ridge_input.shape[1] == 8  # CORE_FEATURE_COLUMNS
+    assert ridge_input.shape[1] == len(CORE_FEATURE_COLUMNS)

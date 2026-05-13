@@ -20,6 +20,7 @@ from src.gold.rolling_features import (
     _build_team_history,
     _rolling_for_team,
 )
+from src.gold.temporal_features import add_days_since_last_match
 from src.silver.competition_mapping import TIER_MAP, is_knockout
 
 logger = logging.getLogger(__name__)
@@ -149,7 +150,7 @@ def generate_all_wc_pairings(config_path: Path = _WC2026_CONFIG_PATH) -> pd.Data
             "away_team": away,
             "league_id": 1,
             "league_name": "World Cup",
-            "season": 2025,
+            "season": 2026,
             "competition_tier": 1,
             "is_knockout": False,
             "is_neutral": True,
@@ -166,29 +167,42 @@ def generate_all_wc_pairings(config_path: Path = _WC2026_CONFIG_PATH) -> pd.Data
 def generate_wc_group_fixtures(config_path: Path = _WC2026_CONFIG_PATH) -> pd.DataFrame:
     """Generate deterministic 2026 World Cup group-stage fixtures.
 
-    Uses ``groups`` and ``group_matchdays`` from wc2026.json and emits one row
-    per group match (72 rows total for 12 groups x 6 matches).
+    Uses ``groups``, ``group_matchdays``, and ``group_schedule`` from
+    wc2026.json and emits one row per group match (72 rows total for
+    12 groups x 6 matches).  Each match gets its real calendar date from
+    ``group_schedule[group][matchday]``.
     """
     with open(config_path) as f:
         config = json.load(f)
 
     groups: dict[str, list[str]] = config.get("groups", {})
     matchdays_cfg = config.get("group_matchdays", [])
+    group_schedule: dict[str, dict[str, str]] = config.get("group_schedule", {})
     if not groups or not matchdays_cfg:
         logger.warning("Tournament config missing groups/group_matchdays at %s", config_path)
         return pd.DataFrame()
 
     rows: list[dict] = []
-    base_date = pd.Timestamp("2026-06-11", tz="UTC")
 
     for group_letter, teams in groups.items():
         if len(teams) != 4:
             logger.warning("Skipping group %s with invalid team count %d", group_letter, len(teams))
             continue
 
+        schedule = group_schedule.get(group_letter, {})
+
         for md in matchdays_cfg:
             matchday = int(md["matchday"])
-            md_date = base_date + pd.Timedelta(days=matchday - 1)
+            date_str = schedule.get(str(matchday))
+            if date_str:
+                md_date = pd.Timestamp(date_str)
+            else:
+                md_date = pd.Timestamp("2026-06-11") + pd.Timedelta(days=matchday - 1)
+                logger.warning(
+                    "No date in group_schedule for group %s MD%d, falling back to %s",
+                    group_letter, matchday, md_date.date(),
+                )
+
             for pair_idx, (home_idx, away_idx) in enumerate(md["pairs"]):
                 home_team = teams[home_idx]
                 away_team = teams[away_idx]
@@ -199,7 +213,7 @@ def generate_wc_group_fixtures(config_path: Path = _WC2026_CONFIG_PATH) -> pd.Da
                     "away_team": away_team,
                     "league_id": 1,
                     "league_name": "World Cup",
-                    "season": 2025,
+                    "season": 2026,
                     "competition_tier": 1,
                     "is_knockout": False,
                     "is_neutral": True,
@@ -333,10 +347,22 @@ def parse_wc_results(
     }
 
 
-def _get_latest_elo(gold_df: pd.DataFrame, team: str) -> float:
-    """Look up the most recent Elo for a team from Gold history."""
-    team_home = gold_df.loc[gold_df["home_team"] == team, ["date_utc", "home_elo_pre"]]
-    team_away = gold_df.loc[gold_df["away_team"] == team, ["date_utc", "away_elo_pre"]]
+def _get_latest_elo(
+    gold_df: pd.DataFrame,
+    team: str,
+    match_date: pd.Timestamp | None = None,
+) -> float:
+    """Look up the most recent Elo for *team* from Gold history.
+
+    When *match_date* is given, only rows with ``date_utc < match_date``
+    are considered — consistent with the rolling-feature date guard.
+    """
+    df = gold_df
+    if match_date is not None:
+        df = df[df["date_utc"] < match_date]
+
+    team_home = df.loc[df["home_team"] == team, ["date_utc", "home_elo_pre"]]
+    team_away = df.loc[df["away_team"] == team, ["date_utc", "away_elo_pre"]]
 
     latest = pd.NaT
     elo = np.nan
@@ -408,15 +434,36 @@ def build_inference_features(
             for key, val in feats.items():
                 result[f"{prefix}_{key}"] = val
 
-        home_elo = _get_latest_elo(gold_df, row["home_team"])
-        away_elo = _get_latest_elo(gold_df, row["away_team"])
+        home_elo = _get_latest_elo(gold_df, row["home_team"], match_date)
+        away_elo = _get_latest_elo(gold_df, row["away_team"], match_date)
         result["home_elo_pre"] = home_elo
         result["away_elo_pre"] = away_elo
         result["elo_diff"] = home_elo - away_elo
+        result["elo_sum"] = home_elo + away_elo
 
         feature_rows.append(result)
 
     features_df = pd.DataFrame(feature_rows)
+
+    # Temporal features: days_since_last_match per side + rest_diff.
+    # Combine Gold history with upcoming rows so the function can see each
+    # team's last historical match and compute the gap to the upcoming date.
+    temporal_cols = ["fixture_id", "date_utc", "home_team", "away_team"]
+    gold_stub = gold_df[temporal_cols].copy()
+    upcoming_stub = features_df[temporal_cols].copy()
+    combined = pd.concat([gold_stub, upcoming_stub], ignore_index=True)
+    combined["date_utc"] = pd.to_datetime(combined["date_utc"])
+    combined = combined.sort_values(["date_utc", "fixture_id"]).reset_index(drop=True)
+    combined = add_days_since_last_match(combined)
+
+    # Map temporal results back to upcoming fixture_ids
+    temporal_map = combined.set_index("fixture_id")[
+        ["home_days_since_last_match", "away_days_since_last_match", "rest_diff"]
+    ]
+    upcoming_ids = features_df["fixture_id"]
+    for col in ("home_days_since_last_match", "away_days_since_last_match", "rest_diff"):
+        features_df[col] = upcoming_ids.map(temporal_map[col]).astype("Float64")
+
     logger.info(
         "Built inference features: %d rows, %d columns",
         len(features_df),

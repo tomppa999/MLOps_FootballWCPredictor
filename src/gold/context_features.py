@@ -32,22 +32,6 @@ def add_elo_sum(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def add_is_cross_confederation(df: pd.DataFrame) -> pd.DataFrame:
-    """Add ``is_cross_confederation`` (nullable boolean).
-
-    True iff the two teams' confederations differ. NaN if either
-    confederation is missing — never silently coerced to True/False.
-    """
-    df = df.copy()
-    home_conf = df["home_confederation"]
-    away_conf = df["away_confederation"]
-    null_mask = home_conf.isna() | away_conf.isna()
-    differs = (home_conf != away_conf).astype("boolean")
-    differs[null_mask] = pd.NA
-    df["is_cross_confederation"] = differs
-    return df
-
-
 def override_neutral_for_2026_hosts(df: pd.DataFrame) -> pd.DataFrame:
     """Set ``is_neutral = False`` for 2026 WC group-stage matches where a host plays at home.
 

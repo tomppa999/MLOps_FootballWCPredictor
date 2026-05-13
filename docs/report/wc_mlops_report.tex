@@ -1334,12 +1334,13 @@ absorb weak-but-real signals where maximum-likelihood baselines cannot,
 and at international cadence the cohesion gap between teams is mostly
 noise across most matchups but carries real information when the composition of one side
 changed significantly since the most recent training and match window.
-\texttt{is\_cross\_confederation} is invisible in all model importances:
+\texttt{is\_cross\_confederation} was invisible in all model importances:
 it is heavily confounded with \texttt{competition\_tier} (most
 cross-confederation matches are friendlies), so the model already had
-access to the same signal under a different name.  It is a reasonable
-removal candidate in a future iteration, retained here for schema
-stability.
+access to the same signal under a different name.  It was subsequently
+removed from the Gold schema (CORE 13\,$\to$\,12, FULL
+29\,$\to$\,28), as it also could not be computed at inference time
+without confederation data in the tournament pairings.
 
 \textbf{Methodology takeaway.}
 The auto-promotion machinery did its job: it accepted a marginal-but-real

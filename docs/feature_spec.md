@@ -118,13 +118,12 @@ directly as continuous features instead.
   historical data. No separate `is_home_advantage_2026` column exists.
 - `competition_tier`
 - `is_knockout`
-- `is_cross_confederation` — nullable boolean, True if the two teams'
-  confederations differ. NaN if either confederation is missing (never
-  silently coerced to True/False). Added in the Gold v2 iteration; in
-  practice contributed near-zero importance in all nine models because it
-  is heavily confounded with `competition_tier` (most cross-confederation
-  matches are friendlies).
 - confederation / continent indicators
+
+Note: `is_cross_confederation` was added in Gold v2 but removed after
+the importance analysis showed it invisible in all nine models (heavily
+confounded with `competition_tier` — most cross-confederation matches
+are friendlies). It is no longer part of the Gold schema.
 
 #### 2026 KO-round home advantage (inference-time only)
 

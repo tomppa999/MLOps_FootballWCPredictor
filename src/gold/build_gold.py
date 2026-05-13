@@ -21,7 +21,6 @@ import pandas as pd
 from src.gold.context_features import (
     add_elo_diff,
     add_elo_sum,
-    add_is_cross_confederation,
     override_neutral_for_2026_hosts,
 )
 from src.gold.rolling_features import compute_rolling_features
@@ -90,7 +89,6 @@ def build_gold(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("Adding context features...")
     df = add_elo_diff(df)
     df = add_elo_sum(df)
-    df = add_is_cross_confederation(df)
     df = override_neutral_for_2026_hosts(df)
 
     # Select and reorder to Gold schema

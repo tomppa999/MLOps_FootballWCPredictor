@@ -94,4 +94,5 @@ fired because v2 XGBoost strictly improved on v1 XGBoost's holdout RPS.
   surface).
 - `is_cross_confederation`: not in any top-5 — confounded with
   `competition_tier` (cross-confederation games are mostly friendlies).
+  **Removed from Gold schema** after this analysis (CORE 13→12, FULL 29→28).
 

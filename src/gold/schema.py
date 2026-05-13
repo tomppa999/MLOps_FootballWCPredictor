@@ -36,7 +36,6 @@ CONTEXT_COLUMNS: Final[list[str]] = [
     "competition_tier",
     "is_knockout",
     "is_neutral",
-    "is_cross_confederation",
 ]
 
 STRENGTH_COLUMNS: Final[list[str]] = [
@@ -122,7 +121,6 @@ GOLD_DTYPES: Final[dict[str, str]] = {
     "competition_tier": "Int8",
     "is_knockout": "boolean",
     "is_neutral": "boolean",
-    "is_cross_confederation": "boolean",
     "home_elo_pre": "Float64",
     "away_elo_pre": "Float64",
     "elo_diff": "Float64",
