@@ -32,6 +32,7 @@ WC2022_RPS_BASELINES: Final[dict[str, float]] = {
 ALERT_FACTOR: Final[float] = 1.3
 
 # Number of most recent scored WC 2026 matches included in the rolling
-# mean. ~1.5 group-stage matchdays — long enough to suppress early-
-# tournament noise, short enough to react within the 5-week tournament.
-ALERT_WINDOW: Final[int] = 16
+# mean. Exactly 1 group-stage matchday (12 groups x 2 = 24 matches) —
+# long enough to suppress early-tournament noise and ensure every team
+# contributes once, short enough to react within the 5-week tournament.
+ALERT_WINDOW: Final[int] = 24

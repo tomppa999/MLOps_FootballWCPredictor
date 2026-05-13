@@ -62,3 +62,7 @@ scripts/fix_tags.py
 
 # Miscellaneous
 data_samples/MLOps_Pipeline_Development_The_OSSARA_Use_Case.pdf
+TAU template EN.pptx
+.pptx_deps/
+.pptx_deps2/
+docs/presentation/

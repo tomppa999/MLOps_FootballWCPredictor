@@ -1092,7 +1092,7 @@ subject of Section~\ref{sec:gold_v2}.
 \subsection{Feature Importance}
 
 Table~\ref{tab:importance} summarises the top-3 features by permutation
-importance (NLL degradation) for each model.  The \texttt{elo\_diff}
+importance (RPS degradation) for each model.  The \texttt{elo\_diff}
 feature dominates across all nine models, with importance scores one to
 two orders of magnitude above any other feature.  Permutation importance
 is computed on experimental-phase CV folds over the full 2018--2026
@@ -1212,7 +1212,7 @@ suggestive: home possession is confounded with the home-advantage effect,
 whereas sustained away possession has to be imposed against both the
 opponent and the venue, making it a cleaner proxy for proactive style
 that XGBoost can then combine non-linearly with \texttt{elo\_diff}.
-Importantly, the permutation importance is only $+0.002$ $\Delta$ NLL, so
+Importantly, the permutation importance is only $+0.002$ $\Delta$ RPS, so
 this interpretation is offered as a hypothesis rather than a confirmed
 mechanism.
 
@@ -1560,11 +1560,11 @@ long-format leaderboard \texttt{wc2026\_monitoring.csv} is re-attached
 to each run every cycle (overwrite-style, so the latest run for each
 model holds the complete table).
 
-For each model, a rolling-mean RPS over the last 16 scored matches
-($\approx$1.5 group-stage matchdays) is compared against
+For each model, a rolling-mean RPS over the last 24 scored matches
+(exactly one group-stage matchday: 12~groups $\times$ 2~matches) is compared against
 $1.3 \times$~that model's WC~2022 holdout RPS baseline; a breach emits
 a single \texttt{logger.warning} line captured by Cloud Logging. A
-model with fewer than 16 scored matches is silently skipped to suppress
+model with fewer than 24 scored matches is silently skipped to suppress
 early-tournament noise. Alerting iterates over the champion and all
 eight shadow candidates; a champion alert is a manual investigation
 trigger, while shadow alerts are informational signals that an
@@ -1580,7 +1580,7 @@ training metrics and artifacts as the long-term audit log. Were the
 pipeline extended to continuous club-football or multi-tournament
 deployment, the same per-match scoring contract would extend naturally
 to longer windows, with rolling-mean and CUSUM-style drift triggers
-swapped in for the fixed 16-match window used here.
+swapped in for the fixed 24-match window used here.
 
 
 \textbf{Elo source reliability.}
