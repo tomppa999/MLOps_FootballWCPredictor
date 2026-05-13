@@ -824,17 +824,12 @@ The implementation is retained in the repository for reference.
   The Poisson GLM is expected to perform competitively despite its simplicity, providing
   a meaningful floor for more complex models.
 
-  \item[H3] \textbf{XGBoost captures non-linear interactions.}
-  Elo differential, competition tier, and rolling form may interact in non-linear ways
-  that GLMs cannot capture. XGBoost is expected to outperform linear models by exploiting
-  these interactions.
-
-  \item[H4] \textbf{Deep learning models underperform relative to complexity.}
+  \item[H3] \textbf{Deep learning models underperform relative to complexity.}
   LSTM and 1D CNN require substantial sequence data to generalize. National team datasets
   are too sparse to fully train deep architectures; both models are expected to underfit
   or overfit relative to simpler alternatives, particularly for teams with short histories.
 
-  \item[H5] \textbf{Bayesian Poisson produces best-calibrated predictions.}
+  \item[H4] \textbf{Bayesian Poisson produces best-calibrated predictions.}
   Calibration matters for tournament simulation. The Bayesian model is expected to yield
   better-calibrated score distributions than point-estimate models, even if its mean
   prediction accuracy is comparable to Poisson GLM.
@@ -1148,10 +1143,19 @@ This is partly structural, since XGBoost is the only model that receives
 the full 29-feature set, so the other eight were never offered the
 tactical columns to rank, but the feature is still chosen over the
 nine other tactical columns that XGBoost did have access to, and
-specifically in its \emph{away}-side variant.  The permutation gain is
-small ($+0.002$ $\Delta$ NLL) and should be read as suggestive rather
-than conclusive; possible interpretations are developed in
-Section~\ref{sec:discussion}.
+specifically in its \emph{away}-side variant.  One plausible reading is
+that rolling possession is a \emph{dominance} marker that partially
+overlaps with \texttt{elo\_diff} --- consistent with the
+volume-and-dominance continuum observed in the clustering experiment
+(Figure~\ref{fig:cluster_k}) --- but encodes a residual playstyle axis
+that Elo, which scores results rather than the manner in which they are
+obtained, does not fully absorb.  The away-side variant in particular may
+surface because home possession is confounded with the home-advantage
+effect, whereas sustained away possession must be imposed against both the
+opponent and the venue, making it a cleaner proxy for proactive style that
+XGBoost can combine non-linearly with \texttt{elo\_diff}.  The permutation
+gain is small ($+0.002$ $\Delta$ NLL) and should be read as suggestive
+rather than conclusive.
 Second, two of the five Gold-v2 features surface in top-3 importance:
 \texttt{elo\_sum} for Random Forest (a non-linear ``match quality'' split
 that the tree can branch on independently of which side is favoured) and
@@ -1193,30 +1197,7 @@ NegBin GLM, SARIMAX, LSTM, and CNN on holdout RPS, demonstrating that
 the classical Poisson assumption provides a strong baseline that more
 complex models struggle to substantially improve upon.
 
-\textbf{H3: XGBoost captures non-linear interactions --- partially
-confirmed.}
-XGBoost wins the holdout evaluation (RPS 0.2109) despite ranking fourth in
-CV NLL, suggesting it captures interactions that improve out-of-sample
-generalisation.  This v2 XGBoost configuration was auto-promoted over the
-prior v1 champion (Section~\ref{sec:gold_v2}).  It is also the only model
-whose top-three importance contains a tactical feature
-(\texttt{away\_team\_rolling\_tac\_possession\_pct}), enabled by its access
-to the full 29-feature set.  One plausible reading is that rolling
-possession is a \emph{dominance} marker that partially overlaps with
-\texttt{elo\_diff} --- consistent with the volume-and-dominance continuum
-observed in the clustering experiment (Figure~\ref{fig:cluster_k}) --- but
-encodes a residual playstyle axis that Elo, which scores results rather
-than the manner in which they are obtained, does not fully absorb.  The
-fact that it is specifically the \emph{away}-side variant that surfaces is
-suggestive: home possession is confounded with the home-advantage effect,
-whereas sustained away possession has to be imposed against both the
-opponent and the venue, making it a cleaner proxy for proactive style
-that XGBoost can then combine non-linearly with \texttt{elo\_diff}.
-Importantly, the permutation importance is only $+0.002$ $\Delta$ RPS, so
-this interpretation is offered as a hypothesis rather than a confirmed
-mechanism.
-
-\textbf{H4: Deep learning underperforms relative to complexity ---
+\textbf{H3: Deep learning underperforms relative to complexity ---
 confirmed (and sharper after v2).}
 CNN ranks last (RPS 0.2248), confirming the expected data-sparsity penalty
 for deep architectures.  LSTM, which had ranked second under the v1
@@ -1228,10 +1209,10 @@ sequence length, the more pronounced the data-sparsity penalty becomes.
 The v1 LSTM result was the most surprising number in the original study
 (rank 2 from a model family expected to underfit); the v2 result places
 LSTM where the hypothesis predicted it should be, and the regression
-itself becomes diagnostic evidence for H4 rather than a counterexample
+itself becomes diagnostic evidence for H3 rather than a counterexample
 (Section~\ref{sec:gold_v2}).
 
-\textbf{H5: Bayesian Poisson produces best-calibrated predictions --- not
+\textbf{H4: Bayesian Poisson produces best-calibrated predictions --- not
 confirmed.}
 Bayesian Poisson ranks fifth in holdout RPS (0.2166), behind XGBoost,
 Random Forest, Ridge, and Poisson GLM.  Its holdout NLL (2.9642) is also
@@ -1334,7 +1315,7 @@ A sequence model trained on a sparse national-team corpus is already
 operating near its capacity ceiling; adding 5 features to a 13-feature
 input deepens the data-sparsity penalty disproportionately, since
 recurrent weight matrices scale with input dimensionality.  As discussed
-in the H4 paragraph above, this regression is itself diagnostic: it
+in the H3 paragraph above, this regression is itself diagnostic: it
 confirms the original hypothesis on a controlled second observation and
 relocates LSTM in the ranking to where the architectural argument
 predicted it should be.
