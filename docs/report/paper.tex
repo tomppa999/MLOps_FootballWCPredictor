@@ -799,13 +799,12 @@ architecture becomes secondary: the top eight models cluster within a
 0.0046 RPS band, and Ridge wins on efficiency with a single hyperparameter
 tuned in seconds.
 
-Future work should validate champions across multiple tournaments (e.g.\
+Future work could use the best-third-place rule as a natural setting to study cross-group dependency in the expanded World Cup format, where a result in one group can affect advancement probabilities in another. In particular, the 30-minute inference cycle during WC 2026 provides an opportunity to analyse how sequential group-stage result revelation reshapes qualification probabilities over time. By storing simulation snapshots after each completed match, future analyses could trace per-team probability trajectories across matchdayy to identify structural drivers of disproportionate probability swings (e.g., proximity to the third-place boundary, the number of groups already completed, kickoff time slot). The gradual resolution of tournament uncertainty could be quantified using Shannon entropy over the advancement probability distribution.
+
+
+Further, champion models should be validated across multiple tournaments (e.g.\
 EURO and Copa~Am\'erica holdouts) to establish whether the Ridge advantage
 is a consistent signal or an artefact of a single holdout.
-The WC~2026 inference cycle offers an opportunity to study how sequential
-group-stage result revelation reshapes advancement probabilities under the
-expanded format, tracking per-team probability trajectories across
-matchdays via stored simulation snapshots.
 
 % ============================================================
 \bibliographystyle{IEEEtran}
