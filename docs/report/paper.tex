@@ -105,13 +105,13 @@ Section~\ref{sec:architecture} records our architectural choices.
 Section~\ref{sec:implementation} describes implementation and results.
 Sections~\ref{sec:discussion} and~\ref{sec:conclusion} discuss findings and conclude.
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \maybegraphic{../figures/Architecture_final.png}{0.95\columnwidth}
+  \maybegraphic{../figures/Architecture_final.png}{0.95\textwidth}
   \caption{End-to-end MLOps pipeline: Bronze/Silver/Gold data path,
   three model environments, and Monte Carlo tournament simulation.}
   \label{fig:architecture}
-\end{figure}
+\end{figure*}
 
 % ============================================================
 \section{Background}
@@ -355,12 +355,12 @@ K-means clustering on five rolling tactical dimensions yielded silhouette scores
 below 0.40 for all $k\in\{2,\ldots,10\}$
 (Figure~\ref{fig:cluster_k}); raw continuous columns were retained instead.
 
-\begin{figure}[h]
+\begin{figure*}[t]
   \centering
-  \maybegraphic{../figures/cluster_experiment_v2.png}{0.95\columnwidth}
+  \maybegraphic{../figures/cluster_experiment_v2.png}{0.95\textwidth}
   \caption{Elbow and silhouette analysis for tactical clustering (not used in Gold).}
   \label{fig:cluster_k}
-\end{figure}
+\end{figure*}
 
 WC~2026 co-hosts (USA, Canada, Mexico) receive \texttt{is\_neutral=False} at
 home venues in the group stage via a deterministic Gold override; knockout
@@ -524,15 +524,6 @@ only when Gold grows by $\geq$10 rows, forwarding original QA metrics for
 audit continuity.
 Tournament \texttt{inference\_only} mode rebuilds Gold rolling features from
 settled WC matches without retraining.
-Figure~\ref{fig:ct_architecture} illustrates the trigger, training, and
-inference paths.
-
-\begin{figure}[h]
-  \centering
-  \maybegraphic{../figures/architecture_ct_pipeline.png}{0.95\columnwidth}
-  \caption{Trigger, continuous training, and inference paths.}
-  \label{fig:ct_architecture}
-\end{figure}
 
 \textbf{Cloud deployment.}
 The pipeline is packaged in Docker on Cloud Run Jobs with dual Cloud
@@ -562,6 +553,17 @@ skipped to suppress early-tournament noise.
 No automated promotion occurs under any alert condition: mid-tournament
 retraining is out of scope because ${\sim}$5~weeks of WC matches is too
 short for statistically meaningful drift detection.
+
+Figure~\ref{fig:process} summarises the end-to-end process from ingestion
+trigger through training, deployment, and live monitoring.
+
+\begin{figure*}[t]
+  \centering
+  \maybegraphic{../figures/Process.png}{0.95\textwidth}
+  \caption{End-to-end process: ingestion trigger, continuous training,
+  deployment, and live monitoring workflow.}
+  \label{fig:process}
+\end{figure*}
 
 \subsection{Results}
 \label{sec:impl_results}
@@ -773,6 +775,18 @@ silently uses stale data.
 Elo changes slowly between individual matches, making short-term staleness
 minor, but the dependency has no contractual guarantee.
 
+\textbf{Source desynchronisation.}
+Because the two external sources update independently, transient
+desynchronisation is possible (e.g.\ API-Football settles a fixture before
+eloratings.net incorporates the result, or vice versa).
+The pipeline mitigates this by design: \texttt{merge\_asof} always joins the
+most recent Elo observation \emph{before} match date, so an early Elo update
+does not leak post-match information.
+If fixtures settle before Elo incorporates the result, pre-match Elo is still
+the latest available, which is the intended feature semantics.
+However, no explicit consistency check verifies that both sources agree on
+the set of completed matches.
+
 \textbf{Residual ordinal bias in RPS.}
 RPS's ordinal structure creates a draw-hedging incentive that was removed
 from hyperparameter tuning by switching to Poisson NLL\@.
@@ -799,12 +813,13 @@ architecture becomes secondary: the top eight models cluster within a
 0.0046 RPS band, and Ridge wins on efficiency with a single hyperparameter
 tuned in seconds.
 
-Future work could use the best-third-place rule as a natural setting to study cross-group dependency in the expanded World Cup format, where a result in one group can affect advancement probabilities in another. In particular, the 30-minute inference cycle during WC 2026 provides an opportunity to analyse how sequential group-stage result revelation reshapes qualification probabilities over time. By storing simulation snapshots after each completed match, future analyses could trace per-team probability trajectories across matchdayy to identify structural drivers of disproportionate probability swings (e.g., proximity to the third-place boundary, the number of groups already completed, kickoff time slot). The gradual resolution of tournament uncertainty could be quantified using Shannon entropy over the advancement probability distribution.
-
-
-Further, champion models should be validated across multiple tournaments (e.g.\
+Future work should validate champions across multiple tournaments (e.g.\
 EURO and Copa~Am\'erica holdouts) to establish whether the Ridge advantage
 is a consistent signal or an artefact of a single holdout.
+The WC~2026 inference cycle offers an opportunity to study how sequential
+group-stage result revelation reshapes advancement probabilities under the
+expanded format, tracking per-team probability trajectories across
+matchdays via stored simulation snapshots.
 
 % ============================================================
 \bibliographystyle{IEEEtran}
