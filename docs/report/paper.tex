@@ -121,7 +121,7 @@ MLOps extends the DevOps loop with ML-specific activities (data exploration,
 feature engineering, model validation, and experiment optimisation) while
 retaining continuous integration and delivery~\cite{moreschini2022mlops}.
 A practice unique to ML systems is \emph{continuous training} (CT): automated
-retraining as new data arrives~\cite{ossara2023}.
+retraining as new data arrives~\cite{google_mlops}.
 Google's maturity model~\cite{google_mlops} distinguishes three automation
 levels: Level~0 (manual steps), Level~1 (automated training pipeline with
 reusable components), and Level~2 (full CI/CD of pipeline code and deployment).
@@ -162,7 +162,7 @@ parameters.
 Dixon and Coles~\cite{dixon1997modelling} added time decay and a low-score
 correction for negative correlation between home and away goals.
 Karlis and Ntzoufras~\cite{karlis2003analysis} decomposed a match into three
-Poisson components (home-specific $\lambda_1$, away-specific $\lambda_2$, and
+Poisson components (team-1-specific $\lambda_1$, team-2-specific $\lambda_2$, and
 shared $\lambda_3$) to induce dependence between scorelines.
 Negative Binomial and Bayesian extensions relax equidispersion and yield full
 predictive distributions respectively.
@@ -177,8 +177,9 @@ data, which is a practical abstraction for sparse international calendars.
 \section{Related Works}
 \label{sec:related}
 
-Moreschini et al.~\cite{moreschini2022mlops} survey MLOps from DevOps evolution,
-automation maturity, and tooling perspectives.
+Moreschini et al.~\cite{moreschini2022mlops} propose a graphical representation 
+of the MLOps pipeline as an extension of DevOps for ML-based software systems and 
+discuss research challenges related to automation maturity and tooling.
 Their OSSARA pipeline~\cite{ossara2023} demonstrates a complete Level-1 style
 workflow for open-source software abandonment risk assessment: DVC for data, 
 MLflow for experiments, explicit staging environments, and scheduled 
@@ -233,19 +234,19 @@ event-driven systems such as a single tournament; full CI/CD of pipeline code
 
 \subsection{Architectural choices}
 
-We target Google MLOps \textbf{Level~1}~\cite{google_mlops}: DVC orchestrates
+We target Google MLOps Level~1~\cite{google_mlops}: DVC orchestrates
 Bronze$\to$Silver$\to$Gold rebuilds; a common Python interface trains all
 candidates; MLflow logs every run; a scheduled trigger handles retraining and
 inference.
 Full CI/CD of pipeline code (Level~2) is deferred.
 
 Following the DataOps/ModelOps split~\cite{databricks_bigbook,ossara2023},
-\textbf{DVC} versions raw snapshots, Silver Parquet, and Gold artifacts;
-\textbf{MLflow} tracks experiments and manages registry promotion;
-\textbf{Git} and \textbf{pytest} provide the DevOps base.
+DVC versions raw snapshots, Silver Parquet, and Gold artifacts;
+MLflow tracks experiments and manages registry promotion;
+Git and pytest provide the DevOps base.
 DagsHub is used as a unified remote for data, code and model artifacts.
 
-We adopt \textbf{code-based deployment}~\cite{databricks_bigbook}: the three
+We adopt code-based deployment~\cite{databricks_bigbook}: the three
 environments share identical training code; what advances is a validated
 configuration, not a frozen artifact.
 Experimental trains on pre-2022 Gold; QA evaluates on the 2022 World Cup holdout;
@@ -253,12 +254,13 @@ Deploy refits the champion on all available Gold at run time.
 
 \subsection{Data and model lifecycle}
 
-\textbf{Bronze} stores immutable API-Football JSON and Elo TSV snapshots.
-\textbf{Silver} is schema-validated, season-partitioned Parquet, joining data 
+Bronze stores immutable API-Football JSON and Elo TSV snapshots.
+Silver is schema-validated, season-partitioned Parquet, joining data 
 from both sources and adding context, such as competition tiers or knockout 
 flags.
-\textbf{Gold} is one row per match with strictly time-aware features (rolling
-form, Elo composites, context flags); no future information enters any column.
+Finally, Gold consists of one row per match with strictly time-aware features 
+(rolling form, Elo composites, context flags); no future information enters 
+any column.
 
 Model development uses three environments backed by MLflow registry models
 (Figure~\ref{fig:architecture}):
@@ -383,10 +385,11 @@ possible matchups and propagating uncertainty through the full knockout tree.
 
 Table~\ref{tab:models} lists nine candidates spanning five families.
 Hyperparameters are tuned with Optuna (50 TPE trials, walk-forward CV).
-\textbf{Tuning} minimises Poisson NLL; \textbf{QA gating} uses holdout RPS.
+Tuning minimises Poisson Negative log-likelihood (NLL); QA gating uses holdout 
+Ranked Probability Score (RPS).
 The two metrics are deliberately decoupled.
 
-\textbf{Poisson NLL} rewards placing probability mass near the actual
+Poisson NLL rewards placing probability mass near the actual
 scoreline:
 \begin{equation}
   \text{NLL} = -\frac{1}{N}\sum_{i=1}^{N}
@@ -398,7 +401,7 @@ where $h_i, a_i$ are observed goals and $\hat{\lambda}_{h,i},
 NLL is agnostic to outcome ordering, making it a stable signal for
 hyperparameter search.
 
-\textbf{Ranked Probability Score} evaluates the cumulative W/D/L distribution:
+RPS evaluates the cumulative W/D/L distribution:
 \begin{equation}
   \text{RPS} = \frac{1}{K{-}1} \sum_{k=1}^{K-1}
   \Bigl( \sum_{i=1}^{k} p_i - \sum_{i=1}^{k} o_i \Bigr)^{\!2}
@@ -483,7 +486,7 @@ acknowledged limitation (Section~\ref{sec:threats}).
 \label{sec:impl_deploy}
 
 Training uses 3{,}903 pre-WC~2022 matches; the QA holdout is 64 WC-tier
-matches from Qatar 2022 (\texttt{competition\_tier=1}).
+matches from Qatar 2022.
 
 \textbf{Champion selection.}
 The QA candidate with the lowest holdout RPS is designated the challenger.
@@ -813,13 +816,11 @@ architecture becomes secondary: the top eight models cluster within a
 0.0046 RPS band, and Ridge wins on efficiency with a single hyperparameter
 tuned in seconds.
 
-Future work should validate champions across multiple tournaments (e.g.\
+Future work could use the best-third-place rule as a natural setting to study cross-group dependency in the expanded World Cup format, where a result in one group can affect advancement probabilities in another. In particular, the 30-minute inference cycle during WC 2026 provides an opportunity to analyse how sequential group-stage result revelation reshapes qualification probabilities over time. By storing simulation snapshots after each completed match, future analyses could trace per-team probability trajectories across matchdays, identify structural drivers of disproportionate probability swings (e.g., proximity to the third-place boundary and the number of groups already completed) and quantify the gradual resolution of tournament uncertainty using Shannon entropy over the advancement probability distribution.
+
+Further, champion models should be validated across multiple tournaments (e.g.\
 EURO and Copa~Am\'erica holdouts) to establish whether the Ridge advantage
 is a consistent signal or an artefact of a single holdout.
-The WC~2026 inference cycle offers an opportunity to study how sequential
-group-stage result revelation reshapes advancement probabilities under the
-expanded format, tracking per-team probability trajectories across
-matchdays via stored simulation snapshots.
 
 % ============================================================
 \bibliographystyle{IEEEtran}
