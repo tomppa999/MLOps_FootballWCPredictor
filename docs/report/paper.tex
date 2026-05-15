@@ -117,11 +117,11 @@ Sections~\ref{sec:discussion} and~\ref{sec:conclusion} discuss findings and conc
 \section{Background}
 \label{sec:background}
 
-MLOps extends the DevOps loop with ML-specific activities---data exploration,
-feature engineering, model validation, and experiment optimisation---while
+MLOps extends the DevOps loop with ML-specific activities (data exploration,
+feature engineering, model validation, and experiment optimisation) while
 retaining continuous integration and delivery~\cite{moreschini2022mlops}.
 A practice unique to ML systems is \emph{continuous training} (CT): automated
-retraining as new data arrive~\cite{ossara2023}.
+retraining as new data arrives~\cite{ossara2023}.
 Google's maturity model~\cite{google_mlops} distinguishes three automation
 levels: Level~0 (manual steps), Level~1 (automated training pipeline with
 reusable components), and Level~2 (full CI/CD of pipeline code and deployment).
@@ -129,8 +129,6 @@ Industry practice often decomposes MLOps as
 $\text{MLOps} = \text{DevOps} + \text{DataOps} + \text{ModelOps}$~\cite{databricks_bigbook}:
 DevOps covers code and release engineering; DataOps covers reproducible data
 management; ModelOps covers experiment tracking, registry, and promotion.
-The OSSARA case study~\cite{ossara2023} instantiates this decomposition for an
-IoT monitoring pipeline.
 
 Figure~\ref{fig:mlops_decomp} sketches the three operational domains and their
 typical tooling layers.
@@ -164,8 +162,8 @@ parameters.
 Dixon and Coles~\cite{dixon1997modelling} added time decay and a low-score
 correction for negative correlation between home and away goals.
 Karlis and Ntzoufras~\cite{karlis2003analysis} decomposed a match into three
-Poisson components---home-specific $\lambda_1$, away-specific $\lambda_2$, and
-shared $\lambda_3$---to induce positive dependence between scorelines.
+Poisson components (home-specific $\lambda_1$, away-specific $\lambda_2$, and
+shared $\lambda_3$) to induce dependence between scorelines.
 Negative Binomial and Bayesian extensions relax equidispersion and yield full
 predictive distributions respectively.
 
@@ -173,7 +171,7 @@ National-team strength is often summarised by Elo ratings~\cite{eloratings},
 which update after each match from result and expected-score differential with
 tournament-weighted $K$-factors.
 Elo provides a continuous cross-confederation quality measure without squad-level
-data---a practical fit for sparse international calendars.
+data, which is a practical abstraction for sparse international calendars.
 
 % ============================================================
 \section{Related Works}
@@ -182,9 +180,10 @@ data---a practical fit for sparse international calendars.
 Moreschini et al.~\cite{moreschini2022mlops} survey MLOps from DevOps evolution,
 automation maturity, and tooling perspectives.
 Their OSSARA pipeline~\cite{ossara2023} demonstrates a complete Level-1 style
-workflow: DVC for data, MLflow for experiments, explicit staging environments,
-and scheduled retraining---closest in spirit to our work, but in agricultural IoT
-rather than sports analytics.
+workflow for open-source software abandonment risk assessment: DVC for data, 
+MLflow for experiments, explicit staging environments, and scheduled 
+retraining. 
+We apply the same pipeline engineering pattern to national-team football analytics.
 
 Groll et al.~\cite{groll2019prediction} predict major tournaments with
 team-specific regularised Poisson regression on historical results; their focus
@@ -193,10 +192,6 @@ We adopt Poisson-family candidates and tournament simulation but embed them in
 a reproducible MLOps pipeline with nine heterogeneous model families and
 explicit promotion logic.
 
-Unlike OSSARA, our domain has irregular match spacing, dual heterogeneous data
-sources, and a one-off expanded 48-team World Cup format.
-The engineering contribution is therefore the pipeline architecture and
-empirical comparison under domain-specific hypotheses, not a novel score model.
 
 % ============================================================
 \section{Developing an MLOps Pipeline}
@@ -206,10 +201,9 @@ Building an MLOps pipeline requires decisions that precede any single model
 choice~\cite{google_mlops,databricks_bigbook}.
 
 \textbf{Data versioning.}
-Raw snapshots, transformed tables, and modeling artifacts must be reproducible
-and separable from code.
-File-based versioning (e.g.\ DVC) suits local-first workflows before a remote
-store is available.
+Raw snapshots, transformed tables, and model artifacts must be reproducible 
+and separable from code. A dedicated versioning tool (e.g.\ DVC) tracks each 
+pipeline stage's inputs and outputs so any state can be exactly reproduced.
 
 \textbf{Experiment tracking.}
 Every training run should log parameters, metrics, and artifacts so that
@@ -249,7 +243,7 @@ Following the DataOps/ModelOps split~\cite{databricks_bigbook,ossara2023},
 \textbf{DVC} versions raw snapshots, Silver Parquet, and Gold artifacts;
 \textbf{MLflow} tracks experiments and manages registry promotion;
 \textbf{Git} and \textbf{pytest} provide the DevOps base.
-DagsHub is planned as a unified remote for DVC and MLflow.
+DagsHub is used as a unified remote for data, code and model artifacts.
 
 We adopt \textbf{code-based deployment}~\cite{databricks_bigbook}: the three
 environments share identical training code; what advances is a validated
@@ -260,20 +254,22 @@ Deploy refits the champion on all available Gold at run time.
 \subsection{Data and model lifecycle}
 
 \textbf{Bronze} stores immutable API-Football JSON and Elo TSV snapshots.
-\textbf{Silver} is schema-validated, season-partitioned Parquet: team mapping,
-Elo date join, competition tiers, knockout flags.
+\textbf{Silver} is schema-validated, season-partitioned Parquet, joining data 
+from both sources and adding context, such as competition tiers or knockout 
+flags.
 \textbf{Gold} is one row per match with strictly time-aware features (rolling
 form, Elo composites, context flags); no future information enters any column.
 
 Model development uses three environments backed by MLflow registry models
 (Figure~\ref{fig:architecture}):
 \begin{enumerate}
-  \item \textbf{Experimental:} all nine candidates tuned by Optuna on walk-forward
-  CV Poisson NLL; all advance to QA.
-  \item \textbf{QA:} backtest on 64 WC~2022 matches; lowest holdout RPS wins;
-  artifacts registered for audit.
-  \item \textbf{Deploy:} champion refit on full Gold; Monte Carlo simulation for
-  WC~2026; shadow models refit in parallel for live monitoring.
+  \item \textbf{Experimental:} all nine candidates are tuned by Optuna on 
+  walk-forward CV Poisson Negative Log-Likelihood (NLL). The best-performing configuration for each
+  model advances to QA.
+  \item \textbf{QA:} the nine model configurations are backtested on all 64 
+  WC~2022 matches. The artifacts of the model with the lowest holdout Ranked 
+  Probability Score (RPS) is registered as challenger for audit.
+  \item \textbf{Deploy:} the challenger is compared against the existing champion model. The one with the lower RPS is registered as champion, refitted on the full Gold data and used for inference. The other eight model configurations from QA are refitted in parallel for live monitoring.
 \end{enumerate}
 
 \subsection{Tool stack}
@@ -299,8 +295,9 @@ Model development uses three environments backed by MLflow registry models
 \section{Implementing the Pipeline}
 \label{sec:implementation}
 
-This section maps the architecture to a concrete implementation: dual-source
-ingestion, nine model candidates, explicit promotion, and cloud scheduling.
+This section maps the architecture to the concrete implementation: dual-source
+ingestion, nine model candidates spanning five model families, explicit 
+promotion, and cloud scheduling.
 Detailed schemas, per-model notes, and monitoring design are in
 Appendices~\ref{app:data} and~\ref{app:model}.
 
@@ -308,12 +305,14 @@ Appendices~\ref{app:data} and~\ref{app:model}.
 \label{sec:impl_data}
 
 \textbf{Sources.}
-API-Football supplies national-team fixtures and per-match statistics from 2018;
-Elo ratings (eloratings.net) supply cross-confederation strength estimates as
+To cover both ELO scores and in-game statistics, two data sources were used. 
+API-Football supplies national-team fixtures and per-match statistics.
+Elo ratings (eloratings.net) supply self-regulatory strength estimates as
 per-team TSV histories.
+All national team data from 2018 onwards was used.
 
 \textbf{Bronze--Silver.}
-Raw JSON and TSV are DVC-tracked.
+The raw JSON and TSV are DVC-tracked.
 Silver retains finished matches only (\texttt{FT}/\texttt{AET}/\texttt{PEN}),
 joins statistics by \texttt{fixture\_id}, resolves team identity via a curated
 mapping, filters youth and non-FIFA entities, assigns competition tier (1=World
@@ -323,10 +322,10 @@ Schema validation runs before Parquet write (72 columns; see Appendix~\ref{app:d
 
 \textbf{Gold.}
 Rolling means of goals for/against (10 prior matches), rolling tactical profiles
-from matches with non-empty \texttt{stats\_tier}, Elo difference and sum,
-squad-cohesion proxies (\texttt{rest\_diff}), and context flags
-(\texttt{competition\_tier}, \texttt{is\_knockout}, \texttt{is\_neutral}) are
-computed with strict temporal ordering---each feature uses only prior matches.
+from matches with statistics coverage, Elo difference and sum,
+squad-cohesion proxies, and context flags on tournament and match level are
+computed with strict temporal ordering to make sure each feature uses only 
+prior matches and avoid data leakage.
 K-means clustering on tactical profiles was evaluated but rejected (silhouette
 $<0.40$; Appendix~\ref{app:data}).
 
@@ -338,16 +337,31 @@ if Gold grows by $\geq$10 rows), tournament schedules use 30-minute
 \subsection{Model lifecycle (ModelOps)}
 \label{sec:impl_model}
 
-The prediction target is the joint distribution over $(home\_goals, away\_goals)$;
-W/D/L probabilities and tournament outcomes are derived by marginalising predicted
-Poisson rates and Monte Carlo sampling ($n_\mathrm{sims}=10{,}000$ paths).
+The prediction target is the joint distribution over $(home\_goals, away\_goals)$.
 
-Table~\ref{tab:models} lists nine candidates spanning five families.
-Hyperparameters are tuned with Optuna (50 TPE trials, walk-forward CV).
-\textbf{Tuning} minimises Poisson NLL (goal-rate fidelity); \textbf{QA gating}
-uses holdout RPS because simulation consumes outcome probabilities.
-All nine candidates advance to QA after an initial top-4 gate proved misleading
-when CV and holdout rankings diverged (Section~\ref{sec:impl_results}).
+Match outcomes are derived by marginalising the predicted score distribution: 
+$P(\text{home win}) = \sum_{i>j} P(H{=}i, A{=}j)$, where home and away goals 
+are treated as (conditionally) independent Poisson variates with rates 
+$\hat{\lambda}_h$ and $\hat{\lambda}a$. Tournament advancement probabilities 
+are then obtained by Monte Carlo simulation ($n\mathrm{sims}=10{,}000$ 
+paths), sampling scorelines for every of the $\binom{48}{2} = 1{,}128$ 
+possible matchups and propagating uncertainty through the full knockout tree.
+
+
+Table~\ref{tab:models} lists nine candidates spanning five families. 
+Hyperparameters are tuned with Optuna (50 TPE trials, walk-forward CV). 
+\textbf{Tuning} minimises Poisson NLL (goal-rate fidelity); \textbf{QA 
+gating} uses holdout RPS because simulation consumes outcome probabilities. 
+The two metrics are deliberately decoupled: NLL rewards placing probability 
+mass near the actual scoreline and is agnostic to outcome ordering, making it 
+a stable signal for hyperparameter search. RPS evaluates the cumulative W/D/L 
+distribution and directly measures what matters for tournament advancement 
+prediction. Using RPS as the tuning objective would create a draw-hedging 
+incentive, since draw occupies the middle ordinal position and a confident 
+incorrect draw prediction never incurs the maximum penalty.
+All nine candidates advance to QA after an initial top-4 gate proved 
+misleading when CV and holdout rankings diverged (Section~\ref{sec:impl_results}).
+
 
 \begin{table}[h]
   \caption{Candidate models}
@@ -371,10 +385,34 @@ when CV and holdout rankings diverged (Section~\ref{sec:impl_results}).
 
 \textbf{Hypotheses.}
 \begin{description}
-  \item[H1] \texttt{elo\_diff} is the dominant feature across families.
-  \item[H2] Poisson GLM is a competitive baseline despite simpler structure.
-  \item[H3] Deep learning underperforms relative to complexity given sparse data.
-  \item[H4] Bayesian Poisson yields best-calibrated outcome probabilities.
+  \item[H1] 
+
+\item[H2] Poisson GLM is a competitive baseline despite simpler structure.
+
+
+\item[H3] Deep learning underperforms relative to complexity given sparse data.
+
+
+\item[H4] Bayesian Poisson yields best-calibrated outcome probabilities.
+
+
+  \item[H1] \texttt{elo\_diff} is the dominant feature across families. Elo 
+  ratings encode cumulative match history into a single continuous quality signal 
+  without requiring squad-level data, making them the most information-dense 
+  feature available for national teams.
+  \item[H2] Poisson GLM is a competitive baseline despite simpler structure. 
+  Football goal counts are well-approximated by Poisson 
+  processes~\cite{maher1982modelling},
+  so a correctly specified GLM is expected to capture the core signal that more
+  complex architectures must also learn.
+  \item[H3] Deep learning underperforms relative to complexity given sparse data. 
+  LSTM and CNN require long per-team sequences to generalise; national teams play
+  only around 10 matches per year, leaving too few observations to train deep
+  architectures without overfitting.
+  \item[H4] Bayesian Poisson yields best-calibrated goal predictions. Full 
+  MCMC posterior predictive distributions propagate parameter uncertainty
+  into score predictions, which should translate into better-calibrated goal 
+  distributions than point-estimate models.
 \end{description}
 
 \subsection{Training and deployment}
@@ -385,20 +423,43 @@ from Qatar 2022 (\texttt{competition\_tier=1}).
 The QA winner (lowest RPS) is refit on full Gold, registered as production
 champion, and used for $\binom{48}{2}=1{,}128$ pairwise rate predictions feeding
 the bracket simulator.
+
 Eight shadow models refit on the same Gold window for apples-to-apples WC~2026
 monitoring without mid-tournament promotion.
+
 Deployment packages the pipeline in Docker on Cloud Run Jobs with dual Cloud
-Scheduler entries (daily pre-tournament, 30-minute tournament inference).
+Scheduler entries. Daily runs are sufficient to capture the last friendly matches 
+of qualified teams before the tournament starts, and a 30-minute run interval during the World Cup makes sure that predictions stay up-to-date.
 
 \subsection{Results}
 \label{sec:impl_results}
 
 Table~\ref{tab:qa_results} reports WC~2022 holdout metrics.
-Ridge wins on RPS (0.2250) despite ranking seventh in CV NLL (2.8471); the top
-three CV models (NegBin, Bayesian Poisson, Poisson GLM) fall to ranks 4--7 on
-holdout.
-Excluding CNN, eight models lie within a 0.0046 RPS band---sampling noise on 64
-matches dominates architecture differences.
+Ridge wins on RPS (0.2250) despite ranking seventh in CV NLL (2.8471); the
+CV NLL leader (NegBin GLM, 2.7576) drops to seventh on holdout RPS (0.2294).
+This CV--holdout ranking reversal reflects three factors: (i)~NLL rewards
+scoreline-level calibration while RPS collapses predictions into three W/D/L
+buckets, so the two metrics can rank the same models differently;
+(ii)~the WC~2022 holdout is a tournament-only sample with stronger teams and
+more neutral venues than the training average, introducing distribution shift
+from the overall training data;
+(iii)~when \texttt{elo\_diff} accounts for the vast majority of signal, the
+residual that architecture can exploit is small and noisy on 64~matches.
+
+Excluding CNN, eight models lie within a 0.0046 RPS band (0.2250--0.2296),
+making them statistically indistinguishable.
+Outcome accuracy tells a complementary story: LSTM leads at 54.7\% (35/64)
+while Ridge (the RPS champion) achieves only 50.0\% (32/64).
+RPS rewards well-calibrated probability spreads; accuracy rewards correct
+argmax calls regardless of confidence.
+On this holdout the choice of metric determines the champion more than the
+choice of model architecture.
+For the downstream Monte Carlo simulation, which consumes full probability
+distributions, RPS is the appropriate selection metric; Ridge was promoted.
+
+This reversal also motivated a pipeline design change: the original top-four
+CV promotion gate was removed in favour of advancing all nine candidates to
+QA, since the CV metric proved misleading.
 
 \begin{table}[h]
   \caption{QA holdout (64 WC~2022 matches, sorted by RPS)}
@@ -420,10 +481,10 @@ matches dominates architecture differences.
   \end{tabular}
 \end{table}
 
-Permutation importance (Appendix~\ref{app:model}) ranks \texttt{elo\_diff} first
+Permutation importance (Appendix~\ref{app:model}) ranks Elo difference first
 in all nine models with degradation scores 10--100$\times$ larger than any
-secondary feature (\texttt{rolling\_goals\_against}, \texttt{competition\_tier}).
-Deep-learning models assign relatively more weight to \texttt{is\_neutral}, likely
+secondary feature (rolling goals against, competition tier).
+Deep-learning models assign relatively more weight to home advantage, likely
 compensating for weaker Elo exploitation.
 Outcome accuracy favours LSTM (54.7\%) while RPS favours Ridge (50.0\%), so the
 evaluation metric determines the champion more than architecture on this holdout.
@@ -437,35 +498,56 @@ evaluation metric determines the champion more than architecture on this holdout
 \textbf{H1 (confirmed):} \texttt{elo\_diff} ranks first in every family;
 secondary features contribute at most marginal corrections.
 
-\textbf{H2 (confirmed):} Poisson GLM is fourth on holdout RPS and competitive on
-CV NLL---a strong baseline that complex models do not clearly beat once Elo is
-present.
+\textbf{H2 (confirmed):} The bivariate Poisson GLM is fourth on holdout RPS and 
+competitive on CV NLL. It is a strong baseline that complex models do not clearly 
+beat once Elo is present.
 
 \textbf{H3 (partially confirmed):} CNN ranks last; LSTM is mid-pack on RPS but
-leads accuracy---deep models do not justify their cost on this corpus.
+leads accuracy. Overall, deep models do not justify their cost on this corpus.
 
-\textbf{H4 (not confirmed):} Bayesian Poisson does not achieve best holdout RPS
-or NLL despite full MCMC; Ridge reaches the Elo ceiling in seconds versus hours
-of NUTS tuning.
+\textbf{H4 (not confirmed):} Bayesian Poisson does not achieve best holdout NLL
+or RPS despite full MCMC. Ridge reaches the Elo ceiling in seconds versus 
+multiple hours of No-U-Turn Sampler (NUTS) tuning.
 
-Practically, the pipeline engineering lessons outweigh marginal model gains:
-explicit environments, metric separation (NLL tune / RPS gate), advancing all
-candidates to QA after CV--holdout reversal, and code-based refit separate model
-\emph{selection} from \emph{refresh}.
-The ranking reversal (CV leaders NegBin/Bayesian/Poisson GLM vs.\ holdout winner
-Ridge) reflects metric mismatch, tournament distribution shift, and an
-Elo-dominated feature ceiling where 64-match variance swamps architecture signal.
+The most instructive outcomes of this work are engineering rather than 
+statistical. 
+
+Separating the tuning metric (Poisson NLL, which rewards goal-rate
+accuracy) from the gating metric (RPS, which rewards outcome-probability
+calibration) prevents the optimiser from collapsing score distributions into
+outcome buckets prematurely. 
+
+Code-based refit decouples \emph{model selection} (fixed at the QA phase) from \emph{model refresh} (automated on new data), so routine data updates never invalidate the audit trail or re-open champion selection.
+
+Advancing all nine candidates to QA, rather than
+filtering by CV rank, proved essential: the top-three CV models (NegBin, Bayesian Poisson, Poisson GLM) fell to the lower half of the holdout ranking, while Ridge, seventh in CV, won on holdout RPS. This reversal has three contributing causes. 
+
+First, CV NLL and holdout RPS measure different quantities: a model well-
+calibrated at the scoreline level is not necessarily optimal at the W/D/L 
+probability level. 
+
+Second, the WC~2022 holdout is a tournament-only sample of 64 matches with 
+stronger teams, more neutral venues, and higher competitive stakes than the mixed-
+tier training set. Models that overfit to tier-3 and tier-4 match 
+characteristics, which make up the biggest portion of matches in the training 
+data, generalise less well there. 
+
+Third, when a single feature (elo difference) accounts for the vast majority 
+of accessible signal, the residual that architecture can exploit is small and 
+noisy. On 64 matches, sampling variance in that residual dominates any model 
+difference. 
 
 \subsection{Threats to validity}
 \label{sec:threats}
 
 \textbf{Single-tournament holdout.}
-QA uses 64 matches from one World Cup; the 0.0046 RPS spread among top models is
-within sampling noise, so champion choice may not generalise.
+QA uses 64 matches from one World Cup. As mentioned, the 0.0046 RPS spread among 
+top models is within sampling noise, so the champion choice may not generalise.
 
 \textbf{Sparse statistics.}
-Only $\sim$51\% of matches have per-match stats; coverage is lower for CAF, AFC,
-and OFC, biasing tactical features toward UEFA/CONMEBOL-heavy training data.
+Only $\sim$51\% of matches have per-match stats. Coverage depends heavily on the 
+confederation; it is lower for CAF, AFC, and OFC, so tactical features are likely 
+biased toward UEFA/CONMEBOL-heavy training data.
 
 \textbf{2026 format novelty.}
 48 teams, 12 groups, and the best-third-place rule create combinatorial knockout
@@ -479,7 +561,7 @@ weaken holdout validity as a proxy for 2026 performance.
 \section{Conclusion}
 \label{sec:conclusion}
 
-We presented a local-first MLOps pipeline for World Cup prediction with
+We presented a dual-source MLOps pipeline for World Cup prediction with
 Bronze/Silver/Gold data layers, a three-environment lifecycle, and systematic
 comparison of nine model families under explicit hypotheses.
 Engineering contributions---DVC reproducibility, MLflow audit trails, separated
