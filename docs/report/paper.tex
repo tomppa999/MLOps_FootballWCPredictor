@@ -1,6 +1,6 @@
 % ============================================================
 % MLOps for Football World Cup Prediction — condensed paper
-% IEEE Conference Format — IEEEtran (~8 pages + appendices)
+% IEEE Conference Format — IEEEtran (~7 pages)
 % Compile: pdflatex -> bibtex -> pdflatex -> pdflatex
 % ============================================================
 
@@ -107,7 +107,7 @@ Sections~\ref{sec:discussion} and~\ref{sec:conclusion} discuss findings and conc
 
 \begin{figure}[t]
   \centering
-  \maybegraphic{../figures/Architecture.png}{0.95\columnwidth}
+  \maybegraphic{../figures/Architecture_final.png}{0.95\columnwidth}
   \caption{End-to-end MLOps pipeline: Bronze/Silver/Gold data path,
   three model environments, and Monte Carlo tournament simulation.}
   \label{fig:architecture}
@@ -297,9 +297,7 @@ Model development uses three environments backed by MLflow registry models
 
 This section maps the architecture to the concrete implementation: dual-source
 ingestion, nine model candidates spanning five model families, explicit 
-promotion, and cloud scheduling.
-Detailed schemas, per-model notes, and monitoring design are in
-Appendices~\ref{app:data} and~\ref{app:model}.
+promotion, cloud scheduling, and live monitoring.
 
 \subsection{Data pipeline (DataOps)}
 \label{sec:impl_data}
@@ -314,25 +312,60 @@ All national team data from 2018 onwards was used.
 \textbf{Bronze--Silver.}
 The raw JSON and TSV are DVC-tracked.
 Silver retains finished matches only (\texttt{FT}/\texttt{AET}/\texttt{PEN}),
-joins statistics by \texttt{fixture\_id}, resolves team identity via a curated
-mapping, filters youth and non-FIFA entities, assigns competition tier (1=World
-Cup finals through 4=friendlies), and joins pre-match Elo by
-\texttt{merge\_asof}.
-Schema validation runs before Parquet write (72 columns; see Appendix~\ref{app:data}).
+joins statistics by \texttt{fixture\_id} and encodes a
+\texttt{stats\_tier} (\texttt{full}/\texttt{partial}/\texttt{cards\_only}/\texttt{none}),
+resolves team identity via a curated mapping, filters youth and non-FIFA
+entities, assigns competition tier (1=World Cup finals through 4=friendlies)
+and a \texttt{is\_knockout} flag, joins pre-match Elo by
+\texttt{merge\_asof}, and derives \texttt{is\_neutral}.
+Schema validation runs before Parquet write.
+Table~\ref{tab:silver_schema} summarises the resulting 72-column schema.
+
+\begin{table}[h]
+  \caption{Silver column groups (72 total)}
+  \label{tab:silver_schema}
+  \begin{tabular}{@{}lc@{}}
+    \toprule
+    Group & Count \\
+    \midrule
+    Match identity & 14 \\
+    Teams (ID, name, ISO, conf.) & 10 \\
+    Goals (final, HT, FT, ET, pen.) & 10 \\
+    Elo (pre/post, both sides) & 4 \\
+    Match statistics (16 per side) & 32 \\
+    Quality flags & 2 \\
+    \midrule
+  \textbf{Total} & \textbf{72} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \textbf{Gold.}
 Rolling means of goals for/against (10 prior matches), rolling tactical profiles
-from matches with statistics coverage, Elo difference and sum,
-squad-cohesion proxies, and context flags on tournament and match level are
-computed with strict temporal ordering to make sure each feature uses only 
+from matches with statistics coverage, Elo difference and sum, days since last match 
+as a squad-cohesion proxy (tactical familiarity, coordination, time-as-a-unit), and 
+context flags on tournament and match level are
+computed with strict temporal ordering to make sure each feature uses only
 prior matches and avoid data leakage.
-K-means clustering on tactical profiles was evaluated but rejected (silhouette
-$<0.40$; Appendix~\ref{app:data}).
+Rolling tactical columns use volume (\texttt{total\_shots}) and precision
+(\texttt{shot\_precision}) rather than linearly dependent shot subtypes;
+opponent-suffered stats were excluded to avoid confounding style with opponent
+quality.
+K-means clustering on five rolling tactical dimensions yielded silhouette scores
+below 0.40 for all $k\in\{2,\ldots,10\}$
+(Figure~\ref{fig:cluster_k}); raw continuous columns were retained instead.
 
-A freshness trigger re-runs \texttt{dvc repro} when Elo digests or API-Football
-fixtures change; pre-tournament schedules use daily \texttt{auto} mode (retrain
-if Gold grows by $\geq$10 rows), tournament schedules use 30-minute
-\texttt{inference\_only} mode with a frozen champion.
+\begin{figure}[h]
+  \centering
+  \maybegraphic{../figures/cluster_experiment_v2.png}{0.95\columnwidth}
+  \caption{Elbow and silhouette analysis for tactical clustering (not used in Gold).}
+  \label{fig:cluster_k}
+\end{figure}
+
+WC~2026 co-hosts (USA, Canada, Mexico) receive \texttt{is\_neutral=False} at
+home venues in the group stage via a deterministic Gold override; knockout
+overrides use venue-to-country mapping in the tournament JSON during
+simulation.
 
 \subsection{Model lifecycle (ModelOps)}
 \label{sec:impl_model}
@@ -476,10 +509,30 @@ candidate tournament on every data update.
 \textbf{Shadow models.}
 Eight non-champion candidates are refit on the same full Gold window using
 each candidate's Optuna-tuned hyperparameters.
-These shadow refits feed the WC~2026 monitoring leaderboard
-(Appendix~\ref{app:model}) so all nine models can be compared on a
-like-for-like basis without confounding model family with data recency.
+These shadow refits feed the WC~2026 monitoring leaderboard so all nine models
+can be compared on a like-for-like basis without confounding model family with
+data recency.
 No re-tuning occurs; model selection is frozen.
+
+\textbf{Ingestion trigger and continuous training.}
+Freshness checks use (1)~Elo SHA-256 digest change and (2)~API-Football
+incremental window with all fixtures settled.
+An OR gate triggers \texttt{dvc repro} when either source updates.
+The initial run executes the full
+Experimental$\to$QA$\to$Deploy pipeline; subsequent runs refit the champion
+only when Gold grows by $\geq$10 rows, forwarding original QA metrics for
+audit continuity.
+Tournament \texttt{inference\_only} mode rebuilds Gold rolling features from
+settled WC matches without retraining.
+Figure~\ref{fig:ct_architecture} illustrates the trigger, training, and
+inference paths.
+
+\begin{figure}[h]
+  \centering
+  \maybegraphic{../figures/architecture_ct_pipeline.png}{0.95\columnwidth}
+  \caption{Trigger, continuous training, and inference paths.}
+  \label{fig:ct_architecture}
+\end{figure}
 
 \textbf{Cloud deployment.}
 The pipeline is packaged in Docker on Cloud Run Jobs with dual Cloud
@@ -487,6 +540,28 @@ Scheduler entries.
 Daily runs capture the last friendly matches of qualified teams before the
 tournament starts; 30-minute runs during the World Cup keep predictions
 up-to-date with a frozen champion (\texttt{inference\_only} mode).
+
+\textbf{Live monitoring.}
+Every 30-minute inference cycle predicts all $1{,}128$ pairings with all
+nine models (champion plus eight shadow versions) and logs long-format
+results as MLflow artifacts.
+After each settled WC~2026 match, a monitoring step joins the actual
+scoreline with the most recent inference whose timestamp is \emph{strictly
+earlier} than kickoff. The strict inequality is essential because a later
+inference cycle already incorporates the result into Gold features, so
+using it would leak post-match information into the evaluation.
+Per-match RPS, Poisson NLL, RMSE\textsubscript{home}, and
+RMSE\textsubscript{away} are computed for each of the nine models from
+predicted Poisson rates.
+For each model, a rolling-mean RPS over the last 24 scored matches
+(one group-stage matchday: 12~groups $\times$ 2~matches) is compared
+against $1.3\times$ that model's WC~2022 holdout RPS baseline; a breach
+emits a warning captured by Cloud Logging.
+Models with fewer than 24 scored matches (the first group matchday) are 
+skipped to suppress early-tournament noise.
+No automated promotion occurs under any alert condition: mid-tournament
+retraining is out of scope because ${\sim}$5~weeks of WC matches is too
+short for statistically meaningful drift detection.
 
 \subsection{Results}
 \label{sec:impl_results}
@@ -526,11 +601,51 @@ Section~\ref{sec:discussion}.
   \end{tabular}
 \end{table}
 
-Permutation importance (Appendix~\ref{app:model}) ranks Elo difference first
-in all nine models with degradation scores 10--100$\times$ larger than any
-secondary feature (rolling goals against, competition tier).
+Table~\ref{tab:importance} reports permutation importance measured as holdout
+RPS degradation.
+Elo difference ranks first in all nine models with degradation scores
+10--100$\times$ larger than any secondary feature.
 Deep-learning models assign relatively more weight to home advantage, likely
 compensating for weaker Elo exploitation.
+
+\begin{table*}[t]
+  \caption{Top-3 permutation importance (RPS degradation)}
+  \label{tab:importance}
+  \small
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    Model & \#1 & \#2 & \#3 \\
+    \midrule
+    Random Forest & \texttt{elo\_diff} \scriptsize{+.121}
+      & \texttt{elo\_sum} \scriptsize{+.002}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.002} \\
+    SARIMAX & \texttt{elo\_diff} \scriptsize{+.110}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.002}
+      & \texttt{elo\_sum} \scriptsize{+.000} \\
+    NegBin GLM & \texttt{elo\_diff} \scriptsize{+.104}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001}
+      & \texttt{comp\_tier} \scriptsize{+.001} \\
+    Bayesian Poisson & \texttt{elo\_diff} \scriptsize{+.103}
+      & \texttt{rest\_diff} \scriptsize{+.001}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001} \\
+    Poisson GLM & \texttt{elo\_diff} \scriptsize{+.102}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001}
+      & \texttt{comp\_tier} \scriptsize{+.001} \\
+    XGBoost & \texttt{elo\_diff} \scriptsize{+.098}
+      & \texttt{roll\_tac\_poss$_a$} \scriptsize{+.002}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.002} \\
+    LSTM & \texttt{elo\_diff} \scriptsize{+.095}
+      & \texttt{is\_neutral} \scriptsize{+.005}
+      & \texttt{comp\_tier} \scriptsize{+.002} \\
+    Ridge & \texttt{elo\_diff} \scriptsize{+.062}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.004}
+      & \texttt{roll\_goals\_ag$_a$} \scriptsize{+.002} \\
+    1D CNN & \texttt{elo\_diff} \scriptsize{+.055}
+      & \texttt{is\_neutral} \scriptsize{+.005}
+      & \texttt{comp\_tier} \scriptsize{+.004} \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
 
 % ============================================================
 \section{Discussion}
@@ -691,161 +806,6 @@ The WC~2026 inference cycle offers an opportunity to study how sequential
 group-stage result revelation reshapes advancement probabilities under the
 expanded format, tracking per-team probability trajectories across
 matchdays via stored simulation snapshots.
-
-% ============================================================
-\appendices
-
-\section{Data pipeline details}
-\label{app:data}
-
-\subsection{Silver schema}
-
-\begin{table}[h]
-  \caption{Silver column groups (72 total)}
-  \label{tab:silver_schema}
-  \begin{tabular}{@{}lc@{}}
-    \toprule
-    Group & Count \\
-    \midrule
-    Match identity & 14 \\
-    Teams (ID, name, ISO, conf.) & 10 \\
-    Goals (final, HT, FT, ET, pen.) & 10 \\
-    Elo (pre/post, both sides) & 4 \\
-    Match statistics (16 per side) & 32 \\
-    Quality flags & 2 \\
-    \midrule
-  \textbf{Total} & \textbf{72} \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Per-side statistics include shots, possession, fouls, cards, passes; quality
-flags record \texttt{has\_statistics} and \texttt{stats\_tier}
-(\texttt{full}/\texttt{partial}/\texttt{cards\_only}/\texttt{none}).
-
-\subsection{Silver transformations (full)}
-
-\begin{itemize}
-  \item Retain only \texttt{FT}, \texttt{AET}, \texttt{PEN} fixtures.
-  \item Join statistics; encode \texttt{stats\_tier}.
-  \item Map API-Football IDs to canonical names/ISO via CSV.
-  \item Remove youth, B, club, and non-FIFA entities.
-  \item Assign competition tier 1--4 and \texttt{is\_knockout}.
-  \item Join Elo with \texttt{merge\_asof}; derive \texttt{is\_neutral}.
-  \item Validate schema before Parquet write.
-\end{itemize}
-
-\subsection{Gold features (selected detail)}
-
-Rolling tactical columns use volume (\texttt{total\_shots}) and precision
-(\texttt{shot\_precision}) rather than linearly dependent shot subtypes.
-Opponent-suffered stats were excluded to avoid confounding style with opponent
-quality.
-\texttt{rest\_diff} encodes squad-cohesion proxy (days since last national-team
-match), not player-level rest.
-Clustering on five rolling tactical dimensions yielded silhouette scores below
-0.40 for all $k\in\{2,\ldots,10\}$; raw continuous columns were retained.
-
-\begin{figure}[h]
-  \centering
-  \maybegraphic{../figures/cluster_experiment_v2.png}{0.95\columnwidth}
-  \caption{Elbow and silhouette analysis for tactical clustering (not used in Gold).}
-  \label{fig:cluster_k}
-\end{figure}
-
-\subsection{Home advantage at inference}
-
-2026 co-hosts (USA, Canada, Mexico) receive \texttt{is\_neutral=False} at home
-venues in group stage via deterministic Gold override; knockout overrides use
-venue-to-country mapping in tournament JSON during simulation.
-
-\subsection{Ingestion trigger and continuous training}
-
-Freshness checks: (1)~Elo SHA-256 digest change; (2)~API-Football incremental
-window with all fixtures settled.
-An OR gate triggers \texttt{dvc repro} when either source updates.
-Initial run executes full Experimental$\to$QA$\to$Deploy; subsequent runs refit
-champion only when Gold grows by $\geq$10 rows, forwarding original QA metrics for
-audit.
-Tournament \texttt{inference\_only} rebuilds Gold rolling features from settled WC
-matches without retraining.
-
-\begin{figure}[h]
-  \centering
-  \maybegraphic{../figures/architecture_ct_pipeline.png}{0.95\columnwidth}
-  \caption{Trigger, continuous training, and inference paths.}
-  \label{fig:ct_architecture}
-\end{figure}
-
-% ---
-\section{Model and monitoring details}
-\label{app:model}
-
-
-\subsection{Feature importance (full)}
-
-\begin{table*}[t]
-  \caption{Top-3 permutation importance (RPS degradation)}
-  \label{tab:importance}
-  \small
-  \begin{tabular}{@{}lccc@{}}
-    \toprule
-    Model & \#1 & \#2 & \#3 \\
-    \midrule
-    Random Forest & \texttt{elo\_diff} \scriptsize{+.121}
-      & \texttt{elo\_sum} \scriptsize{+.002}
-      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.002} \\
-    SARIMAX & \texttt{elo\_diff} \scriptsize{+.110}
-      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.002}
-      & \texttt{elo\_sum} \scriptsize{+.000} \\
-    NegBin GLM & \texttt{elo\_diff} \scriptsize{+.104}
-      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001}
-      & \texttt{comp\_tier} \scriptsize{+.001} \\
-    Bayesian Poisson & \texttt{elo\_diff} \scriptsize{+.103}
-      & \texttt{rest\_diff} \scriptsize{+.001}
-      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001} \\
-    Poisson GLM & \texttt{elo\_diff} \scriptsize{+.102}
-      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001}
-      & \texttt{comp\_tier} \scriptsize{+.001} \\
-    XGBoost & \texttt{elo\_diff} \scriptsize{+.098}
-      & \texttt{roll\_tac\_poss$_a$} \scriptsize{+.002}
-      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.002} \\
-    LSTM & \texttt{elo\_diff} \scriptsize{+.095}
-      & \texttt{is\_neutral} \scriptsize{+.005}
-      & \texttt{comp\_tier} \scriptsize{+.002} \\
-    Ridge & \texttt{elo\_diff} \scriptsize{+.062}
-      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.004}
-      & \texttt{roll\_goals\_ag$_a$} \scriptsize{+.002} \\
-    1D CNN & \texttt{elo\_diff} \scriptsize{+.055}
-      & \texttt{is\_neutral} \scriptsize{+.005}
-      & \texttt{comp\_tier} \scriptsize{+.004} \\
-    \bottomrule
-  \end{tabular}
-\end{table*}
-
-\subsection{WC~2026 monitoring design}
-
-Every 30-minute inference cycle predicts all $1{,}128$ pairings with all
-nine models (champion plus eight shadow versions) and logs long-format
-results as MLflow artifacts.
-After each settled WC~2026 match, a monitoring step joins the actual
-scoreline with the most recent inference whose timestamp is \emph{strictly
-earlier} than kickoff---the strict inequality is essential because a later
-inference cycle already incorporates the result into Gold features, so
-using it would leak post-match information into the evaluation.
-Per-match RPS, Poisson NLL, RMSE\textsubscript{home}, and
-RMSE\textsubscript{away} are computed for each of the nine models from
-predicted Poisson rates.
-
-For each model, a rolling-mean RPS over the last 24 scored matches
-(one group-stage matchday: 12~groups $\times$ 2~matches) is compared
-against $1.3\times$ that model's WC~2022 holdout RPS baseline; a breach
-emits a warning captured by Cloud Logging.
-Models with fewer than 24 scored matches are skipped to suppress
-early-tournament noise.
-No automated promotion occurs under any alert condition: mid-tournament
-retraining is out of scope because ${\sim}$5~weeks of WC matches is too
-short for statistically meaningful drift detection.
 
 % ============================================================
 \bibliographystyle{IEEEtran}
