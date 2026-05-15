@@ -342,25 +342,45 @@ The prediction target is the joint distribution over $(home\_goals, away\_goals)
 Match outcomes are derived by marginalising the predicted score distribution: 
 $P(\text{home win}) = \sum_{i>j} P(H{=}i, A{=}j)$, where home and away goals 
 are treated as (conditionally) independent Poisson variates with rates 
-$\hat{\lambda}_h$ and $\hat{\lambda}a$. Tournament advancement probabilities 
-are then obtained by Monte Carlo simulation ($n\mathrm{sims}=10{,}000$ 
-paths), sampling scorelines for every of the $\binom{48}{2} = 1{,}128$ 
+$\hat{\lambda}_h$ and $\hat{\lambda}_a$. Tournament advancement probabilities 
+are then obtained by Monte Carlo simulation ($n_\mathrm{sims}=10{,}000$ 
+paths), sampling scorelines for all $\binom{48}{2} = 1{,}128$ 
 possible matchups and propagating uncertainty through the full knockout tree.
 
 
-Table~\ref{tab:models} lists nine candidates spanning five families. 
-Hyperparameters are tuned with Optuna (50 TPE trials, walk-forward CV). 
-\textbf{Tuning} minimises Poisson NLL (goal-rate fidelity); \textbf{QA 
-gating} uses holdout RPS because simulation consumes outcome probabilities. 
-The two metrics are deliberately decoupled: NLL rewards placing probability 
-mass near the actual scoreline and is agnostic to outcome ordering, making it 
-a stable signal for hyperparameter search. RPS evaluates the cumulative W/D/L 
-distribution and directly measures what matters for tournament advancement 
-prediction. Using RPS as the tuning objective would create a draw-hedging 
-incentive, since draw occupies the middle ordinal position and a confident 
-incorrect draw prediction never incurs the maximum penalty.
-All nine candidates advance to QA after an initial top-4 gate proved 
-misleading when CV and holdout rankings diverged (Section~\ref{sec:impl_results}).
+Table~\ref{tab:models} lists nine candidates spanning five families.
+Hyperparameters are tuned with Optuna (50 TPE trials, walk-forward CV).
+\textbf{Tuning} minimises Poisson NLL; \textbf{QA gating} uses holdout RPS.
+The two metrics are deliberately decoupled.
+
+\textbf{Poisson NLL} rewards placing probability mass near the actual
+scoreline:
+\begin{equation}
+  \text{NLL} = -\frac{1}{N}\sum_{i=1}^{N}
+  \bigl[\log P(h_i \mid \hat{\lambda}_{h,i})
+       + \log P(a_i \mid \hat{\lambda}_{a,i})\bigr]
+\end{equation}
+where $h_i, a_i$ are observed goals and $\hat{\lambda}_{h,i},
+\hat{\lambda}_{a,i}$ the predicted Poisson rates.
+NLL is agnostic to outcome ordering, making it a stable signal for
+hyperparameter search.
+
+\textbf{Ranked Probability Score} evaluates the cumulative W/D/L distribution:
+\begin{equation}
+  \text{RPS} = \frac{1}{K{-}1} \sum_{k=1}^{K-1}
+  \Bigl( \sum_{i=1}^{k} p_i - \sum_{i=1}^{k} o_i \Bigr)^{\!2}
+\end{equation}
+where $p_i$ is the predicted probability and $o_i \in \{0,1\}$ the observed
+indicator for outcome $i$, with outcomes ordered away win, draw, home win
+($K{=}3$).
+RPS directly measures what matters for tournament advancement prediction.
+Using RPS as the tuning objective would create a draw-hedging incentive,
+since draw occupies the middle ordinal position and a confident incorrect
+draw prediction never incurs the maximum penalty.
+
+All nine candidates advance to QA after an initial top-4 gate proved
+misleading when CV and holdout rankings diverged
+(Section~\ref{sec:impl_results}).
 
 
 \begin{table}[h]
@@ -383,19 +403,30 @@ misleading when CV and holdout rankings diverged (Section~\ref{sec:impl_results}
   \end{tabular}
 \end{table}
 
+\textbf{Per-model design notes.}
+The \textbf{Poisson GLM} implements the Karlis--Ntzoufras bivariate
+Poisson~\cite{karlis2003analysis}: a match is decomposed into three Poisson
+components ($\lambda_1$, $\lambda_2$, shared $\lambda_3$), with $\lambda_3$
+inducing score dependence across both scorelines.
+This was chosen over Dixon--Coles~\cite{dixon1997modelling} because Elo
+ratings and 10-match rolling form already impose recency weighting on the
+feature side, making explicit likelihood-level time decay largely redundant.
+The \textbf{NegBin GLM} fits independent home/away marginals rather than a
+bivariate model: the Poisson additivity that underpins the
+Karlis--Ntzoufras construction does not extend to Negative Binomial variates
+under differing dispersion.
+\textbf{Bayesian Poisson} uses PyMC's NUTS sampler to produce full posterior
+predictive distributions.
+A Bayesian bivariate variant was implemented but excluded: the custom
+log-PMF required PyMC to auto-differentiate through complex tensor
+operations at every NUTS leapfrog step, making each MCMC step
+${\sim}50\times$ slower with no CV NLL improvement.
+\textbf{SARIMAX} uses an integer match-index time axis rather than calendar
+dates, treating multi-month gaps identically to within-window spacing---an
+acknowledged limitation (Section~\ref{sec:threats}).
+
 \textbf{Hypotheses.}
 \begin{description}
-  \item[H1] 
-
-\item[H2] Poisson GLM is a competitive baseline despite simpler structure.
-
-
-\item[H3] Deep learning underperforms relative to complexity given sparse data.
-
-
-\item[H4] Bayesian Poisson yields best-calibrated outcome probabilities.
-
-
   \item[H1] \texttt{elo\_diff} is the dominant feature across families. Elo 
   ratings encode cumulative match history into a single continuous quality signal 
   without requiring squad-level data, making them the most information-dense 
@@ -418,18 +449,44 @@ misleading when CV and holdout rankings diverged (Section~\ref{sec:impl_results}
 \subsection{Training and deployment}
 \label{sec:impl_deploy}
 
-Training uses 3{,}903 pre-WC~2022 matches; the QA holdout is 64 WC-tier matches
-from Qatar 2022 (\texttt{competition\_tier=1}).
-The QA winner (lowest RPS) is refit on full Gold, registered as production
-champion, and used for $\binom{48}{2}=1{,}128$ pairwise rate predictions feeding
-the bracket simulator.
+Training uses 3{,}903 pre-WC~2022 matches; the QA holdout is 64 WC-tier
+matches from Qatar 2022 (\texttt{competition\_tier=1}).
 
-Eight shadow models refit on the same Gold window for apples-to-apples WC~2026
-monitoring without mid-tournament promotion.
+\textbf{Champion selection.}
+The QA candidate with the lowest holdout RPS is designated the challenger.
+If no current champion exists, the challenger is promoted unconditionally;
+otherwise, promotion requires a strict RPS improvement over the incumbent.
+On successful promotion, the champion is refit on all available Gold
+(2018 through the latest ingested match) using the hyperparameters selected
+during the experimental phase.
+This production-refit artifact is registered as \texttt{wc\_production} in
+the MLflow model registry and promoted via the \texttt{champion} alias.
 
-Deployment packages the pipeline in Docker on Cloud Run Jobs with dual Cloud
-Scheduler entries. Daily runs are sufficient to capture the last friendly matches 
-of qualified teams before the tournament starts, and a 30-minute run interval during the World Cup makes sure that predictions stay up-to-date.
+\textbf{Subsequent automated refits.}
+Once the initial selection is complete, subsequent trigger cycles that
+exceed the retraining threshold bypass the candidate tournament entirely.
+The trigger loads the champion's model class and hyperparameters from the
+registry and refits on the latest full Gold.
+The original QA holdout metrics are forwarded unchanged to the new MLflow
+run, preserving audit continuity.
+This separation of \emph{model selection} (fixed at QA) from
+\emph{model refresh} (automated on new data) avoids a redundant multi-hour
+candidate tournament on every data update.
+
+\textbf{Shadow models.}
+Eight non-champion candidates are refit on the same full Gold window using
+each candidate's Optuna-tuned hyperparameters.
+These shadow refits feed the WC~2026 monitoring leaderboard
+(Appendix~\ref{app:model}) so all nine models can be compared on a
+like-for-like basis without confounding model family with data recency.
+No re-tuning occurs; model selection is frozen.
+
+\textbf{Cloud deployment.}
+The pipeline is packaged in Docker on Cloud Run Jobs with dual Cloud
+Scheduler entries.
+Daily runs capture the last friendly matches of qualified teams before the
+tournament starts; 30-minute runs during the World Cup keep predictions
+up-to-date with a frozen champion (\texttt{inference\_only} mode).
 
 \subsection{Results}
 \label{sec:impl_results}
@@ -437,46 +494,34 @@ of qualified teams before the tournament starts, and a 30-minute run interval du
 Table~\ref{tab:qa_results} reports WC~2022 holdout metrics.
 Ridge wins on RPS (0.2250) despite ranking seventh in CV NLL (2.8471); the
 CV NLL leader (NegBin GLM, 2.7576) drops to seventh on holdout RPS (0.2294).
-This CV--holdout ranking reversal reflects three factors: (i)~NLL rewards
-scoreline-level calibration while RPS collapses predictions into three W/D/L
-buckets, so the two metrics can rank the same models differently;
-(ii)~the WC~2022 holdout is a tournament-only sample with stronger teams and
-more neutral venues than the training average, introducing distribution shift
-from the overall training data;
-(iii)~when \texttt{elo\_diff} accounts for the vast majority of signal, the
-residual that architecture can exploit is small and noisy on 64~matches.
+Excluding CNN, the remaining eight models lie within a 0.0046 RPS band
+(0.2250--0.2296), making them statistically indistinguishable on 64~matches.
 
-Excluding CNN, eight models lie within a 0.0046 RPS band (0.2250--0.2296),
-making them statistically indistinguishable.
 Outcome accuracy tells a complementary story: LSTM leads at 54.7\% (35/64)
-while Ridge (the RPS champion) achieves only 50.0\% (32/64).
-RPS rewards well-calibrated probability spreads; accuracy rewards correct
-argmax calls regardless of confidence.
-On this holdout the choice of metric determines the champion more than the
-choice of model architecture.
+while Ridge achieves only 50.0\% (32/64).
 For the downstream Monte Carlo simulation, which consumes full probability
 distributions, RPS is the appropriate selection metric; Ridge was promoted.
-
-This reversal also motivated a pipeline design change: the original top-four
-CV promotion gate was removed in favour of advancing all nine candidates to
-QA, since the CV metric proved misleading.
+The CV--holdout ranking reversal is analysed in
+Section~\ref{sec:discussion}.
 
 \begin{table}[h]
-  \caption{QA holdout (64 WC~2022 matches, sorted by RPS)}
+  \caption{QA holdout (64 WC~2022 matches, sorted by holdout RPS).
+  CV NLL is the walk-forward tuning metric; holdout RPS is the gating
+  metric.}
   \label{tab:qa_results}
-  \begin{tabular}{@{}lccc@{}}
+  \begin{tabular}{@{}lcccc@{}}
     \toprule
-    Model & RPS & NLL & Acc. \\
+    Model & CV NLL & RPS & NLL & Acc. \\
     \midrule
-    Ridge & \textbf{0.2250} & 3.023 & 50.0\% \\
-    Random Forest & 0.2255 & 3.012 & 53.1\% \\
-    XGBoost & 0.2263 & 3.011 & 51.6\% \\
-    Poisson GLM & 0.2284 & 3.030 & 53.1\% \\
-    LSTM & 0.2289 & 3.099 & 54.7\% \\
-    Bayesian Poisson & 0.2289 & 3.038 & 51.6\% \\
-    NegBin GLM & 0.2294 & 3.041 & 53.1\% \\
-    SARIMAX & 0.2336 & 3.315 & 50.0\% \\
-    1D CNN & 0.2479 & 3.166 & 42.2\% \\
+    Ridge            & 2.847 & \textbf{0.2250} & 3.023 & 50.0\% \\
+    Random Forest    & 2.768 & 0.2255 & 3.012 & 53.1\% \\
+    XGBoost          & 2.767 & 0.2263 & 3.011 & 51.6\% \\
+    Poisson GLM      & 2.763 & 0.2284 & 3.030 & 53.1\% \\
+    LSTM             & 2.821 & 0.2289 & 3.099 & 54.7\% \\
+    Bayesian Poisson & 2.759 & 0.2289 & 3.038 & 51.6\% \\
+    NegBin GLM       & 2.758 & 0.2294 & 3.041 & 53.1\% \\
+    SARIMAX          & 3.016 & 0.2336 & 3.315 & 50.0\% \\
+    1D CNN           & 3.039 & 0.2479 & 3.166 & 42.2\% \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -486,8 +531,6 @@ in all nine models with degradation scores 10--100$\times$ larger than any
 secondary feature (rolling goals against, competition tier).
 Deep-learning models assign relatively more weight to home advantage, likely
 compensating for weaker Elo exploitation.
-Outcome accuracy favours LSTM (54.7\%) while RPS favours Ridge (50.0\%), so the
-evaluation metric determines the champion more than architecture on this holdout.
 
 % ============================================================
 \section{Discussion}
@@ -537,25 +580,95 @@ of accessible signal, the residual that architecture can exploit is small and
 noisy. On 64 matches, sampling variance in that residual dominates any model 
 difference. 
 
+\subsection{Efficiency and holdout sensitivity}
+
+The 0.0046 RPS band among the top eight models has two additional
+structural explanations beyond the Elo ceiling.
+First, national-team football is inherently noisy: small squads, irregular
+calendars, and frequent upsets limit achievable prediction accuracy;
+50--55\% outcome accuracy is broadly consistent with bookmaker-implied
+base rates.
+Second, RPS collapses the full score distribution into three cumulative
+W/D/L probabilities, so two models with meaningfully different goal-rate
+distributions can yield near-identical RPS when their W/D/L marginals
+agree.
+
+When the feature ceiling makes architecture effectively irrelevant,
+computational efficiency becomes the rational tiebreaker:
+Ridge tunes in seconds with a single hyperparameter ($\alpha$), while
+Bayesian Poisson requires ${\sim}$7 hours of NUTS sampling and XGBoost
+${\sim}$9 minutes across 50 Optuna trials for no measurable improvement.
+A production system should prefer the simplest model that reaches the
+ceiling.
+
+Champion selection in this domain is also sensitive to the holdout sample:
+a different 64-match tournament could plausibly produce a different ranking
+among the top eight.
+This reinforces the value of advancing all candidates to QA and treating
+the champion/challenger gate as the sole decisive quality threshold.
+
 \subsection{Threats to validity}
 \label{sec:threats}
 
 \textbf{Single-tournament holdout.}
-QA uses 64 matches from one World Cup. As mentioned, the 0.0046 RPS spread among 
-top models is within sampling noise, so the champion choice may not generalise.
+QA uses 64 matches from one World Cup.
+The 0.0046 RPS spread among top models is within sampling noise, so the
+champion choice may not generalise to a different tournament.
 
 \textbf{Sparse statistics.}
-Only $\sim$51\% of matches have per-match stats. Coverage depends heavily on the 
-confederation; it is lower for CAF, AFC, and OFC, so tactical features are likely 
-biased toward UEFA/CONMEBOL-heavy training data.
+Only ${\sim}$51\% of matches have per-match stats.
+Coverage is substantially lower for CAF, AFC, and OFC confederations, so
+tactical features are biased toward UEFA/CONMEBOL-heavy training data.
+Models that include statistics-based features operate on a reduced effective
+training set for non-European and non-South-American teams.
+
+\textbf{Simulation simplifications.}
+The $30/90$ extra-time rate scaling assumes scoring intensity does not
+change, ignoring fatigue and tactical shifts.
+Penalty shootouts are modelled as a 50/50 coin flip; no penalty-specific
+features are available.
+Group-stage tiebreakers beyond head-to-head are approximated by random
+tiebreaking.
+
+\textbf{Squad and coaching composition.}
+Roster turnover between qualification and tournament is unmodelled.
+Coaching changes can alter tactical identity substantially; tactical
+patterns are approximated by rolling averages of observable match
+statistics, which reflect opponent strength as much as the team's own style.
 
 \textbf{2026 format novelty.}
-48 teams, 12 groups, and the best-third-place rule create combinatorial knockout
-uncertainty and possible strategic final matchdays under-represented in training.
+48 teams, 12 groups, and the best-third-place rule create $\binom{12}{8} =
+495$ possible Round-of-32 bracket configurations.
+Over 60\% of knockout matchups become non-deterministic, increasing
+sensitivity of tournament win probabilities to group-stage prediction
+errors.
+The format also reintroduces strategic incentives on final group matchdays
+(groups whose last matches kick off later can observe completed results
+from earlier groups), but the training corpus contains too few such
+scenarios to quantify the effect.
 
 \textbf{Temporal distance.}
-WC~2022 is four years before WC~2026; squad turnover and tactical evolution may
-weaken holdout validity as a proxy for 2026 performance.
+WC~2022 is four years before WC~2026; squad turnover, tactical evolution,
+and rule changes may weaken holdout validity as a proxy for 2026
+performance.
+
+\textbf{Elo source reliability.}
+Elo ratings are fetched from a third-party website with no SLA\@.
+Existing TSV files are preserved on fetch failure, so a transient outage
+silently uses stale data.
+Elo changes slowly between individual matches, making short-term staleness
+minor, but the dependency has no contractual guarantee.
+
+\textbf{Residual ordinal bias in RPS.}
+RPS's ordinal structure creates a draw-hedging incentive that was removed
+from hyperparameter tuning by switching to Poisson NLL\@.
+However, the QA champion/challenger gate still uses RPS\@.
+Because tuning operates entirely in NLL space, RPS is applied only after
+training to select among candidates whose goal-rate parameters are already
+fixed.
+Empirically, the champion's group-stage draw probabilities range from
+7.1\% to 30.3\% with a mean of 21.9\%, consistent with the historical
+World Cup base rate (${\approx}$25\%) rather than systematic draw-hedging.
 
 % ============================================================
 \section{Conclusion}
@@ -564,14 +677,21 @@ weaken holdout validity as a proxy for 2026 performance.
 We presented a dual-source MLOps pipeline for World Cup prediction with
 Bronze/Silver/Gold data layers, a three-environment lifecycle, and systematic
 comparison of nine model families under explicit hypotheses.
-Engineering contributions---DVC reproducibility, MLflow audit trails, separated
-tuning and gating metrics, code-based deployment, and scheduled retrain/inference---are
-the durable outcomes; Elo differential so dominates that Ridge wins on efficiency
-at indistinguishable holdout accuracy among top candidates.
+Engineering contributions---DVC reproducibility, MLflow audit trails,
+separated tuning and gating metrics, code-based deployment, and scheduled
+retrain/inference---are the durable outcomes.
+Elo differential dominates predictive signal so completely that model
+architecture becomes secondary: the top eight models cluster within a
+0.0046 RPS band, and Ridge wins on efficiency with a single hyperparameter
+tuned in seconds.
 
-Future work should validate champions across multiple tournaments (e.g.\ EURO and
-Copa América holdouts) and use the WC~2026 inference cycle to study how sequential
-group-stage results reshape advancement probabilities under the expanded format.
+Future work should validate champions across multiple tournaments (e.g.\
+EURO and Copa~Am\'erica holdouts) to establish whether the Ridge advantage
+is a consistent signal or an artefact of a single holdout.
+The WC~2026 inference cycle offers an opportunity to study how sequential
+group-stage result revelation reshapes advancement probabilities under the
+expanded format, tracking per-team probability trajectories across
+matchdays via stored simulation snapshots.
 
 % ============================================================
 \appendices
@@ -662,28 +782,6 @@ matches without retraining.
 \section{Model and monitoring details}
 \label{app:model}
 
-\subsection{Cross-validation results}
-
-\begin{table}[h]
-  \caption{Walk-forward CV Poisson NLL (lower is better)}
-  \label{tab:cv_results}
-  \begin{tabular}{@{}lc@{}}
-    \toprule
-    Model & CV NLL \\
-    \midrule
-    Negative Binomial GLM & 2.7576 \\
-    Bayesian Poisson & 2.7587 \\
-    Poisson GLM & 2.7631 \\
-    XGBoost & 2.7665 \\
-    Random Forest & 2.7684 \\
-    LSTM & 2.8207 \\
-    Ridge & 2.8471 \\
-    SARIMAX & 3.0161 \\
-    1D CNN & 3.0393 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
 \subsection{Per-model notes}
 
 \textbf{Poisson GLM} implements Karlis--Ntzoufras bivariate Poisson with shared
@@ -742,13 +840,27 @@ no CV NLL gain.
 
 \subsection{WC~2026 monitoring design}
 
-Every 30-minute inference cycle logs all nine models' rates for all 1{,}128
-pairings.
-After each settled match, monitoring joins the latest pre-kickoff prediction
-(strict timestamp inequality to avoid leakage) and computes per-model RPS, NLL,
-and RMSE.
-Rolling 24-match mean RPS compared to $1.3\times$ WC~2022 baseline emits
-warnings only; no automated mid-tournament promotion (code-based deployment).
+Every 30-minute inference cycle predicts all $1{,}128$ pairings with all
+nine models (champion plus eight shadow versions) and logs long-format
+results as MLflow artifacts.
+After each settled WC~2026 match, a monitoring step joins the actual
+scoreline with the most recent inference whose timestamp is \emph{strictly
+earlier} than kickoff---the strict inequality is essential because a later
+inference cycle already incorporates the result into Gold features, so
+using it would leak post-match information into the evaluation.
+Per-match RPS, Poisson NLL, RMSE\textsubscript{home}, and
+RMSE\textsubscript{away} are computed for each of the nine models from
+predicted Poisson rates.
+
+For each model, a rolling-mean RPS over the last 24 scored matches
+(one group-stage matchday: 12~groups $\times$ 2~matches) is compared
+against $1.3\times$ that model's WC~2022 holdout RPS baseline; a breach
+emits a warning captured by Cloud Logging.
+Models with fewer than 24 scored matches are skipped to suppress
+early-tournament noise.
+No automated promotion occurs under any alert condition: mid-tournament
+retraining is out of scope because ${\sim}$5~weeks of WC matches is too
+short for statistically meaningful drift detection.
 
 \subsection{Development timeline}
 
