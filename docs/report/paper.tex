@@ -1,23 +1,18 @@
 % ============================================================
 % MLOps for Football World Cup Prediction — condensed paper
-% ACM sigconf format (~8 pages + appendices)
+% IEEE Conference Format — IEEEtran (~8 pages + appendices)
 % Compile: pdflatex -> bibtex -> pdflatex -> pdflatex
-% Requires: acmart class (TeX Live / Overleaf)
 % ============================================================
 
-\documentclass[sigconf]{acmart}
+\documentclass[conference]{IEEEtran}
 
-\setcopyright{none}
-\copyrightyear{2026}
-\acmYear{2026}
-\acmDOI{}
-\acmISBN{}
-\acmConference[Project report]{Football World Cup MLOps}{May 2026}{Tampere, Finland}
-\acmBooktitle{Football World Cup MLOps Project Report}
-\acmPrice{}
-
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{amsmath}
+\usepackage{hyperref}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta}
 \usepackage{pgfgantt}
@@ -36,21 +31,19 @@
 \title{MLOps for Football World Cup Prediction:\\
 A Multi-Model Comparison with Structured Model Promotion}
 
-\author{Tom Farnschläder}
-\email{tom.farnschlaeder@tuni.fi}
-\affiliation{%
-  \institution{Tampere University}
-  \city{Tampere}
-  \country{Finland}
+\author{
+  \IEEEauthorblockN{Tom Farnschläder}
+  \IEEEauthorblockA{\textit{Tampere University}\\
+  Tampere, Finland\\
+  tom.farnschlaeder@tuni.fi}
+  \and
+  \IEEEauthorblockN{Sergio Moreschini}
+  \IEEEauthorblockA{\textit{Tampere University}\\
+  Tampere, Finland\\
+  sergio.moreschini@tuni.fi}
 }
 
-\author{Sergio Moreschini}
-\email{sergio.moreschini@tuni.fi}
-\affiliation{%
-  \institution{Tampere University}
-  \city{Tampere}
-  \country{Finland}
-}
+\maketitle
 
 \begin{abstract}
 Predicting football World Cup outcomes is challenging because national-team
@@ -71,27 +64,9 @@ We discuss threats to validity for sparse national-team data and the expanded
 2026 tournament format.
 \end{abstract}
 
-\begin{CCSXML}
-<ccs2012>
-<concept>
-<concept_id>10011007.10011074</concept_id>
-<concept_desc>Software and its engineering~Software development techniques</concept_desc>
-<concept_significance>500</concept_significance>
-</concept>
-<concept>
-<concept_id>10010147.10010257</concept_id>
-<concept_desc>Computing methodologies~Machine learning</concept_desc>
-<concept_significance>300</concept_significance>
-</concept>
-</ccs2012>
-\end{CCSXML}
-
-\ccsdesc[500]{Software and its engineering~Software development techniques}
-\ccsdesc[300]{Computing methodologies~Machine learning}
-
-\keywords{MLOps, football prediction, machine learning pipelines, model lifecycle}
-
-\maketitle
+\begin{IEEEkeywords}
+MLOps, football prediction, machine learning pipelines, model lifecycle
+\end{IEEEkeywords}
 
 % ============================================================
 \section{Introduction}
@@ -517,7 +492,7 @@ Copa América holdouts) and use the WC~2026 inference cycle to study how sequent
 group-stage results reshape advancement probabilities under the expanded format.
 
 % ============================================================
-\appendix
+\appendices
 
 \section{Data pipeline details}
 \label{app:data}
@@ -722,7 +697,7 @@ warnings only; no automated mid-tournament promotion (code-based deployment).
 \end{figure*}
 
 % ============================================================
-\bibliographystyle{ACM-Reference-Format}
+\bibliographystyle{IEEEtran}
 \bibliography{references}
 
 \end{document}
