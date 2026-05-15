@@ -44,6 +44,7 @@ class TestNeutralOverride2026:
         competition_tier: int = 1,
         is_knockout: bool = False,
         home_team: str = "United States",
+        away_team: str = "Paraguay",
         is_neutral: bool = True,
     ) -> pd.DataFrame:
         return pd.DataFrame({
@@ -51,6 +52,7 @@ class TestNeutralOverride2026:
             "competition_tier": [competition_tier],
             "is_knockout": [is_knockout],
             "home_team": [home_team],
+            "away_team": [away_team],
             "is_neutral": [is_neutral],
         })
 
@@ -66,8 +68,16 @@ class TestNeutralOverride2026:
         result = override_neutral_for_2026_hosts(self._make_df(home_team="Mexico"))
         assert result["is_neutral"].iloc[0] == False  # noqa: E712
 
+    def test_host_as_away_team_overridden(self):
+        result = override_neutral_for_2026_hosts(
+            self._make_df(home_team="Australia", away_team="United States")
+        )
+        assert result["is_neutral"].iloc[0] == False  # noqa: E712
+
     def test_non_host_stays_neutral(self):
-        result = override_neutral_for_2026_hosts(self._make_df(home_team="Germany"))
+        result = override_neutral_for_2026_hosts(
+            self._make_df(home_team="Germany", away_team="Brazil")
+        )
         assert result["is_neutral"].iloc[0] == True  # noqa: E712
 
     def test_knockout_stays_neutral(self):

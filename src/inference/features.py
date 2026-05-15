@@ -150,9 +150,17 @@ def generate_all_wc_pairings(
 
     base_date = reference_date if reference_date is not None else pd.Timestamp("2026-06-11")
     rows: list[dict] = []
-    for home, away in combinations(sorted(teams), 2):
+    for team_a, team_b in combinations(sorted(teams), 2):
+        # When a host nation is involved, place it in home_team so that the
+        # is_neutral=False override (applied later) gives the model's learned
+        # home advantage to the correct team.
+        if team_b in WC_2026_HOSTS and team_a not in WC_2026_HOSTS:
+            home, away = team_b, team_a
+        else:
+            home, away = team_a, team_b
+
         rows.append({
-            "fixture_id": f"wc2026_pair_{home}_{away}",
+            "fixture_id": f"wc2026_pair_{team_a}_{team_b}",
             "date_utc": base_date,
             "home_team": home,
             "away_team": away,
