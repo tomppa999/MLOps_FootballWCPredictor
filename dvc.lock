@@ -29,12 +29,12 @@ stages:
       nfiles: 10
     - path: src/gold/
       hash: md5
-      md5: 7e8c28baf3c0a06f6fb86a34022a118a.dir
-      size: 38695
+      md5: 31ee6f23b993dd4f88f35ae2c40fc030.dir
+      size: 37983
       nfiles: 10
     outs:
     - path: data/gold
       hash: md5
-      md5: 88890f3c1ac825f043984964b6890a69.dir
-      size: 451988
+      md5: 3e68d0a5d575950043f189822865fa5b.dir
+      size: 450673
       nfiles: 1

@@ -512,11 +512,12 @@ It is produced by \texttt{src.gold.build\_gold} with the following transformatio
 
   \item \textbf{Context features}: \texttt{competition\_tier} (1 = World Cup finals,
   2 = continental finals, 3 = qualifiers/Nations Leagues, 4 = friendlies),
-  \texttt{is\_knockout}, \texttt{is\_neutral}, and
-  \texttt{is\_cross\_confederation} (nullable boolean: \texttt{True} if the
-  two teams' confederations differ; \texttt{NaN} if either confederation is
-  missing).  For 2026 WC group-stage matches where a host nation plays at
+  \texttt{is\_knockout}, and \texttt{is\_neutral}.
+  For 2026 WC group-stage matches where a host nation plays at
   home, \texttt{is\_neutral} is overridden to \texttt{False}.
+  An \texttt{is\_cross\_confederation} feature was investigated in the Gold v2
+  iteration but removed after proving invisible in all model importances
+  (Section~\ref{sec:gold_v2}).
 
   \item \textbf{Match index}: per-team 1-indexed ordinal match counter used by
   SARIMAX as the integer time axis (not a predictor).
@@ -677,7 +678,13 @@ runs ingestion and \texttt{dvc repro} to rebuild Silver/Gold with updated
 rolling averages from any newly completed matches. Already-played WC~2026
 results are parsed from the Bronze fixture files (filtered to the current
 WC season only, so historical tournaments are excluded) and locked into
-the simulation as deterministic constraints. It then loads the
+the simulation as deterministic constraints. Additionally, finished WC
+results are converted into Gold-compatible rows (with
+\texttt{stats\_tier=none}) and appended to the Gold history before
+feature computation, so that rolling goal averages for later-round
+matches incorporate earlier tournament scores; shot and tactical rolling
+features are unaffected because the \texttt{stats\_tier} filter excludes
+these rows. It then loads the
 \texttt{champion}-aliased model from the MLflow Model Registry, predicts
 expected goal rates for all $\binom{48}{2} = 1{,}128$ possible team
 pairings, runs the Monte Carlo tournament simulation with model-derived
@@ -792,7 +799,9 @@ limitation (Section~\ref{sec:threats}).
 
 \textbf{Note on Bayesian Poisson:} PyMC's NUTS sampler produces full posterior predictive
 distributions, which are ideal for propagating uncertainty into Monte Carlo simulation.
-Variational inference (ADVI) is used as a faster approximation during experimental runs.
+NUTS (No-U-Turn Sampler) is used for all experimental and production runs; each Optuna
+trial draws a single MCMC chain, making the Bayesian candidate the most expensive
+model to tune.
 
 \textbf{Note on Bayesian Bivariate Poisson (excluded):} A Bayesian variant of the
 Karlis--Ntzoufras~\cite{karlis2003analysis} bivariate Poisson was implemented and
@@ -855,9 +864,12 @@ form the training set (3{,}903 rows). Walk-forward expanding-window
 cross-validation is applied within this set to tune hyperparameters and
 evaluate experimental candidates; the CV folds span the full pre-tournament
 period, including 2022 qualification matches. 
-The 2022 FIFA World Cup (2022-11-20 to 2022-12-18, 64 matches) is held out
-as a strict test set for QA evaluation and is never seen during training or
-cross-validation.
+The 2022 FIFA World Cup (2022-11-20 to 2022-12-18) is held out as a strict
+test set for QA evaluation and is never seen during training or
+cross-validation. The holdout mask additionally requires
+\texttt{competition\_tier~=~1}, which excludes friendly matches that
+happened to fall within the date window, leaving exactly 64 tournament
+matches.
 
 \subsection{Evaluation Metric: Ranked Probability Score}
 
@@ -931,7 +943,7 @@ despite ranking fourth in CV.  Two observations motivated removing the top-K gat
   (2.753--3.010), making the cutoff between rank~4 and rank~5 fragile: a
   difference of $<0.005$ in CV NLL separated promoted from excluded candidates.
   \item QA evaluation of all nine models adds approximately two minutes of
-  wall-clock time (the QA phase retrains and evaluates each model on 89
+  wall-clock time (the QA phase retrains and evaluates each model on 64
   holdout matches), negligible compared to the multi-hour
   experimental phase.
 \end{enumerate}
@@ -1140,7 +1152,7 @@ Three patterns stand out beyond the \texttt{elo\_diff} dominance.
 First, XGBoost is the only candidate whose top three contains a tactical
 rolling feature (\texttt{away\_team\_rolling\_tac\_possession\_pct}).
 This is partly structural, since XGBoost is the only model that receives
-the full 29-feature set, so the other eight were never offered the
+the full 28-feature set, so the other eight were never offered the
 tactical columns to rank, but the feature is still chosen over the
 nine other tactical columns that XGBoost did have access to, and
 specifically in its \emph{away}-side variant.  One plausible reading is
@@ -1216,16 +1228,18 @@ itself becomes diagnostic evidence for H3 rather than a counterexample
 confirmed.}
 Bayesian Poisson ranks fifth in holdout RPS (0.2166), behind XGBoost,
 Random Forest, Ridge, and Poisson GLM.  Its holdout NLL (2.9642) is also
-higher than XGBoost's (2.9155) and Poisson GLM's (2.9532).  The posterior
-predictive distributions produced by ADVI do not translate into superior
-W/D/L calibration on this holdout set.  A possible explanation is that
-ADVI provides a mean-field Gaussian approximation to the true posterior,
-which may underestimate predictive variance and thus lose the calibration
-advantage that full MCMC sampling would provide.  Bayesian Poisson is,
-however, the one model that exploits the squad-cohesion signal added in
-the Gold v2 iteration (\texttt{rest\_diff} ranks second in its
-importance). This is consistent with prior-driven samplers being more receptive
-to weak-but-real signals than maximum-likelihood baselines
+higher than XGBoost's (2.9155) and Poisson GLM's (2.9532).  Despite
+using full MCMC sampling (NUTS), the posterior predictive distributions
+do not translate into superior W/D/L calibration on this holdout set.
+A possible explanation is that the single-chain, moderate-draw budget
+used during Optuna tuning (500--2000 draws, 500--2000 tune steps)
+leaves residual sampling noise in the posterior means used for
+prediction, negating the theoretical calibration advantage of the
+Bayesian framework.  Bayesian Poisson is, however, the one model that
+exploits the squad-cohesion signal added in the Gold v2 iteration
+(\texttt{rest\_diff} ranks second in its importance).  This is
+consistent with prior-driven samplers being more receptive to
+weak-but-real signals than maximum-likelihood baselines
 (Section~\ref{sec:gold_v2}).
 
 \textbf{SARIMAX.}
@@ -1248,8 +1262,9 @@ squad-cohesion proxies (\texttt{home\_days\_since\_last\_match},
 confederation-mismatch indicator (\texttt{is\_cross\_confederation}).
 Methodology was held constant: same nine architectures, same train/CV/holdout
 splits, same Optuna budgets --- only the feature columns changed.
-\texttt{CORE\_FEATURE\_COLUMNS} grew from 8 to 13; \texttt{FULL\_FEATURE\_COLUMNS}
-(XGBoost only) from 24 to 29.
+\texttt{CORE\_FEATURE\_COLUMNS} grew from 8 to 12 (13 before the subsequent
+removal of \texttt{is\_cross\_confederation}); \texttt{FULL\_FEATURE\_COLUMNS}
+(XGBoost only) from 24 to 28.
 
 \textbf{Outcome.}
 The full pipeline re-ran end-to-end.  The auto-promotion gate
@@ -1312,7 +1327,7 @@ fixed-size training set.
 \textbf{LSTM regresses measurably.}
 LSTM degraded by $+0.0074$ RPS, the largest regression in the comparison.
 A sequence model trained on a sparse national-team corpus is already
-operating near its capacity ceiling; adding 5 features to a 13-feature
+operating near its capacity ceiling; adding 4 features to a 12-feature
 input deepens the data-sparsity penalty disproportionately, since
 recurrent weight matrices scale with input dimensionality.  As discussed
 in the H3 paragraph above, this regression is itself diagnostic: it
@@ -1369,7 +1384,7 @@ plausible explanations:
   W/D/L buckets.  A model that is well-calibrated at the scoreline level
   may not be optimal at the outcome-probability level, and vice versa.
   \item \textbf{Distribution shift.}  The WC~2022 holdout is a
-  tournament-only sample of 89 matches with higher average competitive
+  tournament-only sample of 64 matches with higher average competitive
   stakes, more neutral venues, and stronger teams than the training set
   average.  Models that overfit to the distributional characteristics of
   the training period (which includes many tier-3 and tier-4 matches) may
@@ -1391,7 +1406,7 @@ RPS band (0.2109--0.2207).  Three structural factors explain this:
 
 \begin{enumerate}
   \item \textbf{Shared feature ceiling.} All core-feature models consume the
-  same 13 features, with Elo differential accounting for the majority of
+  same 12 features, with Elo differential accounting for the majority of
   predictive signal (Table~\ref{tab:importance}).  Model architecture
   differences can only exploit the residual variance beyond what Elo already
   captures.
@@ -1409,7 +1424,7 @@ RPS band (0.2109--0.2207).  Three structural factors explain this:
 \end{enumerate}
 
 The practical implication is that champion selection in this domain is
-sensitive to the holdout sample: a different 89-match tournament could
+sensitive to the holdout sample: a different 64-match tournament could
 plausibly produce a different ranking among the top eight models.  This
 reinforces the value of advancing all candidates to QA and treating the
 champion/challenger gate as the sole decisive quality threshold.
@@ -1624,13 +1639,13 @@ iteration loop functioning as designed and producing the v2 numbers
 reported throughout this section.
 
 \textbf{Limitations and future work.}
-The holdout evaluation relies on a single tournament (89 matches), which
+The holdout evaluation relies on a single tournament (64 matches), which
 limits statistical power to distinguish closely ranked models.
 Future work could extend the holdout to include multiple tournaments
 (e.g.\ EURO~2024) or employ cross-tournament validation.
-Additional modeling improvements include full MCMC sampling for the
-Bayesian model (replacing ADVI) and calendar-aware time indexing for
-SARIMAX.
+Additional modeling improvements include multi-chain MCMC sampling with
+higher draw budgets for the Bayesian model and calendar-aware time
+indexing for SARIMAX.
 
 A planned extension uses the 30-minute inference cycle during the
 WC~2026 group stage to study how sequential result revelation within a
