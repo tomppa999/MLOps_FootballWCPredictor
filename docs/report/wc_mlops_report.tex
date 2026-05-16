@@ -1121,33 +1121,33 @@ near-fully-neutral 2022 World Cup holdout used in QA.
     \toprule
     Model & \#1 & \#2 & \#3 \\
     \midrule
-    Random Forest & \texttt{elo\_diff} \scriptsize{+.121}
-      & \texttt{elo\_sum} \scriptsize{+.002}
-      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.002} \\
+    Random Forest & \texttt{elo\_diff} \scriptsize{+.119}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001}
+      & \texttt{roll\_goals\_for$_h$} \scriptsize{+.001} \\
     SARIMAX & \texttt{elo\_diff} \scriptsize{+.110}
-      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.002}
-      & \texttt{elo\_sum} \scriptsize{+.000} \\
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001}
+      & \texttt{roll\_goals\_ag$_a$} \scriptsize{+.001} \\
     NegBin GLM & \texttt{elo\_diff} \scriptsize{+.104}
       & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001}
-      & \texttt{comp\_tier} \scriptsize{+.001} \\
+      & \texttt{roll\_goals\_for$_h$} \scriptsize{+.001} \\
     Bayesian Poisson & \texttt{elo\_diff} \scriptsize{+.103}
-      & \texttt{rest\_diff} \scriptsize{+.001}
-      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001} \\
-    Poisson GLM & \texttt{elo\_diff} \scriptsize{+.102}
+      & \texttt{days\_since$_h$} \scriptsize{+.001}
+      & \texttt{days\_since$_a$} \scriptsize{+.001} \\
+    Poisson GLM & \texttt{elo\_diff} \scriptsize{+.103}
       & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.001}
-      & \texttt{comp\_tier} \scriptsize{+.001} \\
-    XGBoost & \texttt{elo\_diff} \scriptsize{+.098}
-      & \texttt{roll\_tac\_poss$_a$} \scriptsize{+.002}
-      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.002} \\
-    LSTM & \texttt{elo\_diff} \scriptsize{+.095}
-      & \texttt{is\_neutral} \scriptsize{+.005}
-      & \texttt{comp\_tier} \scriptsize{+.002} \\
-    Ridge & \texttt{elo\_diff} \scriptsize{+.062}
-      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.004}
-      & \texttt{roll\_goals\_ag$_a$} \scriptsize{+.002} \\
-    1D CNN & \texttt{elo\_diff} \scriptsize{+.055}
-      & \texttt{is\_neutral} \scriptsize{+.005}
-      & \texttt{comp\_tier} \scriptsize{+.004} \\
+      & \texttt{elo\_sum} \scriptsize{+.001} \\
+    LSTM & \texttt{elo\_diff} \scriptsize{+.099}
+      & \texttt{is\_neutral} \scriptsize{+.002}
+      & \texttt{roll\_goals\_for$_h$} \scriptsize{+.002} \\
+    XGBoost & \texttt{elo\_diff} \scriptsize{+.097}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.002}
+      & \texttt{roll\_tac\_poss$_a$} \scriptsize{+.002} \\
+    Ridge & \texttt{elo\_diff} \scriptsize{+.064}
+      & \texttt{roll\_goals\_ag$_h$} \scriptsize{+.003}
+      & \texttt{roll\_goals\_ag$_a$} \scriptsize{+.003} \\
+    1D CNN & \texttt{elo\_diff} \scriptsize{+.059}
+      & \texttt{is\_neutral} \scriptsize{+.004}
+      & \texttt{roll\_goals\_ag$_a$} \scriptsize{+.003} \\
     \bottomrule
   \end{tabular}
 \end{table*}
