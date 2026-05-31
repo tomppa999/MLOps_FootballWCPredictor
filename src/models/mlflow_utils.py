@@ -6,6 +6,10 @@ import logging
 import os
 from typing import Any, NamedTuple
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import mlflow
 from mlflow.entities.model_registry import ModelVersion
 
