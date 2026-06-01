@@ -23,7 +23,10 @@ from src.ingestion.api_football_client import ApiFootballClient
 
 DEFAULT_OUTPUT_DIR = Path("data/raw/api_football")
 DEFAULT_TOURNAMENTS_CSV = Path("data/mappings/api_football_tournaments.csv")
-DEFAULT_MIN_SEASON = 2018
+# Absolute floor — no season before this year is ever fetched.
+# The effective min_season per run is max(ABS_MIN_SEASON, window_start_year - 1)
+# so tournaments that start in December and spill into January are always included.
+ABS_MIN_SEASON = 2018
 
 
 @dataclass(frozen=True)
@@ -91,8 +94,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--min-season",
         type=int,
-        default=DEFAULT_MIN_SEASON,
-        help="Earliest season year to include (filters discovered seasons).",
+        default=None,
+        help=(
+            "Earliest season year to include (filters discovered seasons). "
+            "Defaults to max(2018, window_start_year - 1) so that tournaments "
+            "starting in December and spilling into January are always captured."
+        ),
     )
     return parser.parse_args()
 
@@ -334,9 +341,26 @@ def main() -> int:
         print(f"Failed to load tournaments CSV: {exc}", file=sys.stderr)
         return 1
 
+    # Compute effective min_season.
+    # Default: one year before the window start so that tournaments beginning in
+    # December (e.g. AFCON) and spilling into January are always discovered.
+    window_start_year = requested_window.start_date.year
+    if args.min_season is None:
+        effective_min_season = max(ABS_MIN_SEASON, window_start_year - 1)
+    else:
+        effective_min_season = args.min_season
+        if effective_min_season >= window_start_year:
+            print(
+                f"[WARN] --min-season {effective_min_season} >= window start year "
+                f"{window_start_year}. Tournaments that started in "
+                f"{window_start_year - 1} (e.g. AFCON) will be missed. "
+                f"Consider using --min-season {window_start_year - 1}.",
+                file=sys.stderr,
+            )
+
     print(
         f"[START] competitions={len(competitions)} | "
-        f"min_season={args.min_season} | "
+        f"effective_min_season={effective_min_season} | "
         f"window={requested_window.start_date} to {requested_window.end_date}"
     )
 
@@ -359,7 +383,7 @@ def main() -> int:
     print("[PHASE-1] Discovering available seasons per competition ...")
     total_pairs = 0
     for comp in competitions:
-        comp.seasons = discover_seasons(client, comp, args.min_season)
+        comp.seasons = discover_seasons(client, comp, effective_min_season)
         total_pairs += len(comp.seasons)
     print(f"[PHASE-1] Done. Total (league, season) pairs to fetch: {total_pairs}")
 
@@ -480,7 +504,7 @@ def main() -> int:
             "label": requested_window.label,
         },
         "tournaments_csv": str(args.tournaments_csv),
-        "min_season": args.min_season,
+        "min_season": effective_min_season,
         "discovered_seasons": discovered_seasons_summary,
         "competition_count": len(competitions),
         "league_season_pairs_attempted": len(attempted_league_season_pairs),
@@ -509,7 +533,7 @@ def main() -> int:
         "started_at_utc": run_started_at.isoformat(),
         "finished_at_utc": utc_now().isoformat(),
         "tournaments_csv": str(args.tournaments_csv),
-        "min_season": args.min_season,
+        "min_season": effective_min_season,
         "summary": {
             "competition_count": len(competitions),
             "league_season_pairs_discovered": total_pairs,
