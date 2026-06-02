@@ -46,10 +46,41 @@ that won't be obvious from the code alone.
 
 ## Holdout expansion: continental tournaments 2022–2025 (A.3)
 
+**Goal distributions** (per-team goals, Poisson lambda):
 - KS tests: no tournament's goal distribution differs significantly from WC 2022 (all p > 0.6).
-- Pooled tier-1 vs tier-2: KS = 0.030, p = 0.999.
-- Gold Cup 2023 is a lambda outlier (1.69 vs 1.11–1.34 for others). Kept — acknowledged.
+- Pooled tier-1 (WC/EURO/Copa) vs tier-2 (AFCON/Asian Cup/Gold Cup): KS = 0.030, p = 0.999.
+- Gold Cup 2023 is a lambda outlier (1.69 vs WC 2022 = 1.34). Acknowledged, kept.
 - Expands holdout from 64 → ~347 matches (4.9×). Needed for stable RPS estimation.
+
+**Elo-difference distributions** (|home_elo_pre − away_elo_pre|):
+
+| Tournament     |  N | Mean | Median | Std | p vs WC 2022 |
+|----------------|----|------|--------|-----|--------------|
+| WC 2022        | 64 |  188 |    168 | 125 | —            |
+| AFCON 2024     | 52 |  161 |    141 | 113 | 0.164        |
+| EURO 2024      | 51 |  157 |    128 | 107 | 0.140        |
+| Gold Cup 2023  | 31 |  206 |    185 | 150 | 0.967        |
+| Gold Cup 2025  | 31 |  221 |    202 | 123 | 0.205        |
+| Copa 2024      | 31 |  209 |    231 | 153 | 0.432        |
+| Asian Cup 2024 | 51 |  253 |    210 | 164 | 0.063        |
+
+- No tournament is statistically different from WC 2022 in Elo-diff distribution (all p > 0.05).
+- Asian Cup 2024 is the borderline case (p = 0.063, KS = 0.240). It has more extreme
+  mismatches: ~10% of matches have a 500+ Elo gap vs ~3% for WC 2022. This reflects the
+  wider range of team quality in AFC.
+- AFCON 2024 vs Asian Cup 2024 is the only pairwise comparison that crosses p < 0.05
+  (p = 0.049, KS = 0.261) — the two tier-2 tournaments differ from each other more
+  than either differs from WC 2022.
+
+**WC 2026 group stage benchmark** (current Elo values, computed pre-tournament):
+- Mean |Elo diff| across all 72 group matches: **226** (std = 144).
+- This is higher than WC 2022 (188) due to the 48-team expansion bringing in weaker teams.
+- It is closer to Asian Cup 2024 (253) than to WC 2022.
+- Argument for keeping Asian Cup: its wider spread is arguably more representative of
+  WC 2026's matchup landscape than WC 2022 was.
+- Most balanced group: D (USA, Paraguay, Australia, Turkey) — mean |Δ| = 100.
+- Most lopsided group: H (Spain, Cape Verde, Saudi Arabia, Uruguay) — mean |Δ| = 358;
+  Spain vs Cape Verde = 608 Elo points, the single largest gap in WC 2026 group stage.
 
 ## Goal-based prediction vs direct W/D/L
 

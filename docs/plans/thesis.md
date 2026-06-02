@@ -447,7 +447,7 @@ Matchday-boundary detection fires refit for the per-round mode only.
 
 ### C.6. Cloud Scheduler
 
-- [ ] **Pre-WC** (now – June 10): daily 06:00 UTC. Cron: `0 6 * * *`
+- [ ] **Pre-WC** (now – June 10): daily 04:30 UTC. Cron: `0 6 * * *`
 - [ ] **WC** (June 11 – July 19): every 30 min. Cron: `*/30 * * * *`.
   Pause pre-WC schedule.
 - [ ] Post-WC: pause both
