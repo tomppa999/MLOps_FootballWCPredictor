@@ -28,6 +28,9 @@ class TestBayesianPoissonModel:
     def test_name(self):
         assert BayesianPoissonModel().name == "bayesian_poisson"
 
+    def test_distribution_family(self):
+        assert BayesianPoissonModel().distribution_family == "bayesian_poisson"
+
     def test_get_params_keys(self):
         m = BayesianPoissonModel(prior_sigma=2.0, draws=100, tune_steps=200)
         p = m.get_params()
@@ -72,3 +75,30 @@ class TestBayesianPoissonModel:
         lh, la = m.predict(X)
         assert np.isfinite(lh).all()
         assert np.isfinite(la).all()
+
+    def test_predict_samples_shape(self):
+        X, y = _make_data()
+        n_draws = _FAST["draws"]
+        m = BayesianPoissonModel(**_FAST).fit(X, y)
+        lh_s, la_s = m.predict_samples(X)
+        assert lh_s.shape == (n_draws, len(X))
+        assert la_s.shape == (n_draws, len(X))
+
+    def test_predict_samples_n_samples_param(self):
+        X, y = _make_data()
+        m = BayesianPoissonModel(**_FAST).fit(X, y)
+        lh_s, la_s = m.predict_samples(X, n_samples=5)
+        assert lh_s.shape == (5, len(X))
+        assert la_s.shape == (5, len(X))
+
+    def test_predict_samples_positive(self):
+        X, y = _make_data()
+        m = BayesianPoissonModel(**_FAST).fit(X, y)
+        lh_s, la_s = m.predict_samples(X)
+        assert (lh_s > 0).all()
+        assert (la_s > 0).all()
+
+    def test_predict_samples_before_fit_raises(self):
+        m = BayesianPoissonModel()
+        with pytest.raises(RuntimeError):
+            m.predict_samples(np.zeros((5, 8)))

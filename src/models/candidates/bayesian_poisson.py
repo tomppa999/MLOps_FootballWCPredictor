@@ -2,7 +2,8 @@
 
 Two independent Bayesian Poisson regressions (home goals, away goals) with
 Normal(0, prior_sigma) priors on all coefficients.  MCMC posterior means serve
-as the λ estimates for prediction.
+as the λ estimates for the standard ``predict()`` method.  Full posterior
+samples are retained for distribution-aware scoring via ``predict_samples()``.
 
 Note: models the goal rates as independent marginals rather than the full
 bivariate Poisson joint distribution.  The key distinction from poisson_glm is
@@ -12,11 +13,7 @@ full Bayesian inference (MCMC) with prior-based regularisation.
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any
-
-# Fall back to the pure-Python PyTensor linker when C++ headers are unavailable.
-#os.environ.setdefault("PYTENSOR_FLAGS", "linker=py")
 
 import numpy as np
 import pymc as pm
@@ -52,13 +49,23 @@ class BayesianPoissonModel(BaseModel):
         self.tune_steps = tune_steps
         self.random_seed = random_seed
         self._scaler: StandardScaler | None = None
+        # Posterior means (used by standard predict())
         self._beta_h: np.ndarray | None = None
         self._beta_a: np.ndarray | None = None
         self._intercept_h: float = 0.0
         self._intercept_a: float = 0.0
+        # Full posterior samples — shape (draws, n_features) / (draws,)
+        self._beta_h_samples: np.ndarray | None = None
+        self._beta_a_samples: np.ndarray | None = None
+        self._intercept_h_samples: np.ndarray | None = None
+        self._intercept_a_samples: np.ndarray | None = None
 
     @property
     def name(self) -> str:
+        return "bayesian_poisson"
+
+    @property
+    def distribution_family(self) -> str:
         return "bayesian_poisson"
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> BayesianPoissonModel:
@@ -90,10 +97,19 @@ class BayesianPoissonModel(BaseModel):
             )
 
         post = trace.posterior
-        self._beta_h = post["beta_h"].mean(dim=["chain", "draw"]).values
-        self._intercept_h = float(post["intercept_h"].mean(dim=["chain", "draw"]).values)
-        self._beta_a = post["beta_a"].mean(dim=["chain", "draw"]).values
-        self._intercept_a = float(post["intercept_a"].mean(dim=["chain", "draw"]).values)
+
+        # Retain full posterior sample arrays (chain squeezed: shape (draws, p))
+        self._beta_h_samples = post["beta_h"].values.squeeze(0)  # (draws, p)
+        self._beta_a_samples = post["beta_a"].values.squeeze(0)
+        self._intercept_h_samples = post["intercept_h"].values.squeeze(0)  # (draws,)
+        self._intercept_a_samples = post["intercept_a"].values.squeeze(0)
+
+        # Posterior means for fast predict()
+        self._beta_h = self._beta_h_samples.mean(axis=0)
+        self._intercept_h = float(self._intercept_h_samples.mean())
+        self._beta_a = self._beta_a_samples.mean(axis=0)
+        self._intercept_a = float(self._intercept_a_samples.mean())
+
         return self
 
     def predict(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -103,6 +119,38 @@ class BayesianPoissonModel(BaseModel):
         lam_h = np.exp(self._intercept_h + Xs @ self._beta_h).clip(1e-6)
         lam_a = np.exp(self._intercept_a + Xs @ self._beta_a).clip(1e-6)
         return lam_h, lam_a
+
+    def predict_samples(
+        self, X: np.ndarray, n_samples: int | None = None
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Predict lambda distributions using posterior samples.
+
+        Args:
+            X: Feature matrix, shape (n_obs, n_features).
+            n_samples: Number of posterior draws to use.  Defaults to all.
+
+        Returns:
+            (lambda_h_samples, lambda_a_samples) each shape (n_samples, n_obs).
+        """
+        if self._scaler is None or self._beta_h_samples is None:
+            raise RuntimeError("Model has not been fitted yet.")
+        Xs = self._scaler.transform(X).astype(np.float64)  # (n_obs, p)
+
+        bh = self._beta_h_samples  # (draws, p)
+        ba = self._beta_a_samples
+        ih = self._intercept_h_samples  # (draws,)
+        ia = self._intercept_a_samples
+
+        if n_samples is not None:
+            bh = bh[:n_samples]
+            ba = ba[:n_samples]
+            ih = ih[:n_samples]
+            ia = ia[:n_samples]
+
+        # (draws, n_obs) via vectorised matmul
+        lam_h_samples = np.exp(ih[:, None] + bh @ Xs.T).clip(1e-6)
+        lam_a_samples = np.exp(ia[:, None] + ba @ Xs.T).clip(1e-6)
+        return lam_h_samples, lam_a_samples
 
     def get_params(self) -> dict[str, Any]:
         return {

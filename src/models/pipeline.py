@@ -23,6 +23,7 @@ from src.models.base import BaseModel
 from src.models.candidates.bayesian_poisson import BayesianPoissonModel
 from src.models.candidates.cnn import CNNModel
 from src.models.candidates.lstm import LSTMModel
+from src.models.candidates.mean_rate_poisson import MeanRatePoisson
 from src.models.candidates.negbin_glm import NegativeBinomialGLM
 from src.models.candidates.poisson_glm import BivariatePoisson
 from src.models.candidates.random_forest import RandomForestModel
@@ -60,6 +61,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 CANDIDATE_MODELS: dict[str, type[BaseModel]] = {
+    "mean_rate_poisson": MeanRatePoisson,
     "poisson_glm": BivariatePoisson,
     "negbin_glm": NegativeBinomialGLM,
     "ridge": RidgeModel,

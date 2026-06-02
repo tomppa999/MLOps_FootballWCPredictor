@@ -29,10 +29,16 @@ class NegativeBinomialGLM(BaseModel):
         self._scaler: StandardScaler | None = None
         self._model_home: Any = None
         self._model_away: Any = None
+        self._fitted_alpha_home: float | None = None
+        self._fitted_alpha_away: float | None = None
 
     @property
     def name(self) -> str:
         return "negbin_glm"
+
+    @property
+    def distribution_family(self) -> str:
+        return "negbin"
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> NegativeBinomialGLM:
         self._scaler = StandardScaler()
@@ -50,6 +56,12 @@ class NegativeBinomialGLM(BaseModel):
             a, Xd, family=sm.families.NegativeBinomial(alpha=self.alpha)
         ).fit(disp=False)
 
+        # Store the MLE-estimated dispersion from statsmodels.
+        # NegativeBinomial family exposes the estimated ancillary
+        # parameter via .scale on the fitted result.
+        self._fitted_alpha_home = float(self._model_home.scale)
+        self._fitted_alpha_away = float(self._model_away.scale)
+
         return self
 
     def predict(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -60,6 +72,20 @@ class NegativeBinomialGLM(BaseModel):
         lam_h = self._model_home.predict(Xd)
         lam_a = self._model_away.predict(Xd)
         return np.asarray(lam_h), np.asarray(lam_a)
+
+    def predict_with_dispersion(
+        self, X: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, float, float]:
+        """Predict expected goals together with fitted NegBin dispersion.
+
+        Returns:
+            (lambda_h, lambda_a, alpha_h, alpha_a) where alpha_* are the
+            MLE-estimated dispersion parameters from the fitted GLMs.
+        """
+        if self._fitted_alpha_home is None or self._fitted_alpha_away is None:
+            raise RuntimeError("Model has not been fitted yet.")
+        lam_h, lam_a = self.predict(X)
+        return lam_h, lam_a, self._fitted_alpha_home, self._fitted_alpha_away
 
     def get_params(self) -> dict[str, Any]:
         return {"alpha": self.alpha}

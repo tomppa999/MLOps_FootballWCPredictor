@@ -11,7 +11,12 @@ import numpy as np
 import optuna
 
 from src.models.base import BaseModel
-from src.models.evaluation import compute_mean_nll, compute_mean_rps, compute_rmse
+from src.models.evaluation import (
+    compute_mean_nll,
+    compute_mean_rps,
+    compute_nll_dispatch,
+    compute_rmse,
+)
 from src.models.mlflow_utils import get_or_create_experiment, setup_mlflow
 
 logger = logging.getLogger(__name__)
@@ -75,7 +80,10 @@ def _make_objective(
             model = model_cls(**all_params)
             model.fit(X[train_idx], y[train_idx])
             lam_h, lam_a = model.predict(X[val_idx])
-            nll = compute_mean_nll(lam_h, lam_a, y[val_idx, 0], y[val_idx, 1])
+            # Use distribution-appropriate NLL for the tuning objective.
+            nll = compute_nll_dispatch(
+                model, X[val_idx], y[val_idx, 0], y[val_idx, 1]
+            )
             rps = compute_mean_rps(lam_h, lam_a, y[val_idx, 0], y[val_idx, 1])
             fold_nll.append(nll)
             fold_rps.append(rps)

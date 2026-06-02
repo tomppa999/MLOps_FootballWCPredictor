@@ -22,6 +22,16 @@ class BaseModel(ABC):
     def name(self) -> str:
         """Short unique identifier, e.g. 'poisson_glm'."""
 
+    @property
+    def distribution_family(self) -> str:
+        """Identifies which scoring family to use in evaluation.
+
+        Subclasses that produce distribution parameters beyond a single
+        Poisson rate (e.g. NegBin dispersion, Bayesian posterior samples)
+        should override this.  Default: ``"poisson"``.
+        """
+        return "poisson"
+
     @abstractmethod
     def fit(self, X: np.ndarray, y: np.ndarray) -> BaseModel:
         """Fit on training data.

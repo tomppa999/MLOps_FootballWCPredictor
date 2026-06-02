@@ -129,6 +129,30 @@ Elo ratings are fetched from a third-party website (eloratings.net). If the sour
 structure, becomes unavailable, or delays updates during an active tournament, the fallback is
 the last validated snapshot. This introduces staleness risk precisely when current ratings matter most.
 
+**No automated data drift detection**
+The pipeline does not implement statistical drift detection (e.g. PSI, KS tests, or KL divergence
+monitors) on incoming features. This is a deliberate omission justified by the nature of the data:
+
+- *Goal counts* are inherently Poisson-distributed with low, stable rate parameters (~1.3–1.5 per
+  team per match across decades of international football). The distribution's shape is governed by
+  the rules of the game and changes only on generational timescales.
+- *Elo ratings* are normally distributed by construction — the system is zero-sum and mean-reverting
+  around ~1500. Drift in Elo would require a systematic change in the rating algorithm itself, not
+  in match outcomes.
+- *Context features* (`is_neutral`, `is_knockout`, `competition_tier`) are categorical and
+  schema-defined; they cannot drift in the distributional sense.
+
+Additionally, the World Cup tournament window (~30 matches over 4 weeks) is far too short to
+detect meaningful distributional shift with any statistical power. A KS test or similar would
+require hundreds of observations to distinguish real drift from sampling noise at conventional
+significance levels. Any alert fired during such a short window would almost certainly be a
+false positive, adding operational noise without actionable signal.
+
+The residual risk is that a slow, multi-year shift in international football's scoring patterns
+(e.g. from rule changes or tactical evolution) could go unnoticed between tournaments. This is
+mitigated by retraining on the full updated dataset before each major tournament, which implicitly
+absorbs any gradual distributional change.
+
 **API-Football rate limits and silent failures**
 The ingestion pipeline is rate-limited by the API-Football subscription tier. Silent failures
 (API returns HTTP 200 with an `errors` field rather than a non-2xx status) were identified during

@@ -1,4 +1,10 @@
-"""Evaluation metrics: Poisson NLL, RPS, RMSE, outcome probabilities, permutation importance."""
+"""Evaluation metrics: Poisson NLL, RPS, RMSE, outcome probabilities, permutation importance.
+
+Distribution-aware scoring:
+- ``"poisson"``        — standard independent Poisson grid (all models by default)
+- ``"negbin"``         — Negative Binomial PMF grid using fitted dispersion
+- ``"bayesian_poisson"`` — MC average over posterior lambda samples
+"""
 
 from __future__ import annotations
 
@@ -7,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-from scipy.stats import poisson
+from scipy.stats import nbinom, poisson
 
 if TYPE_CHECKING:
     from src.models.base import BaseModel
@@ -213,3 +219,229 @@ def compute_permutation_importance(
         .sort_values("importance_mean", ascending=False)
         .reset_index(drop=True)
     )
+
+
+# ---------------------------------------------------------------------------
+# Negative Binomial outcome probabilities and NLL
+# ---------------------------------------------------------------------------
+
+
+def compute_outcome_probs_nb(
+    lambda_h: np.ndarray,
+    lambda_a: np.ndarray,
+    alpha_h: float,
+    alpha_a: float,
+    max_goals: int = 10,
+) -> np.ndarray:
+    """Compute outcome probabilities using the NegBin PMF grid.
+
+    Parameterisation follows statsmodels NB-2: Var(Y) = mu + alpha * mu^2.
+    scipy.stats.nbinom uses (n, p) where n = 1/alpha and p = n/(n+mu).
+
+    Args:
+        lambda_h: Expected home goals, shape (n,).
+        lambda_a: Expected away goals, shape (n,).
+        alpha_h: Home dispersion parameter (MLE from NegBin GLM).
+        alpha_a: Away dispersion parameter.
+        max_goals: Truncation point for the goal grid.
+
+    Returns:
+        Array of shape (n, 3) — columns [P(home), P(draw), P(away)].
+    """
+    lambda_h = np.atleast_1d(np.asarray(lambda_h, dtype=np.float64)).clip(1e-6, 15.0)
+    lambda_a = np.atleast_1d(np.asarray(lambda_a, dtype=np.float64)).clip(1e-6, 15.0)
+    alpha_h = max(float(alpha_h), 1e-6)
+    alpha_a = max(float(alpha_a), 1e-6)
+
+    goals = np.arange(max_goals + 1)
+
+    n_h = 1.0 / alpha_h
+    p_h = n_h / (n_h + lambda_h)  # shape (n,)
+    pmf_h = nbinom.pmf(goals[None, :], n_h, p_h[:, None])  # (n, max_goals+1)
+
+    n_a = 1.0 / alpha_a
+    p_a = n_a / (n_a + lambda_a)
+    pmf_a = nbinom.pmf(goals[None, :], n_a, p_a[:, None])
+
+    joint = pmf_h[:, :, None] * pmf_a[:, None, :]
+    h_idx, a_idx = np.meshgrid(goals, goals, indexing="ij")
+
+    p_home = (joint * (h_idx > a_idx)[None]).sum(axis=(1, 2))
+    p_draw = (joint * (h_idx == a_idx)[None]).sum(axis=(1, 2))
+    p_away = (joint * (h_idx < a_idx)[None]).sum(axis=(1, 2))
+
+    result = np.column_stack([p_home, p_draw, p_away])
+    row_sum = result.sum(axis=1, keepdims=True)
+    result /= np.where(row_sum == 0, 1.0, row_sum)
+    return result
+
+
+def compute_mean_nll_nb(
+    lambda_h: np.ndarray,
+    lambda_a: np.ndarray,
+    alpha_h: float,
+    alpha_a: float,
+    home_goals: np.ndarray,
+    away_goals: np.ndarray,
+) -> float:
+    """Mean NegBin negative log-likelihood.
+
+    Uses scipy.stats.nbinom with the NB-2 parameterisation (alpha = dispersion).
+    """
+    lambda_h = np.asarray(lambda_h, dtype=np.float64).clip(1e-6)
+    lambda_a = np.asarray(lambda_a, dtype=np.float64).clip(1e-6)
+    alpha_h = max(float(alpha_h), 1e-6)
+    alpha_a = max(float(alpha_a), 1e-6)
+
+    n_h, n_a = 1.0 / alpha_h, 1.0 / alpha_a
+    p_h = n_h / (n_h + lambda_h)
+    p_a = n_a / (n_a + lambda_a)
+
+    nll = -(
+        nbinom.logpmf(home_goals, n_h, p_h)
+        + nbinom.logpmf(away_goals, n_a, p_a)
+    )
+    return float(nll.mean())
+
+
+# ---------------------------------------------------------------------------
+# Bayesian Poisson outcome probabilities and NLL
+# ---------------------------------------------------------------------------
+
+
+def compute_outcome_probs_bayes(
+    lambda_h_samples: np.ndarray,
+    lambda_a_samples: np.ndarray,
+    max_goals: int = 10,
+) -> np.ndarray:
+    """Compute outcome probabilities by averaging Poisson PMFs over posterior draws.
+
+    Args:
+        lambda_h_samples: Shape (n_samples, n_obs) — posterior home rate draws.
+        lambda_a_samples: Shape (n_samples, n_obs) — posterior away rate draws.
+        max_goals: Truncation point.
+
+    Returns:
+        Array of shape (n_obs, 3) — columns [P(home), P(draw), P(away)].
+    """
+    lambda_h_samples = np.asarray(lambda_h_samples, dtype=np.float64).clip(1e-6, 15.0)
+    lambda_a_samples = np.asarray(lambda_a_samples, dtype=np.float64).clip(1e-6, 15.0)
+
+    n_draws, n_obs = lambda_h_samples.shape
+    goals = np.arange(max_goals + 1)
+    h_idx, a_idx = np.meshgrid(goals, goals, indexing="ij")
+
+    p_home_acc = np.zeros(n_obs)
+    p_draw_acc = np.zeros(n_obs)
+    p_away_acc = np.zeros(n_obs)
+
+    for s in range(n_draws):
+        lh = lambda_h_samples[s]  # (n_obs,)
+        la = lambda_a_samples[s]
+        pmf_h = poisson.pmf(goals[None, :], lh[:, None])  # (n_obs, G+1)
+        pmf_a = poisson.pmf(goals[None, :], la[:, None])
+        joint = pmf_h[:, :, None] * pmf_a[:, None, :]  # (n_obs, G+1, G+1)
+        p_home_acc += (joint * (h_idx > a_idx)[None]).sum(axis=(1, 2))
+        p_draw_acc += (joint * (h_idx == a_idx)[None]).sum(axis=(1, 2))
+        p_away_acc += (joint * (h_idx < a_idx)[None]).sum(axis=(1, 2))
+
+    result = np.column_stack([p_home_acc, p_draw_acc, p_away_acc]) / n_draws
+    row_sum = result.sum(axis=1, keepdims=True)
+    result /= np.where(row_sum == 0, 1.0, row_sum)
+    return result
+
+
+def compute_mean_nll_bayes(
+    lambda_h_samples: np.ndarray,
+    lambda_a_samples: np.ndarray,
+    home_goals: np.ndarray,
+    away_goals: np.ndarray,
+) -> float:
+    """Mean NLL averaged over posterior samples via log-sum-exp.
+
+    Computes log(1/S * sum_s P(goals | lambda_s)) for each observation,
+    then negates and averages.  Numerically stable via log-sum-exp.
+    """
+    lambda_h_samples = np.asarray(lambda_h_samples, dtype=np.float64).clip(1e-6)
+    lambda_a_samples = np.asarray(lambda_a_samples, dtype=np.float64).clip(1e-6)
+    home_goals = np.asarray(home_goals, dtype=int)
+    away_goals = np.asarray(away_goals, dtype=int)
+
+    n_draws, n_obs = lambda_h_samples.shape
+    log_n = np.log(n_draws)
+
+    # log p(h, a | lambda_s) for each draw s and observation i
+    # shape (n_draws, n_obs)
+    log_lik = (
+        poisson.logpmf(home_goals[None, :], lambda_h_samples)
+        + poisson.logpmf(away_goals[None, :], lambda_a_samples)
+    )
+
+    # log-sum-exp over draws, then subtract log(n_draws)
+    max_ll = log_lik.max(axis=0)  # (n_obs,)
+    log_mean_lik = max_ll + np.log(np.exp(log_lik - max_ll).sum(axis=0)) - log_n
+
+    return float(-log_mean_lik.mean())
+
+
+# ---------------------------------------------------------------------------
+# Distribution-aware dispatcher
+# ---------------------------------------------------------------------------
+
+
+def compute_outcome_probs_dispatch(
+    model: "BaseModel",
+    X: np.ndarray,
+    max_goals: int = 10,
+) -> np.ndarray:
+    """Select outcome probability computation based on model.distribution_family.
+
+    For ``"negbin"`` models: calls ``predict_with_dispersion`` and uses the
+    NegBin PMF grid.  For ``"bayesian_poisson"`` models: draws posterior samples
+    and averages PMFs.  All other models fall back to the standard Poisson grid.
+
+    Returns:
+        Array of shape (n, 3) — columns [P(home), P(draw), P(away)].
+    """
+    family = model.distribution_family
+
+    if family == "negbin":
+        from src.models.candidates.negbin_glm import NegativeBinomialGLM  # noqa: PLC0415
+        assert isinstance(model, NegativeBinomialGLM)
+        lam_h, lam_a, alpha_h, alpha_a = model.predict_with_dispersion(X)
+        return compute_outcome_probs_nb(lam_h, lam_a, alpha_h, alpha_a, max_goals)
+
+    if family == "bayesian_poisson":
+        from src.models.candidates.bayesian_poisson import BayesianPoissonModel  # noqa: PLC0415
+        assert isinstance(model, BayesianPoissonModel)
+        lam_h_s, lam_a_s = model.predict_samples(X)
+        return compute_outcome_probs_bayes(lam_h_s, lam_a_s, max_goals)
+
+    # Default: treat predict() output as Poisson rates
+    lam_h, lam_a = model.predict(X)
+    return compute_outcome_probs(lam_h, lam_a, max_goals)
+
+
+def compute_nll_dispatch(
+    model: "BaseModel",
+    X: np.ndarray,
+    home_goals: np.ndarray,
+    away_goals: np.ndarray,
+) -> float:
+    """Select NLL computation based on model.distribution_family."""
+    family = model.distribution_family
+
+    if family == "negbin":
+        from src.models.candidates.negbin_glm import NegativeBinomialGLM  # noqa: PLC0415
+        assert isinstance(model, NegativeBinomialGLM)
+        lam_h, lam_a, alpha_h, alpha_a = model.predict_with_dispersion(X)
+        return compute_mean_nll_nb(lam_h, lam_a, alpha_h, alpha_a, home_goals, away_goals)
+
+    if family == "bayesian_poisson":
+        from src.models.candidates.bayesian_poisson import BayesianPoissonModel  # noqa: PLC0415
+        assert isinstance(model, BayesianPoissonModel)
+        lam_h_s, lam_a_s = model.predict_samples(X)
+        return compute_mean_nll_bayes(lam_h_s, lam_a_s, home_goals, away_goals)
+
+    lam_h, lam_a = model.predict(X)
+    return compute_mean_nll(lam_h, lam_a, home_goals, away_goals)

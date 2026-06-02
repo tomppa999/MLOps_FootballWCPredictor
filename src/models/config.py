@@ -40,8 +40,10 @@ FULL_FEATURE_COLUMNS: Final[list[str]] = (
     + ROLLING_TACTICAL_COLUMNS
 )  # 28 features (12 core + 6 rolling shot + 10 rolling tactical)
 
-# Which feature set each model uses
+# Which feature set each model uses.
+# mean_rate_poisson ignores all features but needs a consistent key here.
 MODEL_FEATURE_SETS: Final[dict[str, list[str]]] = {
+    "mean_rate_poisson": CORE_FEATURE_COLUMNS,
     "poisson_glm": CORE_FEATURE_COLUMNS,
     "negbin_glm": CORE_FEATURE_COLUMNS,
     "ridge": CORE_FEATURE_COLUMNS,

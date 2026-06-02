@@ -60,6 +60,9 @@ those will be derived from the thesis later.
 - [ ] **1d** Drift monitoring — Threats to Validity paragraph (once thesis
   document exists)
 - [ ] Rerun full QA with all 10 candidates (verify fixes)
+  - After run: update `WC2022_RPS_BASELINES["mean_rate_poisson"]` in
+    `src/monitoring/baselines.py` with the real holdout RPS (currently a
+    placeholder; only affects monitoring log context, not alert logic)
 
 ### Phase 2 — Thesis feature/data changes (`thesis` branch, weeks 2–3)
 

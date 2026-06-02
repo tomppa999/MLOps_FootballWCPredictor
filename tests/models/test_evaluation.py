@@ -7,8 +7,14 @@ import pytest
 
 from src.models.evaluation import (
     compute_mean_nll,
+    compute_mean_nll_bayes,
+    compute_mean_nll_nb,
     compute_mean_rps,
+    compute_nll_dispatch,
     compute_outcome_probs,
+    compute_outcome_probs_bayes,
+    compute_outcome_probs_dispatch,
+    compute_outcome_probs_nb,
     compute_rmse,
     compute_rps,
     goals_to_outcome,
@@ -210,3 +216,190 @@ class TestComputeRMSE:
     def test_scalar(self):
         rmse = compute_rmse(1.0, 2.0)
         np.testing.assert_allclose(rmse, 1.0)
+
+
+# ---------------------------------------------------------------------------
+# compute_outcome_probs_nb
+# ---------------------------------------------------------------------------
+
+
+class TestComputeOutcomeProbsNB:
+    def test_shape(self):
+        probs = compute_outcome_probs_nb(
+            np.array([1.5, 1.0]), np.array([1.0, 1.5]), 0.5, 0.5
+        )
+        assert probs.shape == (2, 3)
+
+    def test_probs_sum_to_one(self):
+        probs = compute_outcome_probs_nb(
+            np.array([1.5, 1.0]), np.array([1.0, 1.5]), 0.5, 0.5
+        )
+        np.testing.assert_allclose(probs.sum(axis=1), 1.0, atol=1e-6)
+
+    def test_all_probs_non_negative(self):
+        probs = compute_outcome_probs_nb(
+            np.array([0.5, 3.0]), np.array([3.0, 0.5]), 1.0, 1.0
+        )
+        assert (probs >= 0).all()
+
+    def test_small_alpha_approaches_poisson(self):
+        """Very small dispersion (alpha → 0) should give results close to Poisson."""
+        lh = np.array([1.5])
+        la = np.array([1.0])
+        nb_probs = compute_outcome_probs_nb(lh, la, 1e-4, 1e-4)
+        poisson_probs = compute_outcome_probs(lh, la)
+        np.testing.assert_allclose(nb_probs, poisson_probs, atol=0.01)
+
+
+# ---------------------------------------------------------------------------
+# compute_mean_nll_nb
+# ---------------------------------------------------------------------------
+
+
+class TestComputeMeanNLLNB:
+    def test_returns_finite(self):
+        nll = compute_mean_nll_nb(
+            np.array([1.5, 1.0]), np.array([1.0, 1.5]),
+            0.5, 0.5,
+            np.array([1, 2]), np.array([2, 1]),
+        )
+        assert np.isfinite(nll)
+        assert nll > 0
+
+    def test_good_beats_bad(self):
+        actual_h = np.array([2, 1])
+        actual_a = np.array([1, 2])
+        good = compute_mean_nll_nb(
+            np.array([2.0, 1.0]), np.array([1.0, 2.0]), 0.5, 0.5,
+            actual_h, actual_a,
+        )
+        bad = compute_mean_nll_nb(
+            np.array([0.1, 5.0]), np.array([5.0, 0.1]), 0.5, 0.5,
+            actual_h, actual_a,
+        )
+        assert good < bad
+
+
+# ---------------------------------------------------------------------------
+# compute_outcome_probs_bayes
+# ---------------------------------------------------------------------------
+
+
+class TestComputeOutcomeProbsBayes:
+    def _make_samples(self, n_draws: int = 10, n_obs: int = 4) -> tuple[np.ndarray, np.ndarray]:
+        rng = np.random.default_rng(0)
+        lh = rng.uniform(0.5, 2.5, size=(n_draws, n_obs))
+        la = rng.uniform(0.5, 2.5, size=(n_draws, n_obs))
+        return lh, la
+
+    def test_shape(self):
+        lh, la = self._make_samples()
+        probs = compute_outcome_probs_bayes(lh, la)
+        assert probs.shape == (4, 3)
+
+    def test_probs_sum_to_one(self):
+        lh, la = self._make_samples()
+        probs = compute_outcome_probs_bayes(lh, la)
+        np.testing.assert_allclose(probs.sum(axis=1), 1.0, atol=1e-6)
+
+    def test_all_probs_non_negative(self):
+        lh, la = self._make_samples()
+        probs = compute_outcome_probs_bayes(lh, la)
+        assert (probs >= 0).all()
+
+    def test_single_draw_matches_poisson(self):
+        """With one posterior draw, result should match compute_outcome_probs."""
+        lh = np.array([[1.5, 1.0]])
+        la = np.array([[1.0, 1.5]])
+        bayes_probs = compute_outcome_probs_bayes(lh, la)
+        poisson_probs = compute_outcome_probs(lh[0], la[0])
+        np.testing.assert_allclose(bayes_probs, poisson_probs, atol=1e-6)
+
+
+# ---------------------------------------------------------------------------
+# compute_mean_nll_bayes
+# ---------------------------------------------------------------------------
+
+
+class TestComputeMeanNLLBayes:
+    def test_returns_finite(self):
+        rng = np.random.default_rng(1)
+        lh_s = rng.uniform(0.5, 2.5, size=(10, 5))
+        la_s = rng.uniform(0.5, 2.5, size=(10, 5))
+        nll = compute_mean_nll_bayes(
+            lh_s, la_s, np.array([1, 2, 1, 0, 3]), np.array([0, 1, 2, 1, 1])
+        )
+        assert np.isfinite(nll)
+        assert nll > 0
+
+    def test_single_draw_matches_poisson(self):
+        """Single draw: Bayesian NLL should match standard Poisson NLL."""
+        lh = np.array([[1.5, 2.0]])
+        la = np.array([[1.0, 0.8]])
+        hg = np.array([1, 2])
+        ag = np.array([0, 1])
+        bayes_nll = compute_mean_nll_bayes(lh, la, hg, ag)
+        poisson_nll = compute_mean_nll(lh[0], la[0], hg, ag)
+        np.testing.assert_allclose(bayes_nll, poisson_nll, atol=1e-6)
+
+
+# ---------------------------------------------------------------------------
+# compute_outcome_probs_dispatch / compute_nll_dispatch
+# ---------------------------------------------------------------------------
+
+
+class TestDispatchers:
+    def _make_X_y(self, n: int = 30, p: int = 3) -> tuple[np.ndarray, np.ndarray]:
+        rng = np.random.default_rng(99)
+        X = rng.standard_normal((n, p))
+        y = rng.integers(0, 5, size=(n, 2)).astype(np.float64)
+        return X, y
+
+    def test_dispatch_poisson_family(self):
+        from src.models.candidates.ridge import RidgeModel
+        X, y = self._make_X_y()
+        m = RidgeModel().fit(X, y)
+        probs = compute_outcome_probs_dispatch(m, X)
+        assert probs.shape == (len(X), 3)
+        np.testing.assert_allclose(probs.sum(axis=1), 1.0, atol=1e-6)
+
+    def test_dispatch_negbin_family(self):
+        from src.models.candidates.negbin_glm import NegativeBinomialGLM
+        X, y = self._make_X_y()
+        m = NegativeBinomialGLM().fit(X, y)
+        probs = compute_outcome_probs_dispatch(m, X)
+        assert probs.shape == (len(X), 3)
+        np.testing.assert_allclose(probs.sum(axis=1), 1.0, atol=1e-6)
+
+    def test_dispatch_bayesian_family(self):
+        from src.models.candidates.bayesian_poisson import BayesianPoissonModel
+        X, y = self._make_X_y()
+        m = BayesianPoissonModel(draws=20, tune_steps=20).fit(X, y)
+        probs = compute_outcome_probs_dispatch(m, X)
+        assert probs.shape == (len(X), 3)
+        np.testing.assert_allclose(probs.sum(axis=1), 1.0, atol=1e-6)
+
+    def test_nll_dispatch_poisson_matches_direct(self):
+        from src.models.candidates.ridge import RidgeModel
+        X, y = self._make_X_y()
+        m = RidgeModel().fit(X, y)
+        lh, la = m.predict(X)
+        direct = compute_mean_nll(lh, la, y[:, 0], y[:, 1])
+        dispatched = compute_nll_dispatch(m, X, y[:, 0], y[:, 1])
+        np.testing.assert_allclose(dispatched, direct, atol=1e-10)
+
+    def test_nll_dispatch_negbin_returns_finite(self):
+        from src.models.candidates.negbin_glm import NegativeBinomialGLM
+        X, y = self._make_X_y()
+        m = NegativeBinomialGLM().fit(X, y)
+        nll = compute_nll_dispatch(m, X, y[:, 0], y[:, 1])
+        assert np.isfinite(nll)
+        assert nll > 0
+
+    def test_nll_dispatch_bayesian_returns_finite(self):
+        from src.models.candidates.bayesian_poisson import BayesianPoissonModel
+        X, y = self._make_X_y()
+        m = BayesianPoissonModel(draws=20, tune_steps=20).fit(X, y)
+        nll = compute_nll_dispatch(m, X, y[:, 0], y[:, 1])
+        assert np.isfinite(nll)
+        assert nll > 0

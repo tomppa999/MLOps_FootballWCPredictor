@@ -19,13 +19,15 @@ class TestNegativeBinomialGLM:
     def test_name(self):
         assert NegativeBinomialGLM().name == "negbin_glm"
 
+    def test_distribution_family(self):
+        assert NegativeBinomialGLM().distribution_family == "negbin"
+
     def test_get_params_roundtrip(self):
         m = NegativeBinomialGLM(alpha=2.0)
         assert m.get_params() == {"alpha": 2.0}
 
     def test_fit_returns_self(self):
         X, y = _make_data()
-        assert NegativeBinomialGLM().fit(X, y) is NegativeBinomialGLM().fit(X, y).__class__.__mro__[0] or True
         m = NegativeBinomialGLM()
         assert m.fit(X, y) is m
 
@@ -54,3 +56,22 @@ class TestNegativeBinomialGLM:
         lh, la = m.predict(X)
         assert np.isfinite(lh).all()
         assert np.isfinite(la).all()
+
+    def test_predict_with_dispersion_shape(self):
+        X, y = _make_data()
+        m = NegativeBinomialGLM().fit(X, y)
+        lh, la, alpha_h, alpha_a = m.predict_with_dispersion(X)
+        assert lh.shape == (len(X),)
+        assert la.shape == (len(X),)
+
+    def test_predict_with_dispersion_alpha_positive(self):
+        X, y = _make_data()
+        m = NegativeBinomialGLM().fit(X, y)
+        _, _, alpha_h, alpha_a = m.predict_with_dispersion(X)
+        assert alpha_h > 0
+        assert alpha_a > 0
+
+    def test_predict_with_dispersion_before_fit_raises(self):
+        m = NegativeBinomialGLM()
+        with pytest.raises(RuntimeError):
+            m.predict_with_dispersion(np.zeros((5, 3)))

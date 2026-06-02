@@ -39,8 +39,8 @@ from src.models.mlflow_utils import (
     start_run,
 )
 from src.monitoring.baselines import (
-    ALERT_FACTOR,
     ALERT_WINDOW,
+    NAIVE_BASELINE_RPS,
     WC2022_RPS_BASELINES,
 )
 
@@ -396,15 +396,14 @@ def evaluate_alert_threshold(
     monitoring_df: pd.DataFrame,
     *,
     window: int = ALERT_WINDOW,
-    factor: float = ALERT_FACTOR,
-    baselines: dict[str, float] = WC2022_RPS_BASELINES,
+    naive_floor: float = NAIVE_BASELINE_RPS,
 ) -> list[str]:
-    """Iterate every model and warn when rolling-mean RPS breaches threshold.
+    """Iterate every model and warn when rolling-mean RPS breaches the floor.
 
-    Threshold is ``baselines[model] * factor``. Models with fewer than
-    ``window`` scored matches are skipped (cold-start guard). Champion and
-    shadows are treated identically — promotion remains manual under all
-    conditions.
+    Threshold is ``naive_floor`` (universal naive-baseline floor).  Any model
+    with rolling RPS above this has degraded to below-random and must be
+    investigated.  Models with fewer than ``window`` scored matches are
+    skipped (cold-start guard).
 
     Returns the list of breaching model names.
     """
@@ -413,25 +412,19 @@ def evaluate_alert_threshold(
 
     breached: list[str] = []
     for model_name, group in monitoring_df.groupby("model_name"):
-        baseline = baselines.get(model_name)
-        if baseline is None:
-            logger.warning(
-                "No WC2022 baseline for %s — skipping alert evaluation.",
-                model_name,
-            )
-            continue
         recent = group.sort_values("kickoff_utc").tail(window)
         if len(recent) < window:
             continue
         rolling_rps = float(recent["rps"].mean())
-        threshold = baseline * factor
-        if rolling_rps > threshold:
+        if rolling_rps > naive_floor:
+            wc2022_ref = WC2022_RPS_BASELINES.get(str(model_name), float("nan"))
             logger.warning(
                 "ALERT %s: rolling RPS %.4f over last %d matches > %.4f "
-                "(baseline %.4f x %.2f). Manual investigation required.",
-                model_name, rolling_rps, window, threshold, baseline, factor,
+                "(naive floor). WC2022 audit RPS was %.4f. "
+                "Manual investigation required.",
+                model_name, rolling_rps, window, naive_floor, wc2022_ref,
             )
-            breached.append(model_name)
+            breached.append(str(model_name))
     return breached
 
 

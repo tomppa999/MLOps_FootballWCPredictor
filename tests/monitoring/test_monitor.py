@@ -17,7 +17,7 @@ import pandas as pd
 import pytest
 
 from src.monitoring import monitor
-from src.monitoring.baselines import ALERT_WINDOW, WC2022_RPS_BASELINES
+from src.monitoring.baselines import ALERT_WINDOW, NAIVE_BASELINE_RPS
 
 
 # ---------------------------------------------------------------------------
@@ -178,14 +178,14 @@ def _build_long_table(per_model_rps: dict[str, list[float]]) -> pd.DataFrame:
 
 
 def test_alert_threshold_triggers_when_rolling_mean_breaches():
-    bad_rps = [WC2022_RPS_BASELINES["xgboost"] * 1.5] * ALERT_WINDOW
+    bad_rps = [NAIVE_BASELINE_RPS + 0.05] * ALERT_WINDOW
     df = _build_long_table({"xgboost": bad_rps})
     breached = monitor.evaluate_alert_threshold(df)
     assert "xgboost" in breached
 
 
 def test_alert_threshold_silent_when_rolling_mean_below():
-    good_rps = [WC2022_RPS_BASELINES["xgboost"] * 0.9] * ALERT_WINDOW
+    good_rps = [NAIVE_BASELINE_RPS - 0.05] * ALERT_WINDOW
     df = _build_long_table({"xgboost": good_rps})
     breached = monitor.evaluate_alert_threshold(df)
     assert "xgboost" not in breached
