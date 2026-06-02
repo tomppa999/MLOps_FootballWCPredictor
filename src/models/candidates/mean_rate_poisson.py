@@ -43,12 +43,21 @@ class MeanRatePoisson(BaseModel):
     def distribution_family(self) -> str:
         return "poisson"
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> MeanRatePoisson:
-        """Compute and store the grand mean goal rate.
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        sample_weight: np.ndarray | None = None,  # noqa: ARG002
+    ) -> MeanRatePoisson:
+        """Compute and store the (unweighted) grand mean goal rate.
 
         Args:
             X: Feature matrix (ignored — this model uses no features).
             y: Target matrix (n_samples, 2) — columns [home_goals, away_goals].
+            sample_weight: Accepted for interface parity but **ignored**.  This
+                is a no-information floor; its prediction is a single constant
+                per match, so time-weighting would only nudge the scalar and
+                muddy its role as the entropy floor (see docs/notes/decisions.md).
         """
         self._lambda = float((y[:, 0].mean() + y[:, 1].mean()) / 2)
         return self

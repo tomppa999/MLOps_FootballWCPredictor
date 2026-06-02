@@ -19,6 +19,31 @@ GOLD_PATH: Path = Path("data/gold/matches.parquet")
 WC_2022_START: str = "2022-11-20"
 WC_2022_END: str = "2022-12-18"
 
+# A.3 — Expanded holdout: WC 2022 + continental final tournaments through 2026.
+# Each entry is (name, league_id, start, end).  Both the date window and the
+# league_id are required so that friendlies/qualifiers inside the window are
+# excluded and the two editions of AFCON/Gold Cup (same league_id) are kept
+# apart.  All windows start after WC_2022_START, so there is no overlap with
+# the training period.
+HOLDOUT_TOURNAMENTS: list[tuple[str, int, str, str]] = [
+    ("WC 2022", 1, "2022-11-20", "2022-12-18"),
+    ("Gold Cup 2023", 22, "2023-06-01", "2023-07-31"),
+    ("Asian Cup 2024", 7, "2024-01-01", "2024-02-29"),
+    ("AFCON 2024", 6, "2024-01-01", "2024-02-29"),
+    ("EURO 2024", 4, "2024-06-01", "2024-07-31"),
+    ("Copa 2024", 9, "2024-06-01", "2024-07-31"),
+    ("Gold Cup 2025", 22, "2025-06-01", "2025-07-31"),
+    ("AFCON 2025", 6, "2025-12-01", "2026-02-28"),
+]
+
+# A.4 — Match-importance sample weights (Ley et al. 2019 / pre-2018 FIFA).
+# Mapped from Gold ``competition_tier``.
+IMPORTANCE_WEIGHTS: dict[int, float] = {1: 4.0, 2: 3.0, 3: 2.5, 4: 1.0}
+
+# Default exponential time-decay half-life (Ley et al.'s national-team optimum).
+DEFAULT_HALF_PERIOD_YEARS: float = 3.0
+_DAYS_PER_YEAR: float = 365.25
+
 # ---------------------------------------------------------------------------
 # Data loading
 # ---------------------------------------------------------------------------
@@ -36,7 +61,11 @@ def load_gold(path: Path = GOLD_PATH) -> pd.DataFrame:
 
 
 class DataSplits(NamedTuple):
-    """Container for the three data partitions (train / holdout / full)."""
+    """Container for the three data partitions (train / holdout / full).
+
+    ``w_train`` and ``w_full`` are per-row sample weights (time-decay x match
+    importance) aligned with ``X_train`` / ``X_full`` (A.4).
+    """
 
     X_train: np.ndarray
     y_train: np.ndarray
@@ -47,11 +76,55 @@ class DataSplits(NamedTuple):
     df_train: pd.DataFrame
     df_holdout: pd.DataFrame
     df_full: pd.DataFrame
+    # Sample weights default to None so callers that construct DataSplits
+    # directly (e.g. unit-test fixtures) need not supply them; make_splits
+    # always populates them.  None → unweighted fit.
+    w_train: np.ndarray | None = None
+    w_full: np.ndarray | None = None
 
 
 def _to_float_array(df: pd.DataFrame, cols: list[str]) -> np.ndarray:
     """Convert a subset of a DataFrame to a float64 numpy array."""
     return df[cols].to_numpy(dtype="float64", na_value=np.nan)
+
+
+def compute_sample_weights(
+    df: pd.DataFrame,
+    *,
+    half_period_years: float = DEFAULT_HALF_PERIOD_YEARS,
+    reference_date: pd.Timestamp | None = None,
+) -> np.ndarray:
+    """Compute time-decay x match-importance training weights (A.4).
+
+    ``w_time = 0.5 ** (days_ago / (half_period_years * 365.25))`` where
+    ``days_ago`` is measured relative to *reference_date* (default: the most
+    recent ``date_utc`` in *df*, so the newest match has weight ~= importance
+    and weights never exceed the importance ceiling).  ``w_importance`` maps
+    ``competition_tier`` via ``IMPORTANCE_WEIGHTS``.
+
+    Args:
+        df: DataFrame with ``date_utc`` and ``competition_tier`` columns.
+        half_period_years: Time-decay half-life in years.
+        reference_date: "Present" reference for recency; defaults to df max date.
+
+    Returns:
+        Float64 array of weights aligned with *df* rows.  Empty df → empty array.
+    """
+    if len(df) == 0:
+        return np.empty(0, dtype="float64")
+
+    dates = pd.to_datetime(df["date_utc"])
+    ref = reference_date if reference_date is not None else dates.max()
+    days_ago = (ref - dates).dt.days.clip(lower=0).to_numpy(dtype="float64")
+
+    w_time = 0.5 ** (days_ago / (half_period_years * _DAYS_PER_YEAR))
+
+    tier = df["competition_tier"].astype("int64")
+    w_importance = (
+        tier.map(IMPORTANCE_WEIGHTS).fillna(IMPORTANCE_WEIGHTS[4]).to_numpy(dtype="float64")
+    )
+
+    return w_time * w_importance
 
 
 def make_splits(
@@ -78,12 +151,9 @@ def make_splits(
     if dropna:
         df = df.dropna(subset=feature_cols + target_cols).reset_index(drop=True)
 
-    train_mask = df["date_utc"] < WC_2022_START
-    holdout_mask = (
-        (df["date_utc"] >= WC_2022_START)
-        & (df["date_utc"] <= WC_2022_END)
-        & (df["competition_tier"] == 1)
-    )
+    dates = pd.to_datetime(df["date_utc"])
+    train_mask = dates < pd.Timestamp(WC_2022_START)
+    holdout_mask = _holdout_mask(df, dates)
 
     df_train = df.loc[train_mask].reset_index(drop=True)
     df_holdout = df.loc[holdout_mask].reset_index(drop=True)
@@ -99,7 +169,26 @@ def make_splits(
         df_train=df_train,
         df_holdout=df_holdout,
         df_full=df_full,
+        w_train=compute_sample_weights(df_train),
+        w_full=compute_sample_weights(df_full),
     )
+
+
+def _holdout_mask(df: pd.DataFrame, dates: pd.Series) -> pd.Series:
+    """Boolean mask selecting rows belonging to any holdout tournament (A.3).
+
+    A row qualifies if it falls inside a tournament's date window and matches
+    that tournament's ``league_id``.  When ``league_id`` is absent (synthetic
+    test frames), the date window alone is used so existing fixtures still work.
+    """
+    has_league = "league_id" in df.columns
+    mask = pd.Series(False, index=df.index)
+    for _name, league_id, start, end in HOLDOUT_TOURNAMENTS:
+        window = (dates >= pd.Timestamp(start)) & (dates <= pd.Timestamp(end))
+        if has_league:
+            window &= df["league_id"] == league_id
+        mask |= window
+    return mask
 
 
 # ---------------------------------------------------------------------------

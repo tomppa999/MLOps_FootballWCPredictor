@@ -99,7 +99,12 @@ class CNNModel(BaseModel):
     # BaseModel interface
     # ------------------------------------------------------------------
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> CNNModel:
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        sample_weight: np.ndarray | None = None,
+    ) -> CNNModel:
         self._scaler = StandardScaler()
         Xs = self._scaler.fit_transform(X).astype(np.float32)
         self._train_tail = Xs[-(self.seq_len - 1) :] if len(Xs) >= self.seq_len else Xs.copy()
@@ -107,10 +112,14 @@ class CNNModel(BaseModel):
         seqs = self._build_sequences(Xs)
         y_f = y.astype(np.float32)
 
+        # One weight per sequence (row); scales the per-sample MSE.
+        sw = None if sample_weight is None else np.asarray(sample_weight, dtype=np.float32)
+
         self._model = self._build_model(Xs.shape[1])
         self._model.fit(
             seqs,
             y_f,
+            sample_weight=sw,
             batch_size=self.batch_size,
             epochs=self.epochs,
             verbose=0,

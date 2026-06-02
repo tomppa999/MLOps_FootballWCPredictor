@@ -65,11 +65,16 @@ class XGBoostModel(BaseModel):
             verbosity=0,
         )
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> XGBoostModel:
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        sample_weight: np.ndarray | None = None,
+    ) -> XGBoostModel:
         self._model_home = self._make_estimator()
         self._model_away = self._make_estimator()
-        self._model_home.fit(X, y[:, 0])
-        self._model_away.fit(X, y[:, 1])
+        self._model_home.fit(X, y[:, 0], sample_weight=sample_weight)
+        self._model_away.fit(X, y[:, 1], sample_weight=sample_weight)
         return self
 
     def predict(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

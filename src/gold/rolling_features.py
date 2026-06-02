@@ -61,6 +61,8 @@ def _build_team_history(df: pd.DataFrame) -> pd.DataFrame:
         ("away", "away_goals", "home_goals"),
     ]:
         team_col = f"{prefix}_team"
+        elo_pre_col = f"{prefix}_elo_pre"
+        elo_post_col = f"{prefix}_elo_post"
         cols: dict = {
             "fixture_id": df["fixture_id"],
             "date_utc": df["date_utc"],
@@ -68,6 +70,16 @@ def _build_team_history(df: pd.DataFrame) -> pd.DataFrame:
             "goals_for": pd.to_numeric(df[goals_for_col], errors="coerce"),
             "goals_against": pd.to_numeric(df[goals_against_col], errors="coerce"),
             "stats_tier": df["stats_tier"] if "stats_tier" in df.columns else "full",
+            # Per-team pre/post Elo for rolling Elo-change (A.2).  Missing on
+            # rows without Elo (e.g. appended WC-result rows) → NaN, skipped.
+            "elo_pre": pd.to_numeric(
+                df[elo_pre_col] if elo_pre_col in df.columns else pd.Series(np.nan, index=df.index),
+                errors="coerce",
+            ),
+            "elo_post": pd.to_numeric(
+                df[elo_post_col] if elo_post_col in df.columns else pd.Series(np.nan, index=df.index),
+                errors="coerce",
+            ),
         }
         for suffix in _RAW_TACTICAL_STATS:
             col = f"{prefix}_{suffix}"
@@ -96,6 +108,7 @@ def _rolling_for_team(
     nan_result: dict[str, float] = {
         "rolling_goals_for": np.nan,
         "rolling_goals_against": np.nan,
+        "rolling_elo_change": np.nan,
         "rolling_shots": np.nan,
         "rolling_shot_accuracy": np.nan,
         "rolling_conversion": np.nan,
@@ -108,9 +121,16 @@ def _rolling_for_team(
 
     last_n = team_history.tail(n)
 
+    # Net Elo change over the last n matches that have both pre and post Elo.
+    # NaN when none of the windowed matches carry Elo (keeps it leakage-safe
+    # and avoids a spurious 0.0 from summing an empty slice).
+    elo_change = (last_n["elo_post"] - last_n["elo_pre"]).dropna()
+    rolling_elo_change = float(elo_change.sum()) if not elo_change.empty else np.nan
+
     result: dict[str, float] = {
         "rolling_goals_for": last_n["goals_for"].mean(),
         "rolling_goals_against": last_n["goals_against"].mean(),
+        "rolling_elo_change": rolling_elo_change,
     }
 
     # Shot + tactical features: only matches with actual stats

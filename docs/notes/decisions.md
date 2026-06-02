@@ -17,12 +17,21 @@ that won't be obvious from the code alone.
   Frame it as a lineage: Maher → Dixon & Coles → Ley et al.
 - See also: `docs/literature/prediction_framing.md`
 
-## Half-period: tuned per model via Optuna [1.0, 5.0]
+## Half-period: fixed at 3 years now; Optuna tuning deferred
 
 - Ley et al. found 3 years optimal for all Poisson variants on national teams.
-- Adding `half_period_years` to Optuna is low overhead (one numpy recompute per trial).
-- Report per-model values in thesis methodology. Deviation from 3y is a finding.
-- Mean-rate Poisson baseline: fixed at 3 years (no Optuna, known optimum).
+- **A.4 (this phase): fixed 3-year half-life for all weighted models.** Implements the
+  full weighting mechanics (the valuable, reusable part) without the search-space cost.
+- **Optuna tuning of `half_period_years` ∈ [1.0, 5.0] is deferred to the refit /
+  model-selection cycle** (the post-A.4 step). Adding it is low overhead (one numpy
+  recompute per trial) and the weight code is structured so the change stays localized.
+- Report per-model values in thesis methodology once tuned. Deviation from 3y is a finding.
+- `days_ago` measured relative to each split's most recent match date (so the newest
+  match has weight ≈ importance; avoids negative `days_ago` / weights > 1 on full-data refit).
+- **Mean-rate Poisson baseline: not weighted at all** (plain unweighted grand mean). Its
+  prediction is a single constant per match, so time-weighting would only nudge the scalar
+  and muddy its role as the no-information floor / flat entropy floor (Phase 5). It accepts
+  `sample_weight` and ignores it.
 
 ## Competition tier: dual role (sample weight + predictor feature)
 
@@ -31,6 +40,24 @@ that won't be obvious from the code alone.
 - Complementary, not redundant — they operate at different stages (training vs inference).
 - Weights from Ley et al. (1 / 2.5 / 3 / 4) = pre-2018 FIFA methodology.
   Cite as "Ley et al.'s weights", NOT "current FIFA weights" (FIFA changed 2018).
+
+## Bayesian Poisson: weighted (tempered) likelihood (A.4)
+
+- PyMC has no `sample_weight` kwarg. `pm.Poisson(observed=y)` adds an unweighted
+  `Σ log P(y_i | λ_i)` to the model log-density.
+- To apply time-decay × importance weights, replace `observed=` with a manual term:
+  `pm.Potential((w * pm.logp(pm.Poisson.dist(mu=λ), y)).sum())`.
+- This yields a *weighted / tempered pseudo-posterior*: `prior × Π P(y_i|λ_i)^{w_i}`,
+  not an exact Bayesian posterior.
+- Consequence: posterior credible intervals no longer reflect the true sample size —
+  weighting shrinks the *effective* N (down-weighted old matches contribute less
+  information). This is the intended recency emphasis, but the uncertainty is
+  conditioned on the weighting scheme. Flag as a one-line methodology caveat
+  (relevant to RQ2 / uncertainty interpretation).
+- Weighting is training-only; per-match predictive spread still comes from the
+  posterior over β, so `predict_samples()` (distribution-aware scoring) is unaffected.
+- Same weighted-likelihood idea as the GLMs (Poisson GLM scales its per-obs log-PMF;
+  NegBin uses statsmodels `var_weights`) — just expressed via `pm.Potential`.
 
 ## Tactical features: dropped (A.1)
 

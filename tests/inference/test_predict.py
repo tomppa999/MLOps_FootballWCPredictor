@@ -28,6 +28,8 @@ def _make_upcoming_features() -> pd.DataFrame:
         "home_team_rolling_goals_against": 0.9,
         "away_team_rolling_goals_for": 1.5,
         "away_team_rolling_goals_against": 1.1,
+        "home_team_rolling_elo_change": 15.0,
+        "away_team_rolling_elo_change": -5.0,
     }])
 
 

@@ -44,7 +44,12 @@ class RandomForestModel(BaseModel):
     def name(self) -> str:
         return "random_forest"
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> RandomForestModel:
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        sample_weight: np.ndarray | None = None,
+    ) -> RandomForestModel:
         self._model = RandomForestRegressor(
             n_estimators=self.n_estimators,
             max_depth=self.max_depth,
@@ -53,7 +58,7 @@ class RandomForestModel(BaseModel):
             random_state=self.random_state,
             n_jobs=-1,
         )
-        self._model.fit(X, y)
+        self._model.fit(X, y, sample_weight=sample_weight)
         return self
 
     def predict(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

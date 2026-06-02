@@ -33,12 +33,21 @@ class BaseModel(ABC):
         return "poisson"
 
     @abstractmethod
-    def fit(self, X: np.ndarray, y: np.ndarray) -> BaseModel:
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        sample_weight: np.ndarray | None = None,
+    ) -> BaseModel:
         """Fit on training data.
 
         Args:
             X: Feature matrix (n_samples, n_features).
             y: Target matrix (n_samples, 2) — columns [home_goals, away_goals].
+            sample_weight: Optional per-sample weights (A.4 time-decay x match
+                importance), shape (n_samples,).  Models that cannot meaningfully
+                use per-observation weights (SARIMAX) and the no-information
+                mean-rate baseline accept and ignore this argument.
 
         Returns:
             self (for chaining).

@@ -6,9 +6,8 @@ from typing import Final
 
 from src.gold.schema import (
     CONTEXT_COLUMNS,
+    ROLLING_ELO_CHANGE_COLUMNS,
     ROLLING_GOALS_COLUMNS,
-    ROLLING_SHOT_COLUMNS,
-    ROLLING_TACTICAL_COLUMNS,
     TARGET_COLUMNS,
     TEMPORAL_COLUMNS,
 )
@@ -22,23 +21,23 @@ TARGET_COLS: Final[list[str]] = TARGET_COLUMNS
 
 # Core: nearly complete across all rows (<2% NaN after dropna).
 # Rolling goals are included here (~108–109 NaN / 6,663 rows).
-# Rolling shots and tactical columns have substantial NaN (~1,800–2,100)
-# and are Full-only; only XGBoost handles NaN natively.
 # Gold v2 expansion: ``elo_sum`` (strength) and the three
 # TEMPORAL_COLUMNS join Core.  ``is_cross_confederation`` was removed
 # (invisible in all model importances, confounded with competition_tier).
+# Thesis A.2: rolling Elo-change (full coverage) joins Core.
 CORE_FEATURE_COLUMNS: Final[list[str]] = (
     ["elo_diff", "elo_sum"]
     + CONTEXT_COLUMNS
     + TEMPORAL_COLUMNS
     + ROLLING_GOALS_COLUMNS
-)  # 12 features
+    + ROLLING_ELO_CHANGE_COLUMNS
+)  # 14 features
 
-FULL_FEATURE_COLUMNS: Final[list[str]] = (
-    CORE_FEATURE_COLUMNS
-    + ROLLING_SHOT_COLUMNS
-    + ROLLING_TACTICAL_COLUMNS
-)  # 28 features (12 core + 6 rolling shot + 10 rolling tactical)
+# Thesis A.1: rolling shot and tactical columns are dropped from the model
+# feature set entirely.  No model trains on in-game statistics, so the Full set
+# now equals the Core set (kept as a distinct name for backward-compatible
+# imports and the per-model mapping below).
+FULL_FEATURE_COLUMNS: Final[list[str]] = list(CORE_FEATURE_COLUMNS)
 
 # Which feature set each model uses.
 # mean_rate_poisson ignores all features but needs a consistent key here.

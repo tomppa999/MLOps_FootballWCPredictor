@@ -27,7 +27,9 @@ class _FakeShadowModel(BaseModel):
     def name(self) -> str:
         return "fake_shadow"
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "_FakeShadowModel":
+    def fit(
+        self, X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray | None = None
+    ) -> "_FakeShadowModel":
         type(self).fit_calls += 1
         return self
 

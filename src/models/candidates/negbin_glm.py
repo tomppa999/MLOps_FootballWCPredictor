@@ -40,7 +40,12 @@ class NegativeBinomialGLM(BaseModel):
     def distribution_family(self) -> str:
         return "negbin"
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> NegativeBinomialGLM:
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        sample_weight: np.ndarray | None = None,
+    ) -> NegativeBinomialGLM:
         self._scaler = StandardScaler()
         Xs = self._scaler.fit_transform(X)
         Xd = sm.add_constant(Xs)
@@ -48,12 +53,16 @@ class NegativeBinomialGLM(BaseModel):
         h = y[:, 0].astype(np.float64)
         a = y[:, 1].astype(np.float64)
 
+        # var_weights scales each observation's contribution to the likelihood
+        # (A.4 time-decay x match-importance recency weighting).
+        w = None if sample_weight is None else np.asarray(sample_weight, dtype=np.float64)
+
         self._model_home = sm.GLM(
-            h, Xd, family=sm.families.NegativeBinomial(alpha=self.alpha)
+            h, Xd, family=sm.families.NegativeBinomial(alpha=self.alpha), var_weights=w
         ).fit(disp=False)
 
         self._model_away = sm.GLM(
-            a, Xd, family=sm.families.NegativeBinomial(alpha=self.alpha)
+            a, Xd, family=sm.families.NegativeBinomial(alpha=self.alpha), var_weights=w
         ).fit(disp=False)
 
         # Store the MLE-estimated dispersion from statsmodels.

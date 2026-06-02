@@ -53,25 +53,25 @@ tournament changes).
 Correctness fixes needed by both paper and thesis. No paper.tex changes now;
 those will be derived from the thesis later.
 
-- [ ] **1a** Monitoring threshold → naive-baseline floor
-- [ ] **1b** Fix NegBin and Bayesian Poisson evaluation collapse
-- [ ] **1c** Add symmetric mean-rate Poisson baseline (as threshold, not
+- [x] **1a** Monitoring threshold → naive-baseline floor
+- [x] **1b** Fix NegBin and Bayesian Poisson evaluation collapse
+- [x] **1c** Add symmetric mean-rate Poisson baseline (as threshold, not
   peer candidate — intercept-only case of Maher 1982)
-- [ ] **1d** Drift monitoring — Threats to Validity paragraph (once thesis
+- [x] **1d** Drift monitoring — Threats to Validity paragraph (once thesis
   document exists)
-- [ ] Rerun full QA with all 10 candidates (verify fixes)
-  - After run: update `WC2022_RPS_BASELINES["mean_rate_poisson"]` in
-    `src/monitoring/baselines.py` with the real holdout RPS (currently a
-    placeholder; only affects monitoring log context, not alert logic)
 
 ### Phase 2 — Thesis feature/data changes (`thesis` branch, weeks 2–3)
 
-- [ ] **A.1** Drop in-game statistics features
-- [ ] **A.2** Add rolling Elo-change (pending prof approval Monday)
-- [ ] **A.3** Expand holdout to continental tournaments (pending prof
-  approval Monday)
-- [ ] **A.4** Add time-decay + match-importance sample weights
-- [ ] Refit all 10 candidates on thesis feature set
+- [x] **A.1** Drop in-game statistics features
+- [x] **A.2** Add rolling Elo-change (window tied to rolling goals window)
+- [x] **A.3** Expand holdout to continental tournaments
+- [x] **A.4** Add time-decay + match-importance sample weights (fixed 3yr;
+  Optuna half-period tuning deferred to refit)
+- [ ] Refit all 10 candidates on thesis feature set (also verifies Phase 1
+  fixes — eyeball that NegBin/Bayes metrics no longer collapse to Poisson)
+  - After run: update `WC2022_RPS_BASELINES["mean_rate_poisson"]` in
+    `src/monitoring/baselines.py` with the real holdout RPS (currently a
+    placeholder; only affects monitoring log context, not alert logic)
 - [ ] Select top 3 that beat the baseline → thesis live experiment uses
   these 3 + baseline (4 models total)
 - [ ] Freeze champions for both modes
@@ -170,8 +170,8 @@ reduced to its mean before scoring. H4 was likely incorrectly rejected.
 - [ ] In `src/models/tuning.py`: NegBin Optuna trials minimise NB NLL
 - [ ] In `src/models/tuning.py`: Bayesian Poisson trials minimise MC
   posterior NLL
-- [ ] Re-run Experimental → QA on pre-WC 2022 data for both candidates
-  (other seven candidates unchanged)
+- [ ] Verify NegBin/Bayes no longer collapse to Poisson at evaluation time
+  during the post-A.4 refit (Phase 2; no separate pre-Phase-2 QA run)
 
 ### 1c. Add symmetric mean-rate Poisson baseline
 
@@ -335,12 +335,12 @@ Final sample weight = `w_time × w_importance`.
 - [ ] XGBoost: `sample_weight` parameter in DMatrix
 - [ ] GLMs (Poisson, NegBin): frequency/exposure weights in statsmodels
 - [ ] Bayesian Poisson: weighted likelihood (scale log-likelihood per obs)
-- [ ] Tune Half Period via Optuna: add `half_period_years` as a float
-  hyperparameter (range `[1.0, 5.0]`) for each model whose training uses
-  sample weights. Recompute `w_time` per trial — one cheap numpy operation.
-  For `mean_rate_poisson` baseline, fix at 3 years (Ley et al. optimum).
-  Report the per-model optimised values in the methodology section; any
-  deviation from 3 years is an interesting reportable finding.
+- [ ] Use a fixed 3-year half-life for all weighted models (Ley et al.
+  optimum). `mean_rate_poisson` is **not** weighted (no-information floor;
+  weighting only nudges its single constant — see
+  `docs/notes/decisions.md`). SARIMAX is left unweighted (no per-observation
+  weight concept in its state-space MLE). Optuna tuning of
+  `half_period_years` is **deferred** to the model-selection/refit step below.
 - [ ] Tests:
   - Weight of a match exactly half_period days ago = 0.5 × importance
   - Recent WC match has highest weight
@@ -348,11 +348,19 @@ Final sample weight = `w_time × w_importance`.
 
 ### Model selection for live experiment
 
-Happens here (after feature changes), not in Phase 1. The model selection
-must use the thesis feature set and expanded holdout.
+Happens here (after A.1–A.4), not in Phase 1. One QA cycle serves both
+purposes: verify Phase 1 evaluation fixes and select thesis champions.
+The model selection must use the thesis feature set and expanded holdout.
 
 - [ ] Refit all 10 candidates on the thesis feature set (slimmer features
-  from A.1, plus rolling Elo-change from A.2 if approved)
+  from A.1, plus rolling Elo-change from A.2 if approved; verify NegBin/
+  Bayes metrics differ from standard Poisson)
+  - Update `WC2022_RPS_BASELINES["mean_rate_poisson"]` with real holdout RPS
+  - Tune `half_period_years` (Optuna float `[1.0, 5.0]`) for each weighted
+    model; recompute `w_time` per trial (one numpy op). Thread per-row
+    `days_ago` + `competition_tier` through the tuning objective. Report
+    per-model optimised values in methodology; deviation from 3 years is a
+    reportable finding. (Deferred here from A.4.)
 - [ ] Evaluate on expanded holdout (A.3) if approved, else WC 2022 only
 - [ ] Rank by holdout RPS; select top 3 that beat the mean-rate baseline
 - [ ] Prefer diversity of model families (e.g. one GLM, one tree, one

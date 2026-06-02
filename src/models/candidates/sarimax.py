@@ -50,7 +50,16 @@ class SARIMAXModel(BaseModel):
     def name(self) -> str:
         return "sarimax"
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> SARIMAXModel:
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        sample_weight: np.ndarray | None = None,  # noqa: ARG002
+    ) -> SARIMAXModel:
+        # sample_weight is accepted for interface parity but ignored: SARIMAX is
+        # a sequential state-space model with no per-observation weight concept
+        # (statsmodels SARIMAX.fit has no sample/var-weight hook), and injecting
+        # one would break the time-series likelihood.  See docs/notes/decisions.md.
         self._scaler = StandardScaler()
         Xs = self._scaler.fit_transform(X)
 

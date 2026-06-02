@@ -16,7 +16,7 @@ from mlflow.entities.model_registry import ModelVersion
 logger = logging.getLogger(__name__)
 
 TRACKING_URI: str = os.environ.get("MLFLOW_TRACKING_URI", "file:./mlruns")
-EXPERIMENT_NAME: str = "wc_prediction"
+EXPERIMENT_NAME: str = "wc_mlops_thesis"
 STAGING_MODEL_NAME: str = "wc_staging"
 PRODUCTION_MODEL_NAME: str = "wc_production"
 SHADOW_MODEL_NAME: str = "wc_shadow"

@@ -57,6 +57,14 @@ class TestColumnConsistency:
         assert "home_team_match_index" in GOLD_COLUMNS
         assert "away_team_match_index" in GOLD_COLUMNS
 
+    def test_rolling_elo_change_present(self):
+        assert "home_team_rolling_elo_change" in GOLD_COLUMNS
+        assert "away_team_rolling_elo_change" in GOLD_COLUMNS
+
+    def test_elo_post_carried_for_transparency(self):
+        assert "home_elo_post" in GOLD_COLUMNS
+        assert "away_elo_post" in GOLD_COLUMNS
+
 
 
 class TestValidation:

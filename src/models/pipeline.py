@@ -184,10 +184,11 @@ def run_experimental_phase(
             cv_folds,
             n_trials=n_trials,
             pipeline_run_id=pipeline_run_id,
+            sample_weight=splits.w_train,
         )
 
         model = model_cls(**best_params)
-        model.fit(splits.X_train, splits.y_train)
+        model.fit(splits.X_train, splits.y_train, sample_weight=splits.w_train)
         importance = compute_permutation_importance(
             model, splits.X_train, splits.y_train, feature_cols, n_repeats=5,
         )
@@ -275,7 +276,9 @@ def run_qa_phase(
     for entry in top_models:
         t0 = time.time()
         model = entry.model_cls(**entry.best_params)
-        model.fit(entry.splits.X_train, entry.splits.y_train)
+        model.fit(
+            entry.splits.X_train, entry.splits.y_train, sample_weight=entry.splits.w_train
+        )
 
         lam_h, lam_a = model.predict(entry.splits.X_holdout)
         holdout_rps = compute_mean_rps(
@@ -388,7 +391,7 @@ def run_deploy_phase(
 
     t0 = time.time()
     model = winner.model_cls(**winner.best_params)
-    model.fit(winner.splits.X_full, winner.splits.y_full)
+    model.fit(winner.splits.X_full, winner.splits.y_full, sample_weight=winner.splits.w_full)
 
     deploy_tags: dict[str, str] = {
         "stage": "production-refit",
@@ -461,7 +464,7 @@ def run_champion_refit(df: pd.DataFrame) -> str:
 
     t0 = time.time()
     model = model_cls(**meta.best_params)
-    model.fit(splits.X_full, splits.y_full)
+    model.fit(splits.X_full, splits.y_full, sample_weight=splits.w_full)
 
     with start_run(
         run_name=f"refit_{meta.model_name}",
@@ -537,7 +540,7 @@ def run_shadow_refit(df: pd.DataFrame) -> list[str]:
         )
         t0 = time.time()
         model = model_cls(**meta.best_params)
-        model.fit(splits.X_full, splits.y_full)
+        model.fit(splits.X_full, splits.y_full, sample_weight=splits.w_full)
 
         with start_run(
             run_name=f"shadow_refit_{meta.model_name}",

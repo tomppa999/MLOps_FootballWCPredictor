@@ -63,6 +63,7 @@ def _make_objective(
     cv_folds: list[tuple[np.ndarray, np.ndarray]],
     fixed_params: dict[str, Any] | None = None,
     pipeline_run_id: str | None = None,
+    sample_weight: np.ndarray | None = None,
 ):
     """Return an Optuna objective that evaluates *model_cls* via walk-forward CV."""
 
@@ -78,7 +79,8 @@ def _make_objective(
         fold_rmse_a: list[float] = []
         for train_idx, val_idx in cv_folds:
             model = model_cls(**all_params)
-            model.fit(X[train_idx], y[train_idx])
+            w_fold = None if sample_weight is None else sample_weight[train_idx]
+            model.fit(X[train_idx], y[train_idx], sample_weight=w_fold)
             lam_h, lam_a = model.predict(X[val_idx])
             # Use distribution-appropriate NLL for the tuning objective.
             nll = compute_nll_dispatch(
@@ -135,6 +137,7 @@ def run_tuning(
     experiment_name: str = "wc_prediction",
     random_state: int = 42,
     pipeline_run_id: str | None = None,
+    sample_weight: np.ndarray | None = None,
 ) -> tuple[dict[str, Any], optuna.Study]:
     """Run an Optuna TPE study with walk-forward CV, logging every trial to MLflow.
 
@@ -169,6 +172,7 @@ def run_tuning(
         cv_folds=cv_folds,
         fixed_params=fixed_params,
         pipeline_run_id=pipeline_run_id,
+        sample_weight=sample_weight,
     )
 
     start_time = time.monotonic()

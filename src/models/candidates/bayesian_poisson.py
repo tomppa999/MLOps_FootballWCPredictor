@@ -68,13 +68,19 @@ class BayesianPoissonModel(BaseModel):
     def distribution_family(self) -> str:
         return "bayesian_poisson"
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> BayesianPoissonModel:
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        sample_weight: np.ndarray | None = None,
+    ) -> BayesianPoissonModel:
         self._scaler = StandardScaler()
         Xs = self._scaler.fit_transform(X).astype(np.float64)
         n, p = Xs.shape
 
         h_obs = np.maximum(np.round(y[:, 0]).astype(int), 0)
         a_obs = np.maximum(np.round(y[:, 1]).astype(int), 0)
+        w = None if sample_weight is None else np.asarray(sample_weight, dtype=np.float64)
 
         with pm.Model():
             intercept_h = pm.Normal("intercept_h", 0.0, sigma=self.prior_sigma)
@@ -85,8 +91,17 @@ class BayesianPoissonModel(BaseModel):
             lam_h = pm.math.exp(intercept_h + pm.math.dot(Xs, beta_h))
             lam_a = pm.math.exp(intercept_a + pm.math.dot(Xs, beta_a))
 
-            pm.Poisson("home_goals", mu=lam_h, observed=h_obs)
-            pm.Poisson("away_goals", mu=lam_a, observed=a_obs)
+            if w is None:
+                pm.Poisson("home_goals", mu=lam_h, observed=h_obs)
+                pm.Poisson("away_goals", mu=lam_a, observed=a_obs)
+            else:
+                # A.4: weighted (tempered) likelihood — scale each observation's
+                # log-prob by its sample weight via pm.Potential.  This yields a
+                # pseudo-posterior (effective N shrinks); see docs/notes/decisions.md.
+                logp_h = pm.logp(pm.Poisson.dist(mu=lam_h), h_obs)
+                logp_a = pm.logp(pm.Poisson.dist(mu=lam_a), a_obs)
+                pm.Potential("home_goals_weighted", (w * logp_h).sum())
+                pm.Potential("away_goals_weighted", (w * logp_a).sum())
 
             trace = pm.sample(
                 draws=self.draws,

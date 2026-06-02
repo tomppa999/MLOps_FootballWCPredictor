@@ -107,7 +107,12 @@ class LSTMModel(BaseModel):
     # BaseModel interface
     # ------------------------------------------------------------------
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> LSTMModel:
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        sample_weight: np.ndarray | None = None,
+    ) -> LSTMModel:
         self._scaler = StandardScaler()
         Xs = self._scaler.fit_transform(X).astype(np.float32)
         # Store trailing context for inference-time sequence building
@@ -116,10 +121,15 @@ class LSTMModel(BaseModel):
         seqs = self._build_sequences(Xs)
         y_f = y.astype(np.float32)
 
+        # One weight per sequence (row); scales the per-sample MSE.  With
+        # validation_split, Keras also weights the monitored validation loss.
+        sw = None if sample_weight is None else np.asarray(sample_weight, dtype=np.float32)
+
         self._model = self._build_model(Xs.shape[1])
         self._model.fit(
             seqs,
             y_f,
+            sample_weight=sw,
             batch_size=self.batch_size,
             epochs=self.epochs,
             verbose=0,

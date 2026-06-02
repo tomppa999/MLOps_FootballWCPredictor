@@ -41,7 +41,9 @@ class _FakeModel(BaseModel):
     def name(self) -> str:
         return "fake"
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> _FakeModel:
+    def fit(
+        self, X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray | None = None
+    ) -> _FakeModel:
         return self
 
     def predict(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

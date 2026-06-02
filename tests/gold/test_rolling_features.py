@@ -27,6 +27,10 @@ def _make_silver_row(
     away_corner_kicks: int | None = 4,
     home_possession_pct: float | None = 55.0,
     away_possession_pct: float | None = 45.0,
+    home_elo_pre: float | None = None,
+    home_elo_post: float | None = None,
+    away_elo_pre: float | None = None,
+    away_elo_post: float | None = None,
 ) -> dict:
     return {
         "fixture_id": fixture_id,
@@ -35,6 +39,10 @@ def _make_silver_row(
         "away_team": away_team,
         "home_goals": home_goals,
         "away_goals": away_goals,
+        "home_elo_pre": home_elo_pre,
+        "home_elo_post": home_elo_post,
+        "away_elo_pre": away_elo_pre,
+        "away_elo_post": away_elo_post,
         "home_shots_on_goal": home_shots_on_goal,
         "home_total_shots": home_total_shots,
         "away_shots_on_goal": away_shots_on_goal,
@@ -232,6 +240,71 @@ class TestMatchIndex:
         assert result.iloc[0]["home_team_match_index"] == 1
         assert result.iloc[1]["away_team_match_index"] == 2
         assert result.iloc[2]["home_team_match_index"] == 3
+
+
+class TestRollingEloChange:
+    """Rolling Elo-change (A.2): net Elo over the last n prior matches."""
+
+    def test_first_match_has_nan_elo_change(self):
+        rows = [
+            _make_silver_row(1, "2022-01-01", "A", "B", 1, 0,
+                             home_elo_pre=1500.0, home_elo_post=1510.0,
+                             away_elo_pre=1500.0, away_elo_post=1490.0),
+        ]
+        result = compute_rolling_features(_build_df(rows), n_matches=5)
+        assert pd.isna(result.iloc[0]["home_team_rolling_elo_change"])
+        assert pd.isna(result.iloc[0]["away_team_rolling_elo_change"])
+
+    def test_elo_change_sums_prior_deltas(self):
+        """Team A's rolling Elo-change = sum of (post - pre) over prior matches."""
+        rows = [
+            _make_silver_row(1, "2022-01-01", "A", "B", 1, 0,
+                             home_elo_pre=1500.0, home_elo_post=1520.0),  # +20
+            _make_silver_row(2, "2022-02-01", "C", "A", 0, 1,
+                             away_elo_pre=1520.0, away_elo_post=1535.0),  # +15
+            _make_silver_row(3, "2022-03-01", "A", "D", 0, 0,
+                             home_elo_pre=1535.0, home_elo_post=1535.0),
+        ]
+        result = compute_rolling_features(_build_df(rows), n_matches=5)
+        third = result.iloc[2]
+        assert third["home_team_rolling_elo_change"] == pytest.approx(35.0)  # 20 + 15
+
+    def test_elo_change_respects_window(self):
+        """Only the last n prior matches contribute."""
+        rows = [
+            _make_silver_row(1, "2022-01-01", "A", "B", 0, 0,
+                             home_elo_pre=1500.0, home_elo_post=1600.0),  # +100 (excluded by window=2)
+            _make_silver_row(2, "2022-02-01", "A", "C", 0, 0,
+                             home_elo_pre=1600.0, home_elo_post=1610.0),  # +10
+            _make_silver_row(3, "2022-03-01", "A", "D", 0, 0,
+                             home_elo_pre=1610.0, home_elo_post=1625.0),  # +15
+            _make_silver_row(4, "2022-04-01", "A", "E", 0, 0,
+                             home_elo_pre=1625.0, home_elo_post=1625.0),
+        ]
+        result = compute_rolling_features(_build_df(rows), n_matches=2)
+        fourth = result.iloc[3]
+        assert fourth["home_team_rolling_elo_change"] == pytest.approx(25.0)  # 10 + 15
+
+    def test_elo_change_nan_when_priors_lack_elo(self):
+        """Prior matches without Elo (e.g. appended WC results) → NaN, not 0."""
+        rows = [
+            _make_silver_row(1, "2022-01-01", "A", "B", 1, 0),  # no elo
+            _make_silver_row(2, "2022-02-01", "A", "C", 1, 0,
+                             home_elo_pre=1500.0, home_elo_post=1500.0),
+        ]
+        result = compute_rolling_features(_build_df(rows), n_matches=5)
+        assert pd.isna(result.iloc[1]["home_team_rolling_elo_change"])
+
+    def test_elo_change_strictly_time_aware(self):
+        """The target match's own Elo delta must not enter its feature."""
+        rows = [
+            _make_silver_row(1, "2022-01-01", "A", "B", 1, 0,
+                             home_elo_pre=1500.0, home_elo_post=1510.0),  # +10
+            _make_silver_row(2, "2022-02-01", "A", "C", 5, 0,
+                             home_elo_pre=1510.0, home_elo_post=1600.0),  # own +90 must be excluded
+        ]
+        result = compute_rolling_features(_build_df(rows), n_matches=5)
+        assert result.iloc[1]["home_team_rolling_elo_change"] == pytest.approx(10.0)
 
 
 class TestTacticalRollingFeatures:

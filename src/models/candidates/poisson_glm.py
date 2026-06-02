@@ -119,14 +119,21 @@ class BivariatePoisson(BaseModel):
         return params[:p], params[p : 2 * p], params[2 * p :]
 
     def _neg_log_likelihood(
-        self, params: np.ndarray, Xd: np.ndarray, h: np.ndarray, a: np.ndarray
+        self,
+        params: np.ndarray,
+        Xd: np.ndarray,
+        h: np.ndarray,
+        a: np.ndarray,
+        w: np.ndarray | None,
     ) -> float:
         b1, b2, b3 = self._unpack(params)
         lam1 = np.exp(Xd @ b1).clip(1e-6)
         lam2 = np.exp(Xd @ b2).clip(1e-6)
         lam3 = np.exp(Xd @ b3).clip(1e-6)
 
-        ll = _bvp_log_pmf(h, a, lam1, lam2, lam3).sum()
+        log_pmf = _bvp_log_pmf(h, a, lam1, lam2, lam3)
+        # A.4: scale each observation's log-likelihood by its sample weight.
+        ll = log_pmf.sum() if w is None else (log_pmf * w).sum()
 
         # L2 penalty on non-intercept coefficients
         penalty = 0.5 * self.alpha * (
@@ -134,13 +141,19 @@ class BivariatePoisson(BaseModel):
         )
         return -ll + penalty
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> BivariatePoisson:
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        sample_weight: np.ndarray | None = None,
+    ) -> BivariatePoisson:
         self._scaler = StandardScaler()
         Xs = self._scaler.fit_transform(X)
         self._n_features = Xs.shape[1]
 
         h = y[:, 0].astype(np.float64)
         a = y[:, 1].astype(np.float64)
+        w = None if sample_weight is None else np.asarray(sample_weight, dtype=np.float64)
 
         Xd = self._build_design(Xs)
         p = self._n_features + 1
@@ -149,7 +162,7 @@ class BivariatePoisson(BaseModel):
         result = minimize(
             self._neg_log_likelihood,
             x0,
-            args=(Xd, h, a),
+            args=(Xd, h, a, w),
             method="L-BFGS-B",
             options={"maxiter": self.maxiter, "ftol": 1e-9},
         )

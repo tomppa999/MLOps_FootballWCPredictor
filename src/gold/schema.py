@@ -45,6 +45,14 @@ STRENGTH_COLUMNS: Final[list[str]] = [
     "elo_sum",
 ]
 
+# Post-match Elo, carried for transparency and to let the inference layer
+# recompute rolling Elo-change with full parity to the Gold build.  Not model
+# features themselves (only the rolling change derived from them is).
+ELO_POST_COLUMNS: Final[list[str]] = [
+    "home_elo_post",
+    "away_elo_post",
+]
+
 TEMPORAL_COLUMNS: Final[list[str]] = [
     "home_days_since_last_match",
     "away_days_since_last_match",
@@ -56,6 +64,13 @@ ROLLING_GOALS_COLUMNS: Final[list[str]] = [
     "home_team_rolling_goals_against",
     "away_team_rolling_goals_for",
     "away_team_rolling_goals_against",
+]
+
+# Rolling Elo-change: net Elo gained/lost over the last N matches (A.2).
+# Captures opponent-quality-adjusted recent form in a single full-coverage feature.
+ROLLING_ELO_CHANGE_COLUMNS: Final[list[str]] = [
+    "home_team_rolling_elo_change",
+    "away_team_rolling_elo_change",
 ]
 
 ROLLING_SHOT_COLUMNS: Final[list[str]] = [
@@ -91,21 +106,26 @@ GOLD_COLUMNS: Final[list[str]] = (
     + MATCH_INDEX_COLUMNS
     + CONTEXT_COLUMNS
     + STRENGTH_COLUMNS
+    + ELO_POST_COLUMNS
     + TEMPORAL_COLUMNS
     + ROLLING_GOALS_COLUMNS
+    + ROLLING_ELO_CHANGE_COLUMNS
     + ROLLING_SHOT_COLUMNS
     + ROLLING_TACTICAL_COLUMNS
     + TARGET_COLUMNS
 )
 
-# Features available for modeling (excludes identifiers, metadata, and targets)
+# Features available for modeling (excludes identifiers, metadata, and targets).
+# Thesis feature set (A.1): rolling shot and tactical columns are dropped — they
+# add negligible signal and bias training toward UEFA/CONMEBOL via ~49% coverage
+# gap.  They remain in GOLD_COLUMNS for transparency.  Rolling Elo-change (A.2)
+# joins the feature set.  Post-match Elo is carried in Gold but is not a feature.
 FEATURE_COLUMNS: Final[list[str]] = (
     CONTEXT_COLUMNS
     + STRENGTH_COLUMNS
     + TEMPORAL_COLUMNS
     + ROLLING_GOALS_COLUMNS
-    + ROLLING_SHOT_COLUMNS
-    + ROLLING_TACTICAL_COLUMNS
+    + ROLLING_ELO_CHANGE_COLUMNS
 )
 
 # ---------------------------------------------------------------------------
@@ -125,6 +145,8 @@ GOLD_DTYPES: Final[dict[str, str]] = {
     "away_elo_pre": "Float64",
     "elo_diff": "Float64",
     "elo_sum": "Float64",
+    "home_elo_post": "Float64",
+    "away_elo_post": "Float64",
     "home_days_since_last_match": "Float64",
     "away_days_since_last_match": "Float64",
     "rest_diff": "Float64",
@@ -132,6 +154,8 @@ GOLD_DTYPES: Final[dict[str, str]] = {
     "home_team_rolling_goals_against": "Float64",
     "away_team_rolling_goals_for": "Float64",
     "away_team_rolling_goals_against": "Float64",
+    "home_team_rolling_elo_change": "Float64",
+    "away_team_rolling_elo_change": "Float64",
     "home_team_rolling_shots": "Float64",
     "home_team_rolling_shot_accuracy": "Float64",
     "home_team_rolling_conversion": "Float64",
