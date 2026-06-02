@@ -1,5 +1,7 @@
 # Requirements
 
+_Frozen historical record — not actively maintained. The hypotheses (H1–H5) below are the canonical reference for thesis writing._
+
 ## Functional requirements
 
 - Ingest national team fixture and statistics data from API-Football and Elo ratings on a scheduled basis

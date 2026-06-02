@@ -67,7 +67,7 @@ equivalent match-level formulation.
 ### LSTM / 1D CNN
 Sequence models that consume the rolling match history as a temporal input.
 Expected to underperform relative to their complexity given the limited volume
-of national team data (see H4 in docs/requirements.md).
+of national team data (see H4 in docs/archive/requirements.md).
 
 ## Feature normalization
 
@@ -233,11 +233,12 @@ selection outcomes.
 
 Rolling shot columns (~1,837–2,068 NaN) and tactical rolling columns have NaN
 for pre-~2020 matches due to sparse statistics coverage. Rolling goal columns
-have minimal NaN (~108–109 out of 6,663 rows). Different model families handle
+have minimal NaN (~108–109 out of 6,784 rows). Different model families handle
 this as follows:
 
 | # | Model                            | Feature set  | NaN handling                                               |
 |---|----------------------------------|--------------|------------------------------------------------------------|
+| 0 | Mean-rate Poisson                | None         | No features; predicts grand-mean λ regardless of inputs    |
 | 1 | Poisson GLM                      | Core only    | Shot/tactical features excluded; Core nearly complete       |
 | 2 | Negative Binomial GLM            | Core only    | Shot/tactical features excluded; Core nearly complete       |
 | 3 | Bayesian Poisson (PyMC)          | Core only    | Bayesian models need complete data                         |
@@ -248,13 +249,25 @@ this as follows:
 | 8 | LSTM                             | Core or 2020+| Restrict sequences to 2020+ if using tactical              |
 | 9 | 1D CNN                           | Core or 2020+| Restrict sequences to 2020+ if using tactical              |
 
-**Core features (8):** `elo_diff`, `competition_tier`, `is_knockout`,
+**Core features (12):** `elo_diff`, `elo_sum`, `competition_tier`, `is_knockout`,
 `is_neutral`, `home_team_rolling_goals_for`, `home_team_rolling_goals_against`,
-`away_team_rolling_goals_for`, `away_team_rolling_goals_against`. Nearly
-complete across all rows (<2% NaN after dropna).
+`away_team_rolling_goals_for`, `away_team_rolling_goals_against`,
+`home_days_since_last_match`, `away_days_since_last_match`, `rest_diff`.
+Nearly complete across all rows (<2% NaN after dropna).
+`is_cross_confederation` was added in Gold v2 but removed after importance
+analysis (invisible in all models; confounded with `competition_tier`).
 
-**Full features (24):** Core + rolling shots (6 columns) + rolling tactical
+**Full features (28):** Core (12) + rolling shots (6 columns) + rolling tactical
 (10 columns). Substantial NaN in pre-~2020 rows.
+
+**Pending thesis changes** (see `docs/plans/thesis.md` Phase 2):
+- **A.1:** Remove rolling shot and tactical columns from `FEATURE_COLUMNS`
+  (permutation importance negligible; coverage bias). XGBoost then uses Core only.
+  Columns remain in `GOLD_COLUMNS` for transparency.
+- **A.2:** Add `home_team_rolling_elo_change` and `away_team_rolling_elo_change`
+  (+2 core features; window size 3/5/10 tuned as hyperparameter).
+- **A.4:** Exponential time-decay and match-importance sample weights at training
+  time (`half_period_years` tuned via Optuna per model).
 
 ## Evaluation metrics
 

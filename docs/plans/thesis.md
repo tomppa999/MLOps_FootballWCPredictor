@@ -174,9 +174,19 @@ reduced to its mean before scoring. H4 was likely incorrectly rejected.
 
 **Goal:** A no-features reference threshold. Any model that cannot beat it
 has no demonstrated feature value. The intercept-only case of the
-independent Poisson framework (Maher 1982). Ley et al. (2019) and Groll
-et al. (2019) establish the broader Poisson goal-modeling framework and
-RPS as the standard evaluation metric.
+independent Poisson framework (Maher 1982).
+
+**Maher citation context:** Dixon & Coles (1997) is the most influential
+Maher citation. It adds a low-score correction factor ρ for scorelines
+{0-0, 1-0, 0-1, 1-1} and exponential time-decay on parameters. However,
+the correction only improves exact-scoreline prediction — it is
+mathematically irrelevant for RPS (which depends only on goal difference,
+and the common term cancels; Maher 1982 Section 4 shows this). For
+national teams and RPS evaluation, Dixon & Coles adds no benefit over
+independent Poisson. Ley et al. (2019) is the national-team adaptation of
+Maher/D&C and is the direct state-of-the-art reference for this project.
+Groll et al. (2019) establish the broader Poisson goal-modeling framework
+and RPS as the standard evaluation metric.
 
 - [ ] New file `src/models/candidates/mean_rate_poisson.py`:
   - `MeanRatePoisson(BaseModel)`, no hyperparameters
@@ -292,14 +302,25 @@ explains part of our RPS gap vs literature benchmarks (~0.21–0.23 vs
 ~0.16–0.19).
 
 **Time decay:** `w_time = 0.5^(days_ago / half_period)` with Half Period =
-3 years (Ley et al.'s optimum for national teams). A match from 3 years ago
-contributes 50% as much as today's match.
+3 years as the default (Ley et al.'s optimum for national teams across all
+Poisson variants). A match from 3 years ago contributes 50% as much as
+today's match.
 
-**Match importance:** Reuse `competition_tier` from Gold:
+**Match importance:** Weights taken from Ley et al. (2019), who adopted
+them from the pre-2018 FIFA ranking methodology. Cite as Ley et al.'s
+weights, not as "current FIFA weights" (FIFA changed their ranking system
+in August 2018). Reuse `competition_tier` from Gold:
 - Tier 1 (World Cup): weight 4
 - Tier 2 (continental final): weight 3
 - Tier 3 (qualifier, Nations League): weight 2.5
 - Tier 4 (friendly): weight 1
+
+**Dual role of `competition_tier`:** Using it as both a sample weight and
+as a predictor feature is correct and not redundant. The weight improves
+training signal quality (fitting parameters on a WC-match-emphasised
+distribution). The feature lets the model adjust its predicted lambda at
+inference time for the specific competition type being predicted. These
+serve different purposes and are complementary.
 
 Final sample weight = `w_time × w_importance`.
 
@@ -311,7 +332,12 @@ Final sample weight = `w_time × w_importance`.
 - [ ] XGBoost: `sample_weight` parameter in DMatrix
 - [ ] GLMs (Poisson, NegBin): frequency/exposure weights in statsmodels
 - [ ] Bayesian Poisson: weighted likelihood (scale log-likelihood per obs)
-- [ ] Optionally tune Half Period (2–4 years) via CV
+- [ ] Tune Half Period via Optuna: add `half_period_years` as a float
+  hyperparameter (range `[1.0, 5.0]`) for each model whose training uses
+  sample weights. Recompute `w_time` per trial — one cheap numpy operation.
+  For `mean_rate_poisson` baseline, fix at 3 years (Ley et al. optimum).
+  Report the per-model optimised values in the methodology section; any
+  deviation from 3 years is an interesting reportable finding.
 - [ ] Tests:
   - Weight of a match exactly half_period days ago = 0.5 × importance
   - Recent WC match has highest weight

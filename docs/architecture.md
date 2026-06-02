@@ -6,8 +6,8 @@ Minimal level-1-style MLOps pipeline with local-first implementation and cloud-r
 ## Versioning and reproducibility
 - Git is used for code versioning.
 - DVC is used for data, model artifacts, and reproducible pipeline support.
-- DagsHub is planned as a later remote/collaboration layer, but does not yet exist for this project.
-- The project must work locally before any DagsHub integration.
+- DagsHub is integrated as the MLflow tracking remote and DVC artifact remote.
+- The project remains fully runnable locally without cloud.
 
 ## Data layers
 
@@ -41,27 +41,27 @@ Modeling-ready match-level features:
 - away-side feature columns
 - selected difference features
 - time-aware rolling form variables
-- tactical profile features
-- tactical cluster features
+- tactical profile features (rolling; tactical cluster was investigated and dropped — silhouette scores < 0.40 across all variants)
 - pre-match Elo features
 - contextual match features
 
 Gold datasets used for training should be reproducible and versionable.
 
 ## Model layer
-Train and compare 9 candidates across 5 families:
+Train and compare 10 candidates across 5 families (9 feature-based candidates + 1 mean-rate baseline):
 
-| # | Model                   | Family        | Library                     |
-|---|-------------------------|---------------|-----------------------------|
-| 1 | Poisson GLM             | Statistical   | scipy.optimize (custom MLE) |
-| 2 | Negative Binomial GLM   | Statistical   | statsmodels                 |
-| 3 | Bayesian Poisson (PyMC) | Bayesian      | pymc          |
-| 4 | SARIMAX (ARIMAX)        | Time-Series   | statsmodels   |
-| 5 | Ridge Regression        | ML baseline   | scikit-learn  |
-| 6 | Random Forest           | ML ensemble   | scikit-learn  |
-| 7 | XGBoost                 | ML boosting   | xgboost       |
-| 8 | LSTM                    | Deep Learning | keras         |
-| 9 | 1D CNN                  | Deep Learning | keras         |
+| #  | Model                   | Family        | Library                     |
+|----|-------------------------|---------------|-----------------------------|
+|  0 | Mean-rate Poisson       | Baseline      | numpy (intercept-only)      |
+|  1 | Poisson GLM             | Statistical   | scipy.optimize (custom MLE) |
+|  2 | Negative Binomial GLM   | Statistical   | statsmodels                 |
+|  3 | Bayesian Poisson (PyMC) | Bayesian      | pymc                        |
+|  4 | SARIMAX (ARIMAX)        | Time-Series   | statsmodels                 |
+|  5 | Ridge Regression        | ML baseline   | scikit-learn                |
+|  6 | Random Forest           | ML ensemble   | scikit-learn                |
+|  7 | XGBoost                 | ML boosting   | xgboost                     |
+|  8 | LSTM                    | Deep Learning | keras                       |
+|  9 | 1D CNN                  | Deep Learning | keras                       |
 
 All models should share a common training/evaluation interface where practical.
 
@@ -91,7 +91,12 @@ Use code-based deployment:
 - simulation logic
 
 ## Monitoring
-Later phase:
-- data drift
-- prediction distribution checks
-- delayed performance tracking after real results arrive
+
+Implemented in `src/monitoring/` and invoked from the pipeline trigger after each cycle.
+
+- **Scoring:** Every settled WC 2026 match is scored against the most recent pre-kickoff inference run (`inference_timestamp` strictly before kickoff). All 9 model shadows plus the production champion are scored from `predictions_all_models.csv`.
+- **Metrics per match:** RPS (primary), NLL, RMSE on home/away expected goals.
+- **MLflow logging:** One `monitor_<model_name>` run per model (`stage=monitoring`), with per-match metrics logged at `step=match_index` and cumulative `cum_rps`.
+- **Artifact:** Long-format `wc2026_monitoring.csv` attached to the latest monitoring run per model (overwrite-style per cycle).
+- **Alerting:** Rolling-mean RPS over the last 24 scored matches compared to `WC2022_RPS_BASELINES[model] × ALERT_FACTOR` (1.3). Breach emits `logger.warning`; no automatic promotion or rollback.
+- **Not implemented:** Statistical data-drift detection; email/push notifications (alerts require active log monitoring).

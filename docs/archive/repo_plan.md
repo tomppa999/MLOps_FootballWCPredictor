@@ -1,5 +1,7 @@
 # Repo Plan
 
+_Frozen historical record — not actively maintained. Forward-looking work is in `docs/plans/thesis.md`._
+
 ## Implementation order
 
 ### Phase 1 — Bootstrap (complete)
@@ -58,7 +60,7 @@ Cloud Run Job environment configuration.
 35. ~~add DagsHub integration~~ (complete)
 
 ### Phase 6 — Gold v2 feature iteration (complete)
-36a. ~~anchor v1 baseline in `docs/feature_v2_baseline.md` (run `b57274ad…`, holdout RPS 0.2118, gold rows 6663)~~ (complete)
+36a. ~~anchor v1 baseline in `docs/archive/feature_v2_baseline.md` (run `b57274ad…`, holdout RPS 0.2118, gold rows 6663)~~ (complete)
 36b. ~~add 5 leakage-safe Gold v2 features: `elo_sum`, `is_cross_confederation`, `home_days_since_last_match`, `away_days_since_last_match`, `rest_diff` — all join `CORE_FEATURE_COLUMNS` (8 → 13; `FULL_FEATURE_COLUMNS` 24 → 29)~~ (complete; `is_cross_confederation` later removed — invisible in all model importances, CORE 13→12, FULL 29→28)
 36c. ~~`dvc repro gold` (gold rows 6663 → 6784)~~ (complete)
 36d. ~~full retrain — `pipeline_run_id` `20260429T161823Z`~~ (complete)

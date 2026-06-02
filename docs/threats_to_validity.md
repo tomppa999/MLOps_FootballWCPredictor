@@ -91,9 +91,8 @@ by the lack of continuity; rolling features computed across long breaks may incl
 
 **Squad and coaching composition changes**
 International squads rotate significantly between matches. Coaching changes can fundamentally alter
-a team's tactical identity. Coach identity was considered as a feature but excluded because tactical
-patterns are better captured through unsupervised clustering of play-style features. This simplification
-should be acknowledged; a coach transition close to a tournament is a known model weakness.
+a team's tactical identity but are not modeled directly. Rolling form and Elo are the only proxies.
+A coach transition close to a tournament is a known model weakness.
 
 **2026 FIFA bracket format volatility**
 The 2026 World Cup uses 12 groups of 4, with the top 2 from each group plus the best 8 of 12
@@ -115,10 +114,15 @@ dataset is substantially smaller than comparable club football datasets. Models 
 
 ## Monitoring and deployment threats
 
-**No automated alerting**
-MLflow logs all training metrics and run artifacts, but there is no automated alert if model
-performance degrades after deployment. Monitoring is passive and requires manual inspection
-of the MLflow dashboard.
+**Alert threshold may be too permissive**
+`evaluate_alert_threshold` runs automatically on every monitoring cycle and compares rolling-mean
+RPS (last 24 matches) to each model's WC 2022 holdout baseline multiplied by `ALERT_FACTOR` (1.3).
+That threshold can permit RPS worse than a uniform-random predictor (~0.235). A fix to use a
+naive-baseline floor is planned (thesis Phase 1a).
+
+**Alerts are log-only**
+Breaches emit `logger.warning` only. There is no email, push, or Cloud Monitoring integration;
+degradation is easy to miss unless logs are actively monitored during the tournament.
 
 **Elo source reliability**
 Elo ratings are fetched from a third-party website (eloratings.net). If the source changes its

@@ -31,9 +31,9 @@ This repository implements a minimal but serious MLOps pipeline for football Wor
 - GCS / Cloud Run Jobs / Cloud Scheduler later
 
 ## Current project state
-- No DagsHub repository exists yet.
-- The project must work fully locally first.
-- Structure the repository so DagsHub can be added later without redesign.
+- DagsHub is integrated as MLflow tracking remote and DVC artifact remote.
+- GCP Cloud Run deployment is in progress (target June 10, 2026).
+- The project must work fully locally without cloud.
 
 ## Disallowed additions without explicit approval
 - Databricks
@@ -58,7 +58,7 @@ This repository implements a minimal but serious MLOps pipeline for football Wor
 - Gold = one row per match, modeling-ready features
 - No future information in features
 - Keep training/inference schema stable
-- Candidate models: Poisson GLM, Negative Binomial GLM, XGBoost, Bayesian Poisson, SARIMAX, Ridge, Random Forest, LSTM, CNN
+- Candidate models: Mean-rate Poisson (baseline), Poisson GLM, Negative Binomial GLM, XGBoost, Bayesian Poisson, SARIMAX, Ridge, Random Forest, LSTM, CNN
 - Models predict goals / goal-distribution parameters first, not direct outcomes
 - Outcomes are derived later from score distributions and Monte Carlo simulation
 - Log all candidate runs to MLflow
