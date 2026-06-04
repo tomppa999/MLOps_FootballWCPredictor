@@ -144,7 +144,13 @@ def get_latest_production_run_id(model_name: str = PRODUCTION_MODEL_NAME) -> str
 # Champion metadata
 # ---------------------------------------------------------------------------
 
-_DEPLOY_INTERNAL_PARAMS: frozenset[str] = frozenset({"evaluation_run_id", "gold_row_count"})
+# Params logged to MLflow runs that are not model-constructor arguments.
+# Stripped from best_params before model instantiation in refit/deploy paths.
+_DEPLOY_INTERNAL_PARAMS: frozenset[str] = frozenset({
+    "evaluation_run_id",
+    "gold_row_count",
+    "half_period_years",  # A.6: weight param, not a model ctor arg
+})
 
 
 class ChampionMeta(NamedTuple):
@@ -153,6 +159,9 @@ class ChampionMeta(NamedTuple):
     model_name: str
     best_params: dict[str, Any]
     holdout_metrics: dict[str, float]
+    # A.6: per-model tuned time-decay half-life (years).  Defaults to 3.0
+    # (Ley et al. optimum) for runs registered before A.6 was implemented.
+    half_period_years: float = 3.0
 
 
 def _cast_params(model_name: str, raw_params: dict[str, str]) -> dict[str, Any]:
@@ -210,10 +219,12 @@ def get_champion_metadata(
         for k, v in run_data.metrics.items()
         if k.startswith("qa_holdout_")
     }
+    half_period_years = float(run_data.params.get("half_period_years", 3.0))
     return ChampionMeta(
         model_name=champion_model_name,
         best_params=best_params,
         holdout_metrics=holdout_metrics,
+        half_period_years=half_period_years,
     )
 
 
@@ -308,6 +319,7 @@ def get_shadow_metadata(
         for k, v in run_data.metrics.items()
         if k.startswith("qa_holdout_") or k.startswith("holdout_")
     }
+    half_period_years = float(run_data.params.get("half_period_years", 3.0))
     logger.info(
         "Loaded shadow metadata for %s from %s v%s (run=%s)",
         model_name,
@@ -319,6 +331,7 @@ def get_shadow_metadata(
         model_name=model_name,
         best_params=best_params,
         holdout_metrics=holdout_metrics,
+        half_period_years=half_period_years,
     )
 
 

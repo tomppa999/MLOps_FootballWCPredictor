@@ -61,6 +61,7 @@ MODEL_FEATURE_SETS: Final[dict[str, list[str]]] = {
 # Spec per param: {"type": "float"|"int"|"categorical", ...}
 
 SEARCH_SPACES: Final[dict[str, dict]] = {
+    "mean_rate_poisson": {},
     "poisson_glm": {
         "alpha": {"type": "float", "low": 1e-4, "high": 10.0, "log": True},
     },
@@ -112,6 +113,7 @@ SEARCH_SPACES: Final[dict[str, dict]] = {
 
 # Default Optuna trial counts per model
 DEFAULT_N_TRIALS: Final[dict[str, int]] = {
+    "mean_rate_poisson": 1,
     "poisson_glm": 30,
     "negbin_glm": 30,
     "ridge": 30,
@@ -121,4 +123,41 @@ DEFAULT_N_TRIALS: Final[dict[str, int]] = {
     "sarimax": 48,
     "lstm": 50,
     "cnn": 50,
+}
+
+# ---------------------------------------------------------------------------
+# A.6 — Half-period tuning
+# ---------------------------------------------------------------------------
+
+# Models that receive time-decay weights (mean_rate_poisson ignores weights;
+# sarimax has no per-observation weight hook in statsmodels SARIMAX).
+WEIGHTED_MODELS: Final[frozenset[str]] = frozenset({
+    "poisson_glm",
+    "negbin_glm",
+    "ridge",
+    "random_forest",
+    "xgboost",
+    "bayesian_poisson",
+    "lstm",
+    "cnn",
+})
+
+# Optuna search bounds and trial budget for the marginal half-period search.
+HALF_PERIOD_SEARCH: Final[dict[str, float]] = {"low": 1.0, "high": 5.0}
+HALF_PERIOD_N_TRIALS: Final[int] = 25
+
+# Per-model tuned half-period (years), filled manually after running
+# `python -m src.models.half_period_tuning` (A.6).  Empty dict → all weighted
+# models fall back to DEFAULT_HALF_PERIOD_YEARS (3.0) until populated.
+# Pattern mirrors HOLDOUT_RPS_BASELINES in src/monitoring/baselines.py.
+# Update all 8 weighted-model values after A.6; leave unweighted models absent.
+TUNED_HALF_PERIODS: Final[dict[str, float]] = {
+    # "poisson_glm": [fill after A.6 run],
+    # "negbin_glm":  [fill after A.6 run],
+    # "ridge":       [fill after A.6 run],
+    # "random_forest": [fill after A.6 run],
+    # "xgboost":     [fill after A.6 run],
+    # "bayesian_poisson": [fill after A.6 run],
+    # "lstm":        [fill after A.6 run],
+    # "cnn":         [fill after A.6 run],
 }

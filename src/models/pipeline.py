@@ -30,8 +30,14 @@ from src.models.candidates.random_forest import RandomForestModel
 from src.models.candidates.ridge import RidgeModel
 from src.models.candidates.sarimax import SARIMAXModel
 from src.models.candidates.xgboost_model import XGBoostModel
-from src.models.config import DEFAULT_N_TRIALS, MODEL_FEATURE_SETS, SEARCH_SPACES
-from src.models.data_split import DataSplits, load_gold, make_splits, walk_forward_cv
+from src.models.config import DEFAULT_N_TRIALS, MODEL_FEATURE_SETS, SEARCH_SPACES, TUNED_HALF_PERIODS
+from src.models.data_split import (
+    DEFAULT_HALF_PERIOD_YEARS,
+    DataSplits,
+    load_gold,
+    make_splits,
+    walk_forward_cv,
+)
 from src.models.evaluation import (
     compute_mean_nll,
     compute_mean_rps,
@@ -91,6 +97,8 @@ class ExperimentalResult:
     importance: pd.DataFrame
     splits: DataSplits
     feature_cols: list[str]
+    # A.6: per-model tuned time-decay half-life; defaults to 3yr if not yet tuned.
+    half_period_years: float = DEFAULT_HALF_PERIOD_YEARS
 
 
 @dataclass
@@ -108,6 +116,8 @@ class QAResult:
     qa_run_id: str
     splits: DataSplits
     feature_cols: list[str]
+    # A.6: per-model tuned time-decay half-life; defaults to 3yr if not yet tuned.
+    half_period_years: float = DEFAULT_HALF_PERIOD_YEARS
 
 
 # ---------------------------------------------------------------------------
@@ -169,12 +179,16 @@ def run_experimental_phase(
     for model_name, model_cls in candidates.items():
         feature_cols = MODEL_FEATURE_SETS[model_name]
         dropna = model_name != "xgboost"
-        splits = make_splits(df, feature_cols, dropna=dropna)
+        half_period_years = TUNED_HALF_PERIODS.get(model_name, DEFAULT_HALF_PERIOD_YEARS)
+        splits = make_splits(df, feature_cols, dropna=dropna, half_period_years=half_period_years)
         cv_folds = walk_forward_cv(len(splits.X_train))
         search_space = SEARCH_SPACES[model_name]
         n_trials = n_trials_override or DEFAULT_N_TRIALS[model_name]
 
-        logger.info("Tuning %s (%d trials)…", model_name, n_trials)
+        logger.info(
+            "Tuning %s (%d trials, half_period=%.2fyr)…",
+            model_name, n_trials, half_period_years,
+        )
         t0 = time.time()
         best_params, study = run_tuning(
             model_cls,
@@ -190,7 +204,7 @@ def run_experimental_phase(
         model = model_cls(**best_params)
         model.fit(splits.X_train, splits.y_train, sample_weight=splits.w_train)
         importance = compute_permutation_importance(
-            model, splits.X_train, splits.y_train, feature_cols, n_repeats=5,
+            model, splits.X_holdout, splits.y_holdout, feature_cols, n_repeats=5,
         )
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -208,7 +222,7 @@ def run_experimental_phase(
                 tags=best_tags,
             ):
                 log_run(
-                    params=best_params,
+                    params={**best_params, "half_period_years": half_period_years},
                     metrics={
                         "cv_nll": study.best_value,
                         "experimental_wall_sec": time.time() - t0,
@@ -225,6 +239,7 @@ def run_experimental_phase(
                 importance=importance,
                 splits=splits,
                 feature_cols=feature_cols,
+                half_period_years=half_period_years,
             )
         )
         logger.info("%s — best CV NLL: %.4f", model_name, study.best_value)
@@ -304,7 +319,7 @@ def run_qa_phase(
             tags=qa_tags,
         ) as run:
             log_run(
-                params=entry.best_params,
+                params={**entry.best_params, "half_period_years": entry.half_period_years},
                 metrics={
                     "holdout_rps": holdout_rps,
                     "holdout_nll": holdout_nll,
@@ -333,6 +348,7 @@ def run_qa_phase(
                 qa_run_id=qa_run_id,
                 splits=entry.splits,
                 feature_cols=entry.feature_cols,
+                half_period_years=entry.half_period_years,
             )
         )
         logger.info("%s — holdout RPS: %.4f, NLL: %.4f", entry.model_name, holdout_rps, holdout_nll)
@@ -406,6 +422,7 @@ def run_deploy_phase(
         log_run(
             params={
                 **winner.best_params,
+                "half_period_years": winner.half_period_years,
                 "evaluation_run_id": winner.qa_run_id,
                 "gold_row_count": str(len(winner.splits.df_full)),
             },
@@ -454,12 +471,13 @@ def run_champion_refit(df: pd.DataFrame) -> str:
     model_cls = CANDIDATE_MODELS[meta.model_name]
     feature_cols = MODEL_FEATURE_SETS[meta.model_name]
     dropna = meta.model_name != "xgboost"
-    splits = make_splits(df, feature_cols, dropna=dropna)
+    splits = make_splits(df, feature_cols, dropna=dropna, half_period_years=meta.half_period_years)
 
     logger.info(
-        "Champion refit: fitting %s on %d Gold rows.",
+        "Champion refit: fitting %s on %d Gold rows (half_period=%.2fyr).",
         meta.model_name,
         len(splits.df_full),
+        meta.half_period_years,
     )
 
     t0 = time.time()
@@ -471,7 +489,11 @@ def run_champion_refit(df: pd.DataFrame) -> str:
         tags={"stage": "champion-refit", "model_name": meta.model_name},
     ) as run:
         log_run(
-            params={**meta.best_params, "gold_row_count": str(len(splits.df_full))},
+            params={
+                **meta.best_params,
+                "half_period_years": meta.half_period_years,
+                "gold_row_count": str(len(splits.df_full)),
+            },
             metrics={**meta.holdout_metrics, "refit_wall_sec": time.time() - t0},
         )
         model_uri = _log_model_artifact(model)
@@ -531,12 +553,15 @@ def run_shadow_refit(df: pd.DataFrame) -> list[str]:
         model_cls = CANDIDATE_MODELS[meta.model_name]
         feature_cols = MODEL_FEATURE_SETS[meta.model_name]
         dropna = meta.model_name != "xgboost"
-        splits = make_splits(df, feature_cols, dropna=dropna)
+        splits = make_splits(
+            df, feature_cols, dropna=dropna, half_period_years=meta.half_period_years
+        )
 
         logger.info(
-            "Shadow refit: fitting %s on %d Gold rows.",
+            "Shadow refit: fitting %s on %d Gold rows (half_period=%.2fyr).",
             meta.model_name,
             len(splits.df_full),
+            meta.half_period_years,
         )
         t0 = time.time()
         model = model_cls(**meta.best_params)
@@ -549,6 +574,7 @@ def run_shadow_refit(df: pd.DataFrame) -> list[str]:
             log_run(
                 params={
                     **meta.best_params,
+                    "half_period_years": meta.half_period_years,
                     "gold_row_count": str(len(splits.df_full)),
                 },
                 metrics={**meta.holdout_metrics, "shadow_wall_sec": time.time() - t0},

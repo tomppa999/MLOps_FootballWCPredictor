@@ -98,5 +98,5 @@ Implemented in `src/monitoring/` and invoked from the pipeline trigger after eac
 - **Metrics per match:** RPS (primary), NLL, RMSE on home/away expected goals.
 - **MLflow logging:** One `monitor_<model_name>` run per model (`stage=monitoring`), with per-match metrics logged at `step=match_index` and cumulative `cum_rps`.
 - **Artifact:** Long-format `wc2026_monitoring.csv` attached to the latest monitoring run per model (overwrite-style per cycle).
-- **Alerting:** Rolling-mean RPS over the last 24 scored matches compared to `WC2022_RPS_BASELINES[model] × ALERT_FACTOR` (1.3). Breach emits `logger.warning`; no automatic promotion or rollback.
+- **Alerting:** Rolling-mean RPS over the last 24 scored matches compared to `NAIVE_BASELINE_RPS` (0.235, uniform-random floor). Breach emits `logger.warning`; the alert log includes the model's `HOLDOUT_RPS_BASELINES` entry for audit context. No automatic promotion or rollback.
 - **Not implemented:** Statistical data-drift detection; email/push notifications (alerts require active log monitoring).

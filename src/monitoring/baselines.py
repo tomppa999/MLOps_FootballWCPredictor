@@ -1,8 +1,11 @@
-"""Frozen WC 2022 holdout RPS baselines and alert thresholds.
+"""Frozen holdout RPS baselines and alert thresholds.
 
-Values in ``WC2022_RPS_BASELINES`` are sourced from each candidate's
-``qa_holdout_rps`` metric on its ``wc_staging`` MLflow run and are
-retained for context logging and audit.
+Values in ``HOLDOUT_RPS_BASELINES`` are sourced from each candidate's
+``qa_holdout_rps`` metric logged during the most recent full refit run
+(A.5 thesis feature set: WC 2022 + continental tournaments holdout,
+fixed 3yr time-decay half-period).  Refresh all values after each major
+refit (A.5 → interim values below; A.7 → final frozen values).
+Retained for context logging and audit only — not used in alert logic.
 
 A model is flagged when its rolling-mean RPS over the last
 ``ALERT_WINDOW`` scored WC 2026 matches exceeds ``NAIVE_BASELINE_RPS``.
@@ -12,17 +15,17 @@ from __future__ import annotations
 
 from typing import Final
 
-WC2022_RPS_BASELINES: Final[dict[str, float]] = {
-    "xgboost": 0.2118,
-    "lstm": 0.2133,
-    "ridge": 0.2136,
-    "poisson_glm": 0.2148,
-    "random_forest": 0.2148,
-    "bayesian_poisson": 0.2149,
-    "negbin_glm": 0.2155,
-    "mean_rate_poisson": 0.2160,
-    "sarimax": 0.2178,
-    "cnn": 0.2296,
+HOLDOUT_RPS_BASELINES: Final[dict[str, float]] = {
+    "xgboost": 0.18242,
+    "poisson_glm": 0.18316,
+    "bayesian_poisson": 0.18320,
+    "random_forest": 0.18331,
+    "negbin_glm": 0.18377,
+    "sarimax": 0.18595,
+    "ridge": 0.18819,
+    "lstm": 0.18898,
+    "cnn": 0.20181,
+    "mean_rate_poisson": 0.22872,
 }
 
 # Universal alert floor: the expected RPS of a uniform W/D/L predictor

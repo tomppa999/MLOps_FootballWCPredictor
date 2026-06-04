@@ -11,6 +11,7 @@ import numpy as np
 import optuna
 
 from src.models.base import BaseModel
+from src.models.data_split import _DAYS_PER_YEAR
 from src.models.evaluation import (
     compute_mean_nll,
     compute_mean_rps,
@@ -218,3 +219,133 @@ def run_tuning(
         best_params,
     )
     return best_params, study
+
+
+# ---------------------------------------------------------------------------
+# A.6 — Marginal half-period tuning (freeze model hyperparameters, tune only
+# half_period_years over [low, high] in a cheap 1-D Optuna search)
+# ---------------------------------------------------------------------------
+
+
+def tune_half_period(
+    model_cls: type[BaseModel],
+    fixed_params: dict[str, Any],
+    X: np.ndarray,
+    y: np.ndarray,
+    cv_folds: list[tuple[np.ndarray, np.ndarray]],
+    days_ago: np.ndarray,
+    w_importance: np.ndarray,
+    *,
+    n_trials: int = 25,
+    low: float = 1.0,
+    high: float = 5.0,
+    experiment_name: str = "wc_prediction",
+    pipeline_run_id: str | None = None,
+    random_state: int = 42,
+) -> tuple[float, optuna.Study]:
+    """1-D Optuna search over ``half_period_years`` with frozen model hyperparameters.
+
+    Each trial recomputes ``w_time = 0.5 ** (days_ago / (hp * _DAYS_PER_YEAR))``
+    and multiplies by ``w_importance`` (one numpy op).  The model is instantiated
+    with *fixed_params* unchanged every trial — only the sample weights vary.
+    Minimises the same walk-forward CV NLL used by :func:`run_tuning`.
+
+    Args:
+        model_cls: A concrete ``BaseModel`` subclass.
+        fixed_params: Frozen hyperparameters from A.5 (loaded from MLflow).
+        X: Feature matrix for the training period.
+        y: Target matrix (n, 2).
+        cv_folds: Output of ``walk_forward_cv``.
+        days_ago: Per-row recency array from ``compute_weight_components``.
+        w_importance: Per-row match-importance array from
+            ``compute_weight_components``.
+        n_trials: Number of Optuna trials.
+        low: Lower bound of ``half_period_years`` search range.
+        high: Upper bound of ``half_period_years`` search range.
+        experiment_name: MLflow experiment to log into.
+        pipeline_run_id: Optional tag forwarded to nested runs.
+        random_state: Seed for the TPE sampler.
+
+    Returns:
+        ``(best_half_period_years, study)``
+    """
+    setup_mlflow()
+    experiment_id = get_or_create_experiment(experiment_name)
+
+    def objective(trial: optuna.Trial) -> float:
+        hp = trial.suggest_float("half_period_years", low, high)
+        w_time = 0.5 ** (days_ago / (hp * _DAYS_PER_YEAR))
+        sample_weight = w_time * w_importance
+
+        fold_nll: list[float] = []
+        for train_idx, val_idx in cv_folds:
+            model = model_cls(**fixed_params)
+            model.fit(X[train_idx], y[train_idx], sample_weight=sample_weight[train_idx])
+            nll = compute_nll_dispatch(model, X[val_idx], y[val_idx, 0], y[val_idx, 1])
+            fold_nll.append(nll)
+
+        mean_nll = float(np.mean(fold_nll))
+
+        trial_tags: dict[str, str] = {
+            "stage": "half_period_tuning",
+            "model_name": model_cls.__name__,
+            "trial_number": str(trial.number),
+        }
+        if pipeline_run_id:
+            trial_tags["pipeline_run_id"] = pipeline_run_id
+
+        with mlflow.start_run(nested=True, run_name=f"hp_trial_{trial.number}"):
+            mlflow.log_param("half_period_years", hp)
+            mlflow.log_metric("cv_nll_mean", mean_nll)
+            mlflow.set_tags(trial_tags)
+
+        return mean_nll
+
+    study = optuna.create_study(
+        direction="minimize",
+        sampler=optuna.samplers.TPESampler(seed=random_state),
+        study_name=f"tune_halfperiod_{model_cls.__name__}",
+    )
+
+    start_time = time.monotonic()
+
+    def _log_trial(study: optuna.Study, trial: optuna.trial.FrozenTrial) -> None:
+        elapsed = time.monotonic() - start_time
+        logger.info(
+            "%s half-period trial %d/%d — hp: %.3f, NLL: %.4f (best: %.4f) | elapsed: %.0fs",
+            model_cls.__name__,
+            trial.number + 1,
+            n_trials,
+            trial.params.get("half_period_years", float("nan")),
+            trial.value,
+            study.best_value,
+            elapsed,
+        )
+
+    tuning_tags: dict[str, str] = {
+        "stage": "half_period_tuning",
+        "model_name": model_cls.__name__,
+    }
+    if pipeline_run_id:
+        tuning_tags["pipeline_run_id"] = pipeline_run_id
+
+    with mlflow.start_run(
+        experiment_id=experiment_id,
+        run_name=f"tuning_halfperiod_{model_cls.__name__}",
+        tags=tuning_tags,
+    ):
+        # Pin Ley et al.'s 3yr baseline so "deviation from 3yr" is exact (TPE
+        # never samples 3.0 exactly on a continuous float range).
+        study.enqueue_trial({"half_period_years": 3.0})
+        study.optimize(objective, n_trials=n_trials, callbacks=[_log_trial])
+        mlflow.log_param("best_half_period_years", study.best_params["half_period_years"])
+        mlflow.log_metric("best_cv_nll", study.best_value)
+
+    best_hp = study.best_params["half_period_years"]
+    logger.info(
+        "%s half-period tuning done — best: %.3f yr, CV NLL: %.4f",
+        model_cls.__name__,
+        best_hp,
+        study.best_value,
+    )
+    return best_hp, study

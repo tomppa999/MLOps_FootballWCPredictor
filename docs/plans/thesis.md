@@ -67,11 +67,36 @@ those will be derived from the thesis later.
 - [x] **A.3** Expand holdout to continental tournaments
 - [x] **A.4** Add time-decay + match-importance sample weights (fixed 3yr;
   Optuna half-period tuning deferred to refit)
-- [ ] Refit all 10 candidates on thesis feature set (also verifies Phase 1
-  fixes — eyeball that NegBin/Bayes metrics no longer collapse to Poisson)
-  - After run: update `WC2022_RPS_BASELINES["mean_rate_poisson"]` in
-    `src/monitoring/baselines.py` with the real holdout RPS (currently a
-    placeholder; only affects monitoring log context, not alert logic)
+- [x] **A.5** Refit all 10 candidates on thesis feature set with fixed 3yr
+  half-period (verifies Phase 1 fixes — eyeball that NegBin/Bayes metrics
+  no longer collapse to Poisson)
+  - [x] Update all 10 values in `HOLDOUT_RPS_BASELINES` in
+    `src/monitoring/baselines.py` from the A.5 `qa_holdout_rps` metrics
+    (interim values — only affects monitoring log context, not alert logic)
+- [~] **A.6** Tune `half_period_years` (Optuna float `[1.0, 5.0]`) for
+  each weighted model; report per-model optimised values in methodology.
+  Deviation from 3yr is a reportable finding.
+  - [x] Implemented marginal 1-D tuner (`src/models/half_period_tuning.py`),
+    persistence wiring, tests (decision: marginal, not joint — see
+    `docs/notes/decisions.md`).
+  - [x] First run done 2026-06-03/04 (interim values in
+    `docs/notes/results_pre_wc.md`). Finding: objective flat for most models
+    (3yr ≈ optimal); **ridge** genuinely prefers ~4.8yr.
+  - [x] **Poisson-GLM fix (2026-06-04):** normalize `sample_weight` to mean 1
+    in `BivariatePoisson.fit` so the L2 penalty and weighted log-likelihood stay
+    on comparable scale across half-periods; convergence guard falls back to
+    init on optimizer failure. Regression test:
+    `tests/models/candidates/test_poisson_glm.py::TestWeightedHalfPeriodStability`.
+  - [x] **3.0 pinned:** `tune_half_period` enqueues `half_period_years=3.0`
+    before TPE sampling (`src/models/tuning.py`).
+  - [ ] **User-run:** full A.6 rerun (`python -m src.models.half_period_tuning`).
+    Keep 3.0 for any model whose tuned best does not beat the pinned 3.0 trial.
+    Paste final values into `TUNED_HALF_PERIODS` in `src/models/config.py`
+    (currently empty → 3yr fallback).
+- [ ] **A.7** Refit all 10 candidates with tuned half-periods from A.6
+  - After run: update all 10 values in `HOLDOUT_RPS_BASELINES` in
+    `src/monitoring/baselines.py` from the A.7 `qa_holdout_rps` metrics
+    (final frozen values for WC 2026 monitoring context)
 - [ ] Select top 3 that beat the baseline → thesis live experiment uses
   these 3 + baseline (4 models total)
 - [ ] Freeze champions for both modes
@@ -122,7 +147,7 @@ RPS of ~0.29 — worse than a uniform-random predictor (~0.235).
 - [ ] In `src/monitoring/baselines.py`:
   - Add `NAIVE_BASELINE_RPS: Final[float] = 0.235` with docstring
     (derivation: uniform-random predictor, neutral venue, p_draw ≈ 0.25)
-  - Keep `WC2022_RPS_BASELINES` for context logging
+  - Keep `HOLDOUT_RPS_BASELINES` for context logging
   - Remove or deprecate `ALERT_FACTOR`
 - [ ] In `src/monitoring/monitor.py:evaluate_alert_threshold`:
   - Change condition to `rolling_rps > NAIVE_BASELINE_RPS`
@@ -352,16 +377,19 @@ Happens here (after A.1–A.4), not in Phase 1. One QA cycle serves both
 purposes: verify Phase 1 evaluation fixes and select thesis champions.
 The model selection must use the thesis feature set and expanded holdout.
 
-- [ ] Refit all 10 candidates on the thesis feature set (slimmer features
-  from A.1, plus rolling Elo-change from A.2 if approved; verify NegBin/
-  Bayes metrics differ from standard Poisson)
-  - Update `WC2022_RPS_BASELINES["mean_rate_poisson"]` with real holdout RPS
-  - Tune `half_period_years` (Optuna float `[1.0, 5.0]`) for each weighted
-    model; recompute `w_time` per trial (one numpy op). Thread per-row
-    `days_ago` + `competition_tier` through the tuning objective. Report
-    per-model optimised values in methodology; deviation from 3 years is a
-    reportable finding. (Deferred here from A.4.)
-- [ ] Evaluate on expanded holdout (A.3) if approved, else WC 2022 only
+- [ ] **A.5** Refit all 10 candidates on the thesis feature set with fixed
+  3yr half-period (slimmer features from A.1, plus rolling Elo-change from
+  A.2; verify NegBin/Bayes metrics differ from standard Poisson).
+  Smoke-test run — confirms A.1–A.4 are wired up correctly.
+  - Update all 10 values in `HOLDOUT_RPS_BASELINES` with A.5 holdout RPS
+- [ ] **A.6** Tune `half_period_years` (Optuna float `[1.0, 5.0]`) for
+  each weighted model; recompute `w_time` per trial (one numpy op). Thread
+  per-row `days_ago` + `competition_tier` through the tuning objective.
+  Report per-model optimised values in methodology; deviation from 3 years
+  is a reportable finding.
+- [ ] **A.7** Refit all 10 candidates with per-model tuned half-periods
+  from A.6. This is the selection run.
+- [ ] Evaluate on expanded holdout (A.3)
 - [ ] Rank by holdout RPS; select top 3 that beat the mean-rate baseline
 - [ ] Prefer diversity of model families (e.g. one GLM, one tree, one
   Bayesian) if performance is close

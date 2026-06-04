@@ -40,8 +40,8 @@ from src.models.mlflow_utils import (
 )
 from src.monitoring.baselines import (
     ALERT_WINDOW,
+    HOLDOUT_RPS_BASELINES,
     NAIVE_BASELINE_RPS,
-    WC2022_RPS_BASELINES,
 )
 
 logger = logging.getLogger(__name__)
@@ -417,12 +417,12 @@ def evaluate_alert_threshold(
             continue
         rolling_rps = float(recent["rps"].mean())
         if rolling_rps > naive_floor:
-            wc2022_ref = WC2022_RPS_BASELINES.get(str(model_name), float("nan"))
+            holdout_ref = HOLDOUT_RPS_BASELINES.get(str(model_name), float("nan"))
             logger.warning(
                 "ALERT %s: rolling RPS %.4f over last %d matches > %.4f "
-                "(naive floor). WC2022 audit RPS was %.4f. "
+                "(naive floor). Holdout audit RPS was %.4f. "
                 "Manual investigation required.",
-                model_name, rolling_rps, window, naive_floor, wc2022_ref,
+                model_name, rolling_rps, window, naive_floor, holdout_ref,
             )
             breached.append(str(model_name))
     return breached

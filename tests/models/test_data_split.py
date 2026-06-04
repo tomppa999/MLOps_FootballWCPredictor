@@ -14,6 +14,7 @@ from src.models.data_split import (
     WC_2022_START,
     DataSplits,
     compute_sample_weights,
+    compute_weight_components,
     make_splits,
     walk_forward_cv,
 )
@@ -274,3 +275,90 @@ class TestWalkForwardCV:
             walk_forward_cv(10, n_splits=5, min_train_frac=1.0)
         with pytest.raises(ValueError):
             walk_forward_cv(5, n_splits=10, min_train_frac=0.5)
+
+
+# ---------------------------------------------------------------------------
+# compute_weight_components (A.6)
+# ---------------------------------------------------------------------------
+
+
+class TestWeightComponents:
+    def _df(self, n: int = 4) -> pd.DataFrame:
+        ref = pd.Timestamp("2024-01-01")
+        return pd.DataFrame({
+            "date_utc": [ref - pd.Timedelta(days=d * 90) for d in range(n)],
+            "competition_tier": [1, 2, 3, 4],
+        })
+
+    def test_returns_two_arrays_of_same_length(self):
+        df = self._df()
+        days_ago, w_imp = compute_weight_components(df)
+        assert len(days_ago) == len(df)
+        assert len(w_imp) == len(df)
+
+    def test_days_ago_non_negative_and_increasing(self):
+        df = self._df()
+        days_ago, _ = compute_weight_components(df)
+        assert (days_ago >= 0).all()
+        # oldest match is last row → largest days_ago
+        assert days_ago[-1] > days_ago[0]
+
+    def test_w_importance_matches_importance_weights(self):
+        df = self._df()
+        _, w_imp = compute_weight_components(df)
+        expected = [IMPORTANCE_WEIGHTS[t] for t in [1, 2, 3, 4]]
+        np.testing.assert_allclose(w_imp, expected)
+
+    def test_empty_df_returns_empty_arrays(self):
+        empty = pd.DataFrame({"date_utc": pd.to_datetime([]), "competition_tier": []})
+        days_ago, w_imp = compute_weight_components(empty)
+        assert days_ago.shape == (0,)
+        assert w_imp.shape == (0,)
+
+    def test_product_matches_compute_sample_weights(self):
+        """days_ago × w_importance reconstructs compute_sample_weights at half_period=2yr."""
+        df = self._df()
+        ref = pd.Timestamp("2024-01-01")
+        hp = 2.0
+        days_ago, w_imp = compute_weight_components(df, reference_date=ref)
+        w_time = 0.5 ** (days_ago / (hp * 365.25))
+        expected = compute_sample_weights(df, half_period_years=hp, reference_date=ref)
+        np.testing.assert_allclose(w_time * w_imp, expected)
+
+    def test_weights_change_with_half_period(self):
+        """Changing half_period_years must produce different sample weights."""
+        df = self._df()
+        ref = pd.Timestamp("2024-01-01")
+        days_ago, w_imp = compute_weight_components(df, reference_date=ref)
+        w1 = 0.5 ** (days_ago / (1.0 * 365.25)) * w_imp
+        w5 = 0.5 ** (days_ago / (5.0 * 365.25)) * w_imp
+        assert not np.allclose(w1, w5)
+
+
+# ---------------------------------------------------------------------------
+# make_splits half_period_years param (A.6)
+# ---------------------------------------------------------------------------
+
+
+class TestMakeSplitsHalfPeriod:
+    def test_default_half_period_unchanged(self):
+        """make_splits() with no half_period arg matches explicit DEFAULT."""
+        df = _make_gold_df(200)
+        cols = _FEATURE_COLS
+        splits_default = make_splits(df, cols)
+        splits_explicit = make_splits(df, cols, half_period_years=DEFAULT_HALF_PERIOD_YEARS)
+        np.testing.assert_allclose(splits_default.w_train, splits_explicit.w_train)
+
+    def test_different_half_period_gives_different_weights(self):
+        df = _make_gold_df(200)
+        cols = _FEATURE_COLS
+        splits_1yr = make_splits(df, cols, half_period_years=1.0)
+        splits_5yr = make_splits(df, cols, half_period_years=5.0)
+        assert not np.allclose(splits_1yr.w_train, splits_5yr.w_train)
+
+    def test_weight_shape_unchanged(self):
+        df = _make_gold_df(200)
+        cols = _FEATURE_COLS
+        splits = make_splits(df, cols, half_period_years=2.0)
+        assert splits.w_train.shape == (len(splits.df_train),)
+        assert splits.w_full.shape == (len(splits.df_full),)

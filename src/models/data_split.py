@@ -88,6 +88,41 @@ def _to_float_array(df: pd.DataFrame, cols: list[str]) -> np.ndarray:
     return df[cols].to_numpy(dtype="float64", na_value=np.nan)
 
 
+def compute_weight_components(
+    df: pd.DataFrame,
+    *,
+    reference_date: pd.Timestamp | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return (days_ago, w_importance) arrays aligned with *df* rows.
+
+    These are the two stable components of the sample weight that do not
+    depend on ``half_period_years``.  Call this once before Optuna tuning,
+    then recompute ``w_time = 0.5 ** (days_ago / (hp * _DAYS_PER_YEAR))``
+    per trial — one numpy operation — and multiply by ``w_importance``.
+
+    Args:
+        df: DataFrame with ``date_utc`` and ``competition_tier`` columns.
+        reference_date: "Present" reference for recency; defaults to df max date.
+
+    Returns:
+        (days_ago, w_importance) — both float64 arrays of shape (len(df),).
+        Empty df → (empty, empty).
+    """
+    if len(df) == 0:
+        empty = np.empty(0, dtype="float64")
+        return empty, empty
+
+    dates = pd.to_datetime(df["date_utc"])
+    ref = reference_date if reference_date is not None else dates.max()
+    days_ago = (ref - dates).dt.days.clip(lower=0).to_numpy(dtype="float64")
+
+    tier = df["competition_tier"].astype("int64")
+    w_importance = (
+        tier.map(IMPORTANCE_WEIGHTS).fillna(IMPORTANCE_WEIGHTS[4]).to_numpy(dtype="float64")
+    )
+    return days_ago, w_importance
+
+
 def compute_sample_weights(
     df: pd.DataFrame,
     *,
@@ -110,20 +145,10 @@ def compute_sample_weights(
     Returns:
         Float64 array of weights aligned with *df* rows.  Empty df → empty array.
     """
-    if len(df) == 0:
+    days_ago, w_importance = compute_weight_components(df, reference_date=reference_date)
+    if len(days_ago) == 0:
         return np.empty(0, dtype="float64")
-
-    dates = pd.to_datetime(df["date_utc"])
-    ref = reference_date if reference_date is not None else dates.max()
-    days_ago = (ref - dates).dt.days.clip(lower=0).to_numpy(dtype="float64")
-
     w_time = 0.5 ** (days_ago / (half_period_years * _DAYS_PER_YEAR))
-
-    tier = df["competition_tier"].astype("int64")
-    w_importance = (
-        tier.map(IMPORTANCE_WEIGHTS).fillna(IMPORTANCE_WEIGHTS[4]).to_numpy(dtype="float64")
-    )
-
     return w_time * w_importance
 
 
@@ -133,6 +158,7 @@ def make_splits(
     target_cols: list[str] | None = None,
     *,
     dropna: bool = True,
+    half_period_years: float = DEFAULT_HALF_PERIOD_YEARS,
 ) -> DataSplits:
     """Split Gold data into train (pre-WC 2022), holdout (WC 2022), and full.
 
@@ -142,6 +168,8 @@ def make_splits(
         target_cols: Target columns (default: schema TARGET_COLUMNS).
         dropna: If True, drop rows with NaN in feature_cols + target_cols.
             Set False for models that handle NaN natively (e.g. XGBoost).
+        half_period_years: Time-decay half-life passed to
+            ``compute_sample_weights`` for ``w_train`` and ``w_full``.
     """
     if target_cols is None:
         target_cols = list(TARGET_COLUMNS)
@@ -169,8 +197,8 @@ def make_splits(
         df_train=df_train,
         df_holdout=df_holdout,
         df_full=df_full,
-        w_train=compute_sample_weights(df_train),
-        w_full=compute_sample_weights(df_full),
+        w_train=compute_sample_weights(df_train, half_period_years=half_period_years),
+        w_full=compute_sample_weights(df_full, half_period_years=half_period_years),
     )
 
 

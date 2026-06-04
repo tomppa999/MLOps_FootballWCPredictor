@@ -154,6 +154,11 @@ class BivariatePoisson(BaseModel):
         h = y[:, 0].astype(np.float64)
         a = y[:, 1].astype(np.float64)
         w = None if sample_weight is None else np.asarray(sample_weight, dtype=np.float64)
+        # Normalize weights to mean 1 so the weighted log-likelihood scale (~N)
+        # matches the unweighted MLE and stays comparable to the fixed L2 penalty
+        # across half_period_years (total raw weight varies with decay half-life).
+        if w is not None and w.sum() > 0:
+            w = w * (len(w) / w.sum())
 
         Xd = self._build_design(Xs)
         p = self._n_features + 1
@@ -167,7 +172,8 @@ class BivariatePoisson(BaseModel):
             options={"maxiter": self.maxiter, "ftol": 1e-9},
         )
 
-        b1, b2, b3 = self._unpack(result.x)
+        params = result.x if result.success else x0
+        b1, b2, b3 = self._unpack(params)
         self._coef1, self._coef2, self._coef3 = b1, b2, b3
         return self
 
