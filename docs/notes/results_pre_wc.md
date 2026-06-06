@@ -153,15 +153,20 @@ Takeaways:
   trustworthy — fix first, then rerun A.6.
 - Deviation from 3yr is a reportable methodology finding (ridge is the headline).
 
-### Validated rerun (after Poisson-GLM fix) — PENDING
+### Final decisions (2026-06-04) — no rerun
 
-**Code ready (2026-06-04):** `BivariatePoisson.fit` normalizes weights to mean 1;
-`tune_half_period` enqueues `half_period_years=3.0` before TPE. Run:
+First-run evidence sufficient. `TUNED_HALF_PERIODS` populated in `src/models/config.py`:
 
-`conda activate modelops && python -m src.models.half_period_tuning`
-
-Then paste the printed `TUNED_HALF_PERIODS` block into `src/models/config.py`.
-For each model, keep 3.0 if the pinned 3.0 trial beats or ties the TPE best.
+| Model | half_period_years | Rationale |
+|---|---|---|
+| poisson_glm | 3.0 | Unreliable first-run (optimizer blow-ups); flat landscape → 3yr |
+| negbin_glm | 3.0 | Δ NLL = +0.0003 (noise) |
+| ridge | **4.803** | Δ NLL = −0.0045, deterministic — the only real finding |
+| random_forest | 3.0 | Δ NLL = +0.0001 (noise) |
+| xgboost | 3.0 | "Best" at 4.92 was +0.001 vs 3yr → 3yr preferred |
+| bayesian_poisson | 3.0 | Δ NLL = +0.0001 (flat) |
+| lstm | 3.0 | Flat landscape; A.6 offset = Keras nondeterminism |
+| cnn | 3.0 | Δ NLL = −0.0017 (within noise / TPE artefact) |
 
 ---
 
@@ -202,20 +207,98 @@ Notable observations:
 
 ---
 
+## Post-A.6 full pipeline rerun (2026-06-05)
+
+First full pipeline run with `TUNED_HALF_PERIODS` applied (ridge at 4.803yr,
+all others at 3.0yr). A.1–A.6 all active. Holdout: expanded set (WC 2022 +
+continental tournaments, ~347 matches). All metrics from `qa_*` MLflow runs.
+
+Sorted by holdout RPS ascending (lower = better):
+
+| Model             | cv_nll  | holdout_nll | rmse_home | rmse_away | **holdout_rps** | qa_wall_sec |
+|-------------------|---------|-------------|-----------|-----------|-----------------|-------------|
+| xgboost           | 2.7691  | 2.7823      | 1.0201    | 1.1850    | **0.18289**     | 1.7s        |
+| bayesian_poisson  | 2.7517  | 2.7894      | 1.0201    | 1.2024    | 0.18316         | 239.2s      |
+| negbin_glm        | 2.9704  | 2.7961      | 1.0273    | 1.2064    | 0.18373         | 4.2s        |
+| poisson_glm       | 2.7565  | 2.7939      | 1.0277    | 1.1991    | 0.18389         | 1.0s        |
+| random_forest     | 2.7665  | 2.8002      | 1.0289    | 1.1891    | 0.18392         | 1.4s        |
+| sarimax           | 2.9989  | 2.8900      | 1.0148    | 1.2077    | 0.18583         | 4.2s        |
+| ridge             | 2.8330  | 2.8158      | 1.0019    | 1.2239    | 0.18813         | 3.3s        |
+| lstm              | 2.8179  | 2.8958      | 1.0535    | 1.2293    | 0.19299         | 5.2s        |
+| cnn               | 3.0417  | 2.9287      | 1.0255    | 1.3387    | 0.20916         | 2.8s        |
+| mean_rate_poisson | 3.2358  | 2.9787      | 1.0701    | 1.3601    | 0.22872         | 4.1s        |
+
+### Comparison vs A.5 (pre-half-period-tuning) 
+
+Only ridge changed half-period (3.0 → 4.803yr). Other models re-tuned
+hyperparameters via Optuna, so small differences reflect stochastic variation.
+
+| Model             | A.5 RPS   | Post-A.6 RPS | Δ RPS    | Notes |
+|-------------------|-----------|--------------|----------|-------|
+| xgboost           | 0.18242   | 0.18289      | +0.00047 | within Optuna noise |
+| bayesian_poisson  | 0.18320   | 0.18316      | −0.00004 | stable |
+| negbin_glm        | 0.18377   | 0.18373      | −0.00004 | stable |
+| poisson_glm       | 0.18316   | 0.18389      | +0.00073 | within noise; ranking swapped with bayesian |
+| random_forest     | 0.18331   | 0.18392      | +0.00061 | within Optuna noise |
+| sarimax           | 0.18595   | 0.18583      | −0.00012 | stable |
+| ridge             | 0.18819   | 0.18813      | −0.00006 | small gain from tuned half-period |
+| lstm              | 0.18898   | 0.19299      | +0.00401 | Keras nondeterminism |
+| cnn               | 0.20181   | 0.20916      | +0.00735 | Keras nondeterminism |
+| mean_rate_poisson | 0.22872   | 0.22872      |  0.00000 | deterministic (no params) |
+
+### Interpretation
+
+**Overall picture is healthy.** All tuned models beat the mean-rate-poisson
+baseline by a wide margin (~0.04 RPS). The ranking is stable across runs.
+
+- **Top 5 are tightly clustered** (RPS 0.1829–0.1839). XGBoost wins but the
+  margin over bayesian_poisson / negbin_glm / poisson_glm / random_forest is
+  within noise. This suggests a performance ceiling for the current feature set
+  and holdout composition.
+- **No overfitting signal.** Most models have holdout NLL better than CV NLL,
+  likely because tournament matches are more structured than the training mix
+  of friendlies and qualifiers. LSTM is the main exception (cv_nll 2.818 vs
+  holdout_nll 2.896), consistent with mild overfitting on limited data.
+- **Deep learning underperforms.** CNN (rank 9) and LSTM (rank 8) sit clearly
+  below the statistical and tree-based models. The dataset (~6700 rows) is too
+  small for neural nets to justify their parameter count, and Keras training
+  nondeterminism adds noise across runs.
+- **Ridge half-period tuning effect is marginal.** A.6 moved ridge from
+  3.0 → 4.803yr, yielding a Δ RPS of −0.00006 on holdout. The gain is real
+  (deterministic, reproducible in CV) but negligible in practice.
+- **holdout_rmse_away > holdout_rmse_home** across all models. Away goals are
+  harder to predict, which is consistent with the higher variance of away
+  scoring in international football.
+- **A.5 → post-A.6 deltas are negligible** for all non-neural models (|Δ| < 0.001).
+  Confirms A.6 did not disrupt existing results and the pipeline is stable.
+
+---
+
 ## Thesis champion selection
 
-_Fill after Phase 2 complete (model selection step)._
+Roster locked 2026-06-06 (selection rationale and freeze process: see
+`docs/notes/decisions.md`). RPS values from the A.7 / post-A.6 refit
+(expanded holdout, ~347 matches). Frozen weights are deferred to the
+pre-tournament re-fit (≈ June 10–11), so run_id / aliases stay `[fill]`
+until the freeze.
 
-Selected top 3 + baseline = 4 models for live WC experiment:
+Selected 3 champions + baseline = 4 models for live WC experiment:
 
-| Role | Model | Holdout RPS |
-|------|-------|------------|
-| Baseline | mean_rate_poisson | [fill] |
-| Champion 1 | [fill] | [fill] |
-| Champion 2 | [fill] | [fill] |
-| Champion 3 | [fill] | [fill] |
+| Role | Model | Holdout RPS | Family |
+|------|-------|------------|--------|
+| Baseline | mean_rate_poisson | 0.22872 | no-information floor |
+| Champion 1 | xgboost | 0.18289 | tree ensemble (boosting) |
+| Champion 2 | poisson_glm | 0.18389 | frequentist Poisson GLM |
+| Champion 3 | bayesian_poisson | 0.18316 | Bayesian Poisson GLM |
 
-Selection rationale (diversity of families): [fill]
+Selection rationale (diversity of families): top 5 span only two families
+(tree ensembles + Poisson-likelihood GLMs, the latter triplicated) and cluster
+within 0.001 RPS. Chose one representative per distinct paradigm — boosted
+trees / frequentist GLM / Bayesian — to test cadence effects across model
+classes rather than near-duplicates. negbin_glm dropped (same family as
+poisson_glm, overdispersion barely moves RPS); random_forest dropped (second
+tree, no uncertainty channel). bayesian_poisson kept for its native posterior
+uncertainty (RQ2 / RQ3) despite mild MCMC divergences.
 
-Frozen run_id (both modes start here): [fill]
+Frozen run_id (both modes start here): [fill after pre-tournament re-fit]
 MLflow aliases assigned: `champion_frozen` = [fill], `champion_per_round` = [fill]

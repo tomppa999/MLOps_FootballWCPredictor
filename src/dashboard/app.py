@@ -380,6 +380,59 @@ def view_common_matchups(ko_df: pd.DataFrame) -> None:
 
 
 # ---------------------------------------------------------------------------
+# View E: Top scorelines per group match
+# ---------------------------------------------------------------------------
+
+def view_scoreline_distributions(score_df: pd.DataFrame, team_to_group: dict[str, str]) -> None:
+    st.header("Top scorelines per match")
+
+    if "home_team" not in score_df.columns or "away_team" not in score_df.columns:
+        st.warning(
+            "Scoreline artifact is missing team name columns. "
+            "Re-run inference to regenerate the artifact."
+        )
+        return
+
+    top_n = st.sidebar.slider("Top N scorelines", min_value=1, max_value=10, value=3, step=1)
+    selected_group = st.sidebar.selectbox(
+        "Filter by group",
+        options=["All"] + sorted(team_to_group.values() if team_to_group else []),
+        key="scoreline_group_filter",
+    )
+
+    df = score_df.copy()
+    df["group"] = df["home_team"].map(team_to_group)
+    if selected_group != "All":
+        df = df[df["group"] == selected_group]
+
+    df["scoreline"] = df["home_goals"].astype(str) + "–" + df["away_goals"].astype(str)
+    df["pct"] = (df["probability"] * 100).round(1)
+
+    match_keys = (
+        df[["home_team", "away_team", "group"]]
+        .drop_duplicates()
+        .sort_values(["group", "home_team"])
+    )
+
+    for _, row in match_keys.iterrows():
+        home, away = row["home_team"], row["away_team"]
+        group = row.get("group", "")
+        label = f"Group {group} — {home} vs {away}" if pd.notna(group) else f"{home} vs {away}"
+        st.subheader(label)
+
+        match_df = (
+            df[(df["home_team"] == home) & (df["away_team"] == away)]
+            .sort_values("probability", ascending=False)
+            .head(top_n)
+            .reset_index(drop=True)
+        )
+
+        cols = st.columns(len(match_df))
+        for col, (_, r) in zip(cols, match_df.iterrows()):
+            col.metric(r["scoreline"], f"{r['pct']}%")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -405,7 +458,9 @@ def main() -> None:
     else:
         team_to_group = {}
 
-    views = ["Tournament overview", "Group positions", "Match predictions", "Common matchups"]
+    score_df = data.get("scoreline_distributions")
+
+    views = ["Tournament overview", "Group positions", "Match predictions", "Scoreline distributions", "Common matchups"]
     view = st.sidebar.radio("View", options=views)
 
     if view == "Tournament overview":
@@ -423,6 +478,11 @@ def main() -> None:
             st.warning("predictions.csv not found.")
         else:
             view_match_predictions(pred_df)
+    elif view == "Scoreline distributions":
+        if score_df is None:
+            st.warning("scoreline_distributions.csv not found.")
+        else:
+            view_scoreline_distributions(score_df, team_to_group)
     else:
         if ko_df is None:
             st.warning("ko_pairings.csv not found.")

@@ -103,8 +103,8 @@ def run_half_period_tuning(
             meta = get_shadow_metadata(model_name)
         except ValueError:
             logger.warning(
-                "%s: no registry entry in wc_staging / wc_shadow — skipping. "
-                "Run the full pipeline (A.5) first.",
+                "%s: no wc_staging entry — skipping. "
+                "Run the full pipeline (QA phase) first.",
                 model_name,
             )
             continue

@@ -280,30 +280,30 @@ def _latest_version_with_model_tag(
 def get_shadow_metadata(
     model_name: str,
     *,
-    shadow_model: str = SHADOW_MODEL_NAME,
     staging_model: str = STAGING_MODEL_NAME,
 ) -> ChampionMeta:
     """Return identity, best_params, and holdout metrics for a shadow candidate.
 
-    Looks up the latest ``wc_shadow`` version with tag ``model_name=<x>``.
-    Falls back to the latest ``wc_staging`` version with the same tag if no
-    shadow version exists yet (cold-start, before the first backfill).
+    Always reads from ``wc_staging`` (the latest QA run) so that both
+    hyperparameters and holdout metrics are guaranteed to come from the most
+    recent pipeline cycle.  ``wc_shadow`` is a write-only destination for
+    refit artifacts and must never be used as a metadata source — its runs
+    forward stale metrics from prior cycles and may carry outdated
+    hyperparameters if Optuna found new optima since the last shadow refit.
 
     Mirrors :func:`get_champion_metadata` so integer hyperparameters survive
     the MLflow string round-trip via :func:`_cast_params`.
 
     Raises:
-        ValueError: if neither registry surfaces a version with that tag.
+        ValueError: if ``wc_staging`` has no version with that model tag.
+            This indicates the QA phase has not yet registered this candidate,
+            which is an unexpected pipeline state — not a cold-start fallback.
     """
-    mv = _latest_version_with_model_tag(shadow_model, model_name)
-    source = shadow_model
-    if mv is None:
-        mv = _latest_version_with_model_tag(staging_model, model_name)
-        source = staging_model
+    mv = _latest_version_with_model_tag(staging_model, model_name)
     if mv is None:
         raise ValueError(
             f"No registered version found for model_name='{model_name}' in "
-            f"either '{shadow_model}' or '{staging_model}'."
+            f"'{staging_model}'. Run the full pipeline (QA phase) first."
         )
 
     client = mlflow.tracking.MlflowClient()
@@ -317,13 +317,13 @@ def get_shadow_metadata(
     holdout_metrics = {
         k: v
         for k, v in run_data.metrics.items()
-        if k.startswith("qa_holdout_") or k.startswith("holdout_")
+        if k.startswith("holdout_")
     }
     half_period_years = float(run_data.params.get("half_period_years", 3.0))
     logger.info(
         "Loaded shadow metadata for %s from %s v%s (run=%s)",
         model_name,
-        source,
+        staging_model,
         mv.version,
         mv.run_id,
     )
@@ -340,7 +340,7 @@ def get_all_shadow_metadata(
     *,
     exclude_model_name: str | None = None,
 ) -> list[ChampionMeta]:
-    """Return one ChampionMeta per non-excluded candidate.
+    """Return one ChampionMeta per non-excluded candidate, sourced from wc_staging.
 
     Args:
         candidate_names: All registered candidate model names (e.g. the
@@ -357,8 +357,8 @@ def get_all_shadow_metadata(
             out.append(get_shadow_metadata(name))
         except ValueError:
             logger.warning(
-                "No registry version for shadow candidate '%s' — skipping. "
-                "Run the full pipeline to register this candidate first.",
+                "No wc_staging version for shadow candidate '%s' — skipping. "
+                "QA phase must run before shadow refit.",
                 name,
             )
             skipped.append(name)
@@ -391,4 +391,9 @@ def load_shadow_model(
             f"No registered version found for model_name='{model_name}' in "
             f"either '{shadow_model}' or '{staging_model}'."
         )
-    return mlflow.pyfunc.load_model(f"runs:/{mv.run_id}/model")
+    # MLflow 3.x stores a logged model as a standalone entity at the version's
+    # ``source`` (``models:/m-<id>``), NOT under the run's ``model`` artifact
+    # path.  Resolving via the registry version mirrors ``load_champion`` and
+    # avoids the obsolete ``runs:/<run_id>/model`` URI, which points at an empty
+    # path and hangs the artifact download.
+    return mlflow.pyfunc.load_model(f"models:/{mv.name}/{mv.version}")

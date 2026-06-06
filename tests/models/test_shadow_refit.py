@@ -182,7 +182,7 @@ def test_shadow_refit_does_not_invoke_optuna(
 
 
 def test_get_shadow_metadata_casts_int_params(monkeypatch, tmp_path):
-    """``get_shadow_metadata`` must call ``_cast_params`` like the champion path."""
+    """``get_shadow_metadata`` reads from wc_staging and casts int hyperparameters."""
     from src.models import mlflow_utils
 
     fake_mv = MagicMock(version="3", run_id="run-xyz")
@@ -195,7 +195,8 @@ def test_get_shadow_metadata_casts_int_params(monkeypatch, tmp_path):
         "max_features": "sqrt",
     }
     fake_run.data.tags = {"model_name": "random_forest"}
-    fake_run.data.metrics = {"qa_holdout_rps": 0.21}
+    # QA runs log metrics with "holdout_" prefix (not "qa_holdout_").
+    fake_run.data.metrics = {"holdout_rps": 0.21, "holdout_nll": 2.78}
 
     fake_client = MagicMock()
     fake_client.search_model_versions.return_value = [fake_mv]
@@ -209,22 +210,26 @@ def test_get_shadow_metadata_casts_int_params(monkeypatch, tmp_path):
     assert isinstance(meta.best_params["n_estimators"], int)
     assert meta.best_params["n_estimators"] == 100
     assert isinstance(meta.best_params["max_depth"], int)
+    assert "holdout_rps" in meta.holdout_metrics
 
 
-def test_get_shadow_metadata_falls_back_to_staging(monkeypatch):
-    """Cold start: no ``wc_shadow`` version → fall back to ``wc_staging``."""
+def test_get_shadow_metadata_reads_from_staging_only(monkeypatch):
+    """``get_shadow_metadata`` must read from wc_staging, never wc_shadow."""
     from src.models import mlflow_utils
 
     fake_run = MagicMock()
     fake_run.data.params = {"alpha": "1.0"}
     fake_run.data.tags = {"model_name": "ridge"}
-    fake_run.data.metrics = {"holdout_rps": 0.214}
-    fake_mv = MagicMock(version="2", run_id="staging-run")
+    fake_run.data.metrics = {"holdout_rps": 0.188}
+    fake_mv = MagicMock(version="5", run_id="staging-run-latest")
+
+    searched: list[str] = []
 
     def search_versions(filter_str: str):
-        if "wc_shadow" in filter_str:
-            return []  # cold start
-        return [fake_mv]
+        searched.append(filter_str)
+        if "wc_staging" in filter_str:
+            return [fake_mv]
+        return []
 
     fake_client = MagicMock()
     fake_client.search_model_versions.side_effect = search_versions
@@ -237,3 +242,19 @@ def test_get_shadow_metadata_falls_back_to_staging(monkeypatch):
     assert meta.model_name == "ridge"
     assert meta.best_params["alpha"] == pytest.approx(1.0)
     assert "holdout_rps" in meta.holdout_metrics
+    # wc_shadow must never be queried as a metadata source.
+    assert all("wc_shadow" not in q for q in searched)
+
+
+def test_get_shadow_metadata_raises_if_staging_missing(monkeypatch):
+    """Missing wc_staging entry raises ValueError — no silent fallback."""
+    from src.models import mlflow_utils
+
+    fake_client = MagicMock()
+    fake_client.search_model_versions.return_value = []
+    monkeypatch.setattr(
+        mlflow_utils.mlflow.tracking, "MlflowClient", lambda: fake_client,
+    )
+
+    with pytest.raises(ValueError, match="wc_staging"):
+        mlflow_utils.get_shadow_metadata("cnn")

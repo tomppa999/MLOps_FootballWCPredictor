@@ -126,9 +126,12 @@ def run_inference_and_simulation(
             n_sims=n_sims,
         )
         sl_dist = scoreline_distribution(samples)
+        teams = group_predictions_df[["home_team", "away_team"]].reset_index(drop=True)
+        sl_dist["home_team"] = sl_dist["match_idx"].map(teams["home_team"])
+        sl_dist["away_team"] = sl_dist["match_idx"].map(teams["away_team"])
     else:
         sl_dist = pd.DataFrame(
-            columns=["match_idx", "home_goals", "away_goals", "probability"]
+            columns=["match_idx", "home_goals", "away_goals", "probability", "home_team", "away_team"]
         )
 
     # Tournament simulation with full rate coverage

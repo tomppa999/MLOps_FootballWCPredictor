@@ -41,37 +41,101 @@ that won't be obvious from the code alone.
   and muddy its role as the no-information floor / flat entropy floor (Phase 5). It accepts
   `sample_weight` and ignores it.
 
-## A.6 first-run findings (2026-06-03/04) — interim, pre-Poisson-GLM-fix
+## A.6 findings and final decisions (2026-06-04)
+
+First run 2026-06-03/04. No rerun performed; decisions taken from first-run evidence.
 
 - **The half-period objective is nearly flat for most models.** negbin, random_forest,
   bayesian_poisson, lstm, cnn move CV NLL only in the 3rd–4th decimal across [1,5] → the
-  Ley et al. 3yr default is at/near optimal. Sub-0.002 deltas vs 3yr are noise.
+  Ley et al. 3yr default is at/near optimal. Sub-0.002 deltas are noise.
 - **ridge is the one clean, real finding:** deterministic, genuinely prefers a longer
-  ~4.8yr half-life (2.8349 → 2.8304). xgboost weakly agrees (~4.9yr) but within RNG.
+  ~4.8yr half-life (Δ NLL = −0.0045).
 - **TPE-never-samples-3.0 artifact:** because the 1-D search is continuous, hp=3.0 is
-  never evaluated, so a model's reported "best of 25" can sit marginally above its 3yr
-  value even though `min over [1,5]` must be ≤ it. This is a sampling artifact, not
-  degradation. Fix for the rerun: pin 3.0 into the search (`study.enqueue_trial` or an
-  explicit grid incl. 3.0), making "deviation from 3yr" exact. If a model's tuned best
-  does not beat 3.0, keep 3.0.
-- **poisson_glm instability (first run):** custom weighted MLE at alpha≈9.9 blew up in
-  some A.6 trials (NLL 21.78, 3.67). Root cause: raw weight totals vary with
-  `half_period_years` (short hp → low sum, long hp → high sum) while the L2 penalty
-  `0.5 * alpha * Σβ²` is fixed, so the objective scale shifts and the optimizer can fail.
-- **Fix (2026-06-04):** in `BivariatePoisson.fit`, normalize weights to mean 1
-  (`w *= len(w) / w.sum()`) before the MLE; fall back to zero init if L-BFGS-B does not
-  report success. Relative time-decay × importance structure is unchanged; global scale
-  no longer confounds half-period comparison. **3.0 pinned** via `study.enqueue_trial`
-  in `tune_half_period`. Full A.6 rerun still required to populate `TUNED_HALF_PERIODS`.
-- **bayesian_poisson** NLL is flat but it emits persistent MCMC divergences (up to 94 in a
-  trial). NLL/means are stable, so usable, but flag as a reliability caveat for RQ2
-  (uncertainty); consider raising `target_accept`/`tune_steps` for the champion refit.
-- **lstm/cnn run-to-run variance:** lstm's A.6 best (2.8532) sits ~0.04 above its A.5 NLL
-  (2.8150); the hp landscape is flat, so the offset is Keras training nondeterminism
-  across process runs, not a half-period effect.
-- **Decision:** stay marginal (joint won't fix Poisson and the interaction is weak).
-  Code fix + 3.0 pin landed 2026-06-04; user runs full A.6 rerun, then pastes validated
-  values into `TUNED_HALF_PERIODS`. Until then `TUNED_HALF_PERIODS` stays empty → 3yr fallback.
+  never evaluated. A marginally positive Δ vs 3yr is a sampling artifact, not degradation.
+  Models whose "best" was not clearly below the 3yr neighbourhood are assigned 3.0.
+- **xgboost "best" at 4.92 was +0.001 vs 3yr** (worse) → 3.0 assigned.
+- **cnn "best" at 3.46 was −0.0017 vs 3yr** (marginal, within noise, TPE artifact) → 3.0.
+- **poisson_glm:** optimizer blow-ups at short half-periods (NLL 21.78, 3.67) in some
+  trials; result unreliable → 3.0 assigned as safe default.
+- **bayesian_poisson:** flat landscape; persistent MCMC divergences (up to 94/trial) are
+  expected / mild; not a new bug. NLL/means stable → usable. Flag as reliability caveat
+  for RQ2; consider raising `target_accept`/`tune_steps` for the champion refit.
+- **lstm:** landscape flat (2.853–2.869 across range); A.6 best sits ~0.04 above A.5 due
+  to Keras training nondeterminism across process runs, not a hp effect → 3.0.
+- **Final `TUNED_HALF_PERIODS` (populated in `src/models/config.py`):**
+  ridge = 4.803; all other weighted models = 3.0.
+- **Decision: no rerun.** First-run evidence is sufficient. ridge is the headline finding;
+  3yr is optimal for the rest. Stay marginal (joint tuning won't change this).
+
+## Champion selection for the live experiment (A.7, 2026-06-06)
+
+Selected **3 champions + baseline** for the WC 2026 cadence experiment, not the
+full top-5. Source ranking: A.7 / post-A.6 refit holdout RPS (expanded holdout,
+~347 matches), as frozen in `src/monitoring/baselines.py`.
+
+| Role | Model | Holdout RPS | Family |
+|---|---|---|---|
+| Baseline | mean_rate_poisson | 0.22872 | no-information floor (Maher Model 0) |
+| Champion 1 | xgboost | 0.18289 | tree ensemble (boosting) |
+| Champion 2 | poisson_glm | 0.18389 | frequentist Poisson GLM |
+| Champion 3 | bayesian_poisson | 0.18316 | Bayesian Poisson GLM |
+
+- **Why not all 5.** The top 5 (xgboost, bayesian_poisson, negbin_glm,
+  poisson_glm, random_forest) are within 0.001 RPS but span only **two**
+  families: tree ensembles (xgboost, random_forest) and Poisson-likelihood GLMs
+  (poisson_glm, negbin_glm, bayesian_poisson — three near-identical members).
+  The tight cluster reflects a feature-set / holdout ceiling, not five distinct
+  models. Taking all 5 would triplicate the Poisson-GLM family, triple the
+  per-round refit compute (7 boundaries × 2 modes), and clutter the entropy /
+  monitoring plots — without adding a model-class axis. The cadence experiment
+  (RQ1–RQ3) is strengthened by showing effects generalise *across* paradigms,
+  not by near-duplicates.
+- **Why these three.** One representative per distinct paradigm
+  (boosted trees / frequentist parametric GLM / Bayesian), matching the plan's
+  "one tree, one GLM, one Bayesian" diversity goal.
+  - **xgboost:** best holdout RPS; the established champion; nonlinear / feature
+    interactions.
+  - **poisson_glm** over **negbin_glm:** football goals are close to Poisson, so
+    overdispersion barely moves RPS (negbin Δ ≈ +0.0001); poisson_glm is the
+    canonical Maher → Ley lineage the project is framed around — fast (~1s),
+    deterministic, interpretable.
+  - **bayesian_poisson:** the only candidate with a native posterior-uncertainty
+    channel, directly serving RQ2 (uncertainty resolution) and RQ3; rank 2 by
+    RPS, best NLL. Accepted operational caveat: MCMC divergences (see the
+    Bayesian-Poisson notes above). Mitigation — the live re-fit runs with
+    `target_accept=0.9` and raised `tune_steps`. The deterministic-robust
+    fallback considered was random_forest, rejected because it gives 2 trees +
+    1 GLM (weaker diversity, no uncertainty-native model).
+
+## Champion freeze process (pre-tournament snapshot)
+
+- **Roster locked now (2026-06-06); weights frozen at the last responsible
+  moment before kickoff (≈ June 10–11).** Locking the *roster* early unblocks
+  Phase 3 (cadence infra) and Phase 4 (GCP) — the deadline-critical work. The
+  remaining 2026 friendlies cannot reorder the selection: the ranking is stable
+  across two independent runs (A.5, A.7), the top group is within 0.001, and the
+  selection holdout (training cutoff `WC_2022_START`, continental-tournament
+  holdout) does not even include recent friendlies. Friendlies only add a few
+  training rows, relevant to the final fitted parameters, not to *which* model
+  wins.
+- **The freeze is a re-fit, not a re-tune.** Using the three "levels of
+  updating" (see "Per-round mode: re-fit only"): the freeze is level 1
+  (re-estimate parameters) only. The 3 selected architectures keep their
+  A.6/A.7-locked hyperparameters and half-periods; they are fit once on the
+  latest full Gold table (last friendlies included as training rows). No Optuna,
+  no half-period search, no re-selection. Operationally this is
+  `run_champion_refit` on the latest Gold — the same op the per-round mode fires
+  at each matchday boundary (B.3), run once to produce the starting snapshot.
+- **Both modes start identical.** The single pre-tournament snapshot is
+  registered under both `champion_frozen` and `champion_per_round` (B.2). From
+  there, frozen never refits; per-round refits 7 times. Re-tuning at the freeze
+  is forbidden because it would confound "fresher parameters" with "different
+  hyperparameters" and break attribution of any difference to cadence.
+- **Timing is "last responsible moment", not a hard date.** Capture the final
+  relevant friendly; the freeze can be folded into a C.9 pre-WC test run rather
+  than a separate step. For `bayesian_poisson` specifically, this is the one
+  unattended fit to run clean (apply the `target_accept` / `tune_steps`
+  mitigation here).
 
 ## Competition tier: dual role (sample weight + predictor feature)
 
@@ -237,3 +301,28 @@ that won't be obvious from the code alone.
 - USA, Canada, Mexico play in their home country for group stage.
 - `is_neutral` overridden to False for these matches at inference time — not a Gold feature.
 - For KO rounds: venue assigned from `data/tournament/wc2026.json` bracket mapping.
+
+## Shadow/candidate model loading: MLflow 3.x URI scheme (2026-06-06)
+
+- **Bug:** `load_shadow_model` resolved artifacts via the legacy MLflow-2.x URI
+  `runs:/<run_id>/model`. Under MLflow 3.x a logged model is a standalone entity
+  stored at the version's `source` (`models:/m-<id>`), **not** under the run's
+  `model` artifact path. The hand-built `runs:/` URI therefore pointed at an empty
+  path; against DagsHub's artifact backend the download retried/hung ~4 min, then
+  raised `MlflowException: Failed to download artifacts from path 'model'`.
+- **Why the champion was unaffected:** `load_champion` uses the registry-alias URI
+  `models:/wc_production@champion`, which MLflow resolves to the version's real
+  `source`. The bug was isolated to the candidate/shadow path.
+- **Fix:** load shadows via the registry version URI `models:/<name>/<version>`
+  (mirrors `load_champion`). One line in `src/models/mlflow_utils.py:load_shadow_model`.
+- **Data-integrity implication:** because *every* shadow load hit this line, all
+  prior `run_prediction_all_models` calls aborted after the champion and
+  `predictions_all_models.csv` was champion-only the whole time. Historical shadow
+  monitoring data before 2026-06-06 is effectively absent — treat the shadow
+  monitoring series as starting from the fix. The fix also unblocks Option A
+  (per-model simulation for RQ2), which depends on loading all roster models.
+- **Verification (2026-06-06):** full inference + simulation now loads all 10
+  candidates (`All-model predictions: 11280 rows across 10 models`) in **89.3s**
+  end-to-end (vs the prior 278s that was almost entirely the hung download), a
+  comfortable margin for the 30-min cadence even before narrowing to the 4-model
+  roster (A.9).

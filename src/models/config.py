@@ -151,13 +151,19 @@ HALF_PERIOD_N_TRIALS: Final[int] = 25
 # models fall back to DEFAULT_HALF_PERIOD_YEARS (3.0) until populated.
 # Pattern mirrors HOLDOUT_RPS_BASELINES in src/monitoring/baselines.py.
 # Update all 8 weighted-model values after A.6; leave unweighted models absent.
+# A.6 final decisions (2026-06-04):
+# ridge is the only model with a clean, deterministic preference for a longer
+# half-life (~4.8yr, Δ NLL = −0.0045).  All others show a flat objective
+# across [1,5]; 3yr (Ley et al. optimum) is at/near optimal for every one.
+# xgboost "best" was marginally *worse* than 3yr (within RNG); poisson_glm
+# result was unreliable (optimizer blow-ups).  No rerun needed.
 TUNED_HALF_PERIODS: Final[dict[str, float]] = {
-    # "poisson_glm": [fill after A.6 run],
-    # "negbin_glm":  [fill after A.6 run],
-    # "ridge":       [fill after A.6 run],
-    # "random_forest": [fill after A.6 run],
-    # "xgboost":     [fill after A.6 run],
-    # "bayesian_poisson": [fill after A.6 run],
-    # "lstm":        [fill after A.6 run],
-    # "cnn":         [fill after A.6 run],
+    "poisson_glm": 3.0,    # unreliable first-run result; flat → 3yr
+    "negbin_glm": 3.0,     # Δ NLL = +0.0003 (noise)
+    "ridge": 4.803,        # Δ NLL = −0.0045 (deterministic gain)
+    "random_forest": 3.0,  # Δ NLL = +0.0001 (noise)
+    "xgboost": 3.0,        # best at 4.92 was +0.001 vs 3yr → 3yr preferred
+    "bayesian_poisson": 3.0,  # Δ NLL = +0.0001 (flat; divergences expected)
+    "lstm": 3.0,           # landscape flat; A.6 offset = Keras nondeterminism
+    "cnn": 3.0,            # Δ NLL = −0.0017 (within noise; TPE artefact)
 }

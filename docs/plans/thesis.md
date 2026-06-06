@@ -73,33 +73,79 @@ those will be derived from the thesis later.
   - [x] Update all 10 values in `HOLDOUT_RPS_BASELINES` in
     `src/monitoring/baselines.py` from the A.5 `qa_holdout_rps` metrics
     (interim values — only affects monitoring log context, not alert logic)
-- [~] **A.6** Tune `half_period_years` (Optuna float `[1.0, 5.0]`) for
+- [x] **A.6** Tune `half_period_years` (Optuna float `[1.0, 5.0]`) for
   each weighted model; report per-model optimised values in methodology.
   Deviation from 3yr is a reportable finding.
   - [x] Implemented marginal 1-D tuner (`src/models/half_period_tuning.py`),
     persistence wiring, tests (decision: marginal, not joint — see
     `docs/notes/decisions.md`).
-  - [x] First run done 2026-06-03/04 (interim values in
-    `docs/notes/results_pre_wc.md`). Finding: objective flat for most models
-    (3yr ≈ optimal); **ridge** genuinely prefers ~4.8yr.
-  - [x] **Poisson-GLM fix (2026-06-04):** normalize `sample_weight` to mean 1
-    in `BivariatePoisson.fit` so the L2 penalty and weighted log-likelihood stay
-    on comparable scale across half-periods; convergence guard falls back to
-    init on optimizer failure. Regression test:
-    `tests/models/candidates/test_poisson_glm.py::TestWeightedHalfPeriodStability`.
-  - [x] **3.0 pinned:** `tune_half_period` enqueues `half_period_years=3.0`
-    before TPE sampling (`src/models/tuning.py`).
-  - [ ] **User-run:** full A.6 rerun (`python -m src.models.half_period_tuning`).
-    Keep 3.0 for any model whose tuned best does not beat the pinned 3.0 trial.
-    Paste final values into `TUNED_HALF_PERIODS` in `src/models/config.py`
-    (currently empty → 3yr fallback).
-- [ ] **A.7** Refit all 10 candidates with tuned half-periods from A.6
-  - After run: update all 10 values in `HOLDOUT_RPS_BASELINES` in
-    `src/monitoring/baselines.py` from the A.7 `qa_holdout_rps` metrics
-    (final frozen values for WC 2026 monitoring context)
-- [ ] Select top 3 that beat the baseline → thesis live experiment uses
-  these 3 + baseline (4 models total)
-- [ ] Freeze champions for both modes
+  - [x] First run done 2026-06-03/04. Finding: objective flat for most models
+    (3yr ≈ optimal); **ridge** genuinely prefers ~4.8yr (Δ NLL = −0.0045).
+  - [x] **`TUNED_HALF_PERIODS` populated (2026-06-04):** ridge = 4.803; all
+    other weighted models = 3.0. No rerun performed — first-run evidence
+    sufficient; only ridge shows a real, deterministic gain. See
+    `docs/notes/decisions.md` for per-model reasoning.
+- [x] **A.7** Refit all 10 candidates with tuned half-periods from A.6
+  - [x] Updated all 10 values in `HOLDOUT_RPS_BASELINES` in
+    `src/monitoring/baselines.py` from the A.7 `holdout_rps` metrics
+    (final frozen values for WC 2026 monitoring context; 2026-06-05)
+- [x] **A.8** Select top 3 that beat the baseline → thesis live experiment uses
+  these 3 + baseline (4 models total). **Roster locked 2026-06-06:** xgboost,
+  poisson_glm, bayesian_poisson + mean_rate_poisson baseline. Rationale and
+  full process in `docs/notes/decisions.md`; recorded in
+  `docs/notes/results_pre_wc.md`.
+
+#### A.9 — Narrow candidates to the selected champions
+
+Code currently fits/QAs all 10 candidates. Before deployment, restrict the
+live pipeline to the 4-model roster while keeping the full set reproducible
+for the thesis appendix.
+
+- [ ] Decide the mechanism (do **not** delete candidate modules — keep the
+  full 10 for reproducibility/appendix): add a `LIVE_CHAMPIONS` /
+  `EXPERIMENT_MODELS` list in `src/models/config.py`
+  (`["xgboost", "poisson_glm", "bayesian_poisson", "mean_rate_poisson"]`).
+- [ ] Thread that list through the inference / per-round dispatch so only the
+  roster is loaded, predicted, simulated, and monitored during WC
+  (the A.5–A.7 full-candidate QA harness stays intact for offline runs).
+- [ ] Confirm `HOLDOUT_RPS_BASELINES` still keeps all 10 (context logging only)
+  — no change needed, just verify.
+- [ ] `bayesian_poisson` refit hardening: set `target_accept=0.9` and raise
+  `tune_steps` for the champion/per-round refit path (mitigation from
+  `decisions.md`), so the one unattended live fit is clean.
+- [x] **Shadow-load URI bug fixed (2026-06-06).** `load_shadow_model` used the
+  obsolete `runs:/<run_id>/model` URI; under MLflow 3.x the model lives at the
+  version `source` (`models:/m-<id>`), so the download hung ~4 min then failed and
+  every shadow was unloadable (`predictions_all_models.csv` was champion-only the
+  whole time). Now loads via `models:/<name>/<version>`, mirroring `load_champion`.
+  Verified: full cycle loads all 10 candidates (11280 rows) in 89.3s. See
+  `docs/notes/decisions.md`.
+- [ ] **Defense-in-depth (per-model isolation):** broaden the `except ValueError`
+  around `load_shadow_model` in `run_prediction_all_models`
+  (`src/inference/predict.py`) to also catch `MlflowException`, so a single bad/slow
+  model is skipped instead of aborting the whole shadow loop. Add a bounded download
+  retry + timeout (`MLFLOW_HTTP_REQUEST_TIMEOUT`) so a transient hang fails fast.
+- [ ] **Option A — per-model simulation (RQ2).** `run_prediction_all_models`
+  currently feeds the monitoring layer only. For RQ2 entropy, loop
+  `simulate_tournament()` over the 4-model roster and write per-model-tagged
+  `tournament_probabilities` (champion still the only one shown in Streamlit via the
+  `champion` alias + `model_name` filter; no new registered model needed).
+
+#### A.10 — Freeze champions for both modes (pre-tournament snapshot)
+
+Deferred to the **last responsible moment before kickoff (≈ June 10–11)** so
+the snapshot includes the final 2026 friendlies as training rows. This is a
+**re-fit, not a re-tune** (level 1 only; hyperparameters + half-periods stay
+locked from A.6/A.7). See `decisions.md` "Champion freeze process".
+
+- [ ] Build the latest full Gold table (last friendlies included).
+- [ ] `run_champion_refit` for each of the 3 champions on full Gold
+  (no Optuna, no half-period search, no re-selection).
+- [ ] Register the single snapshot under **both** aliases `champion_frozen`
+  and `champion_per_round` (B.2) — both modes start identical.
+- [ ] Record frozen `run_id` + assigned aliases in
+  `docs/notes/results_pre_wc.md` (currently `[fill]`).
+- [ ] Can be folded into a C.9 pre-WC test run rather than a separate step.
 
 ### Phase 3 — Cadence infrastructure (`thesis` branch, weeks 2–3)
 
@@ -377,24 +423,27 @@ Happens here (after A.1–A.4), not in Phase 1. One QA cycle serves both
 purposes: verify Phase 1 evaluation fixes and select thesis champions.
 The model selection must use the thesis feature set and expanded holdout.
 
-- [ ] **A.5** Refit all 10 candidates on the thesis feature set with fixed
+- [x] **A.5** Refit all 10 candidates on the thesis feature set with fixed
   3yr half-period (slimmer features from A.1, plus rolling Elo-change from
   A.2; verify NegBin/Bayes metrics differ from standard Poisson).
   Smoke-test run — confirms A.1–A.4 are wired up correctly.
-  - Update all 10 values in `HOLDOUT_RPS_BASELINES` with A.5 holdout RPS
-- [ ] **A.6** Tune `half_period_years` (Optuna float `[1.0, 5.0]`) for
+  - [x] Update all 10 values in `HOLDOUT_RPS_BASELINES` with A.5 holdout RPS
+- [x] **A.6** Tune `half_period_years` (Optuna float `[1.0, 5.0]`) for
   each weighted model; recompute `w_time` per trial (one numpy op). Thread
   per-row `days_ago` + `competition_tier` through the tuning objective.
   Report per-model optimised values in methodology; deviation from 3 years
   is a reportable finding.
-- [ ] **A.7** Refit all 10 candidates with per-model tuned half-periods
+- [x] **A.7** Refit all 10 candidates with per-model tuned half-periods
   from A.6. This is the selection run.
-- [ ] Evaluate on expanded holdout (A.3)
-- [ ] Rank by holdout RPS; select top 3 that beat the mean-rate baseline
-- [ ] Prefer diversity of model families (e.g. one GLM, one tree, one
+- [x] Evaluate on expanded holdout (A.3)
+- [x] Rank by holdout RPS; select top 3 that beat the mean-rate baseline
+- [x] Prefer diversity of model families (e.g. one GLM, one tree, one
   Bayesian) if performance is close
-- [ ] These 3 + mean-rate baseline = 4 models in the live WC experiment
-- [ ] Freeze champions for both modes (frozen + per-round start identical)
+- [x] These 3 + mean-rate baseline = 4 models in the live WC experiment
+  (A.8 roster: xgboost, poisson_glm, bayesian_poisson + mean_rate_poisson)
+- [ ] Narrow live pipeline to the 4-model roster (A.9) and freeze champions
+  for both modes (A.10) — frozen + per-round start identical. See the A.8–A.10
+  steps in the Sequencing section above for the detailed checklist.
 
 ---
 
@@ -502,6 +551,11 @@ Matchday-boundary detection fires refit for the per-round mode only.
 - [ ] Cloud Logging captures stdout/stderr
 - [ ] Log-based metric on `ALERT` warnings → alerting policy → email
 - [ ] Cloud Monitoring alert on job failure (non-zero exit) → email
+- [ ] **Partial-roster guard:** a champion-only cycle exits 0 (the all-model path
+  is wrapped in a `try`), so job-failure alerts miss it. Log an `ALERT`/warning when
+  `predictions_all_models.csv` has fewer than the expected roster count of
+  `model_name`s, so a silently degraded cycle is caught. (Root cause of the
+  2026-06-06 case is fixed; this guards future regressions.)
 
 ### C.9. Pre-WC test runs
 
