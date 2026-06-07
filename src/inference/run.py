@@ -1,14 +1,15 @@
 """Inference + simulation orchestrator.
 
 Loads Gold, parses upcoming fixtures, builds features, predicts with the
-frozen champion, runs Monte Carlo tournament simulation, and logs all
-artifacts to MLflow.
+frozen champion, runs Monte Carlo tournament simulation for all 4 roster
+models (Option A), and logs all artifacts to MLflow.
 """
 
 from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -26,9 +27,65 @@ from src.inference.simulation import (
     scoreline_distribution,
     simulate_tournament,
 )
+from src.models.config import EXPERIMENT_MODELS
 from src.models.data_split import load_gold
+from src.models.mlflow_utils import get_champion_metadata
 
 logger = logging.getLogger(__name__)
+
+
+def _simulate_roster(
+    all_models_predictions_df: pd.DataFrame,
+    champion_predictions_df: pd.DataFrame,
+    champion_model_name: str,
+    n_sims: int,
+    locked_group: dict | None,
+    locked_ko: dict | None,
+) -> dict[str, dict[str, Any]]:
+    """Simulate the tournament for each EXPERIMENT_MODELS roster entry.
+
+    The champion always simulates from ``champion_predictions_df`` (the
+    dedicated champion-only prediction path) for reliability.  Non-champion
+    roster models simulate from rows filtered out of
+    ``all_models_predictions_df``; a missing or failed model is skipped and
+    logged as a warning rather than aborting the full simulation.
+
+    Returns a dict mapping model_name → simulate_tournament result dict.
+    """
+    per_model: dict[str, dict[str, Any]] = {}
+
+    for model_name in EXPERIMENT_MODELS:
+        if model_name == champion_model_name:
+            # Champion uses its own dedicated predictions for reliability.
+            preds = champion_predictions_df
+        else:
+            mask = all_models_predictions_df["model_name"] == model_name
+            preds = (
+                all_models_predictions_df.loc[mask]
+                .drop(columns=["model_name"])
+                .reset_index(drop=True)
+            )
+            if preds.empty:
+                logger.warning(
+                    "Roster model %s not found in all-models predictions — "
+                    "skipping simulation.",
+                    model_name,
+                )
+                continue
+
+        try:
+            results = simulate_tournament(
+                preds,
+                n_sims=n_sims,
+                locked_group_results=locked_group,
+                locked_ko_results=locked_ko,
+            )
+            per_model[model_name] = results
+            logger.info("Simulation complete for %s.", model_name)
+        except Exception:
+            logger.exception("Simulation failed for %s — skipping.", model_name)
+
+    return per_model
 
 
 def run_inference_and_simulation(
@@ -85,20 +142,32 @@ def run_inference_and_simulation(
         return ""
 
     all_features = build_inference_features(all_pairings, augmented_gold)
+
+    # Champion predictions (dedicated path; feeds scoreline sampling and
+    # predictions.csv artifact).
     all_predictions_df = run_prediction(all_features)
     logger.info("All-pairs predictions: %d rows", len(all_predictions_df))
 
-    # Long-format predictions across champion + 8 shadow candidates. Best-
-    # effort: a shadow failure must not block the simulation pipeline.
+    # Resolve champion model name for simulation routing and artifact params.
+    try:
+        champion_model_name = get_champion_metadata().model_name
+    except Exception:
+        logger.warning(
+            "Could not resolve champion model name — defaulting to 'xgboost'.",
+        )
+        champion_model_name = "xgboost"
+
+    # Long-format predictions across champion + all 9 shadow candidates.
+    # Best-effort: a failure must not block the simulation pipeline.
+    all_models_predictions_df: pd.DataFrame | None = None
     try:
         all_models_predictions_df = run_prediction_all_models(all_features)
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.exception(
-            "All-model prediction failed — continuing with champion only.",
+            "All-model prediction failed — non-champion roster simulations skipped.",
         )
-        all_models_predictions_df = None
 
-    # Identify unplayed group fixtures for scoreline sampling artifact.
+    # Scoreline sampling: champion only (group fixtures, unplayed only).
     all_group_fixtures = generate_wc_group_fixtures()
     locked_group_keys = set(wc_results["group_results"].keys())
     upcoming_group_teams = set()
@@ -134,21 +203,50 @@ def run_inference_and_simulation(
             columns=["match_idx", "home_goals", "away_goals", "probability", "home_team", "away_team"]
         )
 
-    # Tournament simulation with full rate coverage
-    tournament_results = simulate_tournament(
-        all_predictions_df,
-        n_sims=n_sims,
-        locked_group_results=locked_group,
-        locked_ko_results=locked_ko,
+    # Option A: simulate all 4 EXPERIMENT_MODELS roster entries.
+    # Champion uses dedicated all_predictions_df for reliability; the other
+    # 3 roster models use filtered rows from all_models_predictions_df.
+    # Non-champion simulations are skipped gracefully if predictions are missing.
+    if all_models_predictions_df is not None and not all_models_predictions_df.empty:
+        per_model_tournament_results = _simulate_roster(
+            all_models_predictions_df=all_models_predictions_df,
+            champion_predictions_df=all_predictions_df,
+            champion_model_name=champion_model_name,
+            n_sims=n_sims,
+            locked_group=locked_group,
+            locked_ko=locked_ko,
+        )
+    else:
+        # Fallback: only the champion simulation is available.
+        logger.info(
+            "All-models predictions unavailable — running champion simulation only.",
+        )
+        per_model_tournament_results = {}
+        try:
+            results = simulate_tournament(
+                all_predictions_df,
+                n_sims=n_sims,
+                locked_group_results=locked_group,
+                locked_ko_results=locked_ko,
+            )
+            per_model_tournament_results[champion_model_name] = results
+        except Exception:
+            logger.exception("Champion simulation failed.")
+
+    logger.info(
+        "Per-model simulation complete: %d models simulated (%s).",
+        len(per_model_tournament_results),
+        ", ".join(sorted(per_model_tournament_results.keys())),
     )
 
     # Log to MLflow
     run_id = log_inference_artifacts(
         predictions_df=all_predictions_df,
         scoreline_dist=sl_dist,
-        tournament_results=tournament_results,
+        per_model_tournament_results=per_model_tournament_results,
         n_sims=n_sims,
         gold_row_count=len(gold_df),
+        champion_model_name=champion_model_name,
         all_models_predictions_df=all_models_predictions_df,
     )
 

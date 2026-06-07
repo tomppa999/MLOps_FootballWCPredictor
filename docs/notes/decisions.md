@@ -195,7 +195,7 @@ full top-5. Source ranking: A.7 / post-A.6 refit holdout RPS (expanded holdout,
 - KS tests: no tournament's goal distribution differs significantly from WC 2022 (all p > 0.6).
 - Pooled tier-1 (WC/EURO/Copa) vs tier-2 (AFCON/Asian Cup/Gold Cup): KS = 0.030, p = 0.999.
 - Gold Cup 2023 is a lambda outlier (1.69 vs WC 2022 = 1.34). Acknowledged, kept.
-- Expands holdout from 64 → ~347 matches (4.9×). Needed for stable RPS estimation.
+- Expands holdout from 64 → ~347 matches (5.4×). Needed for stable RPS estimation.
 
 **Elo-difference distributions** (|home_elo_pre − away_elo_pre|):
 

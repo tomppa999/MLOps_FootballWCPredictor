@@ -11,6 +11,7 @@ import logging
 
 import numpy as np
 import pandas as pd
+from mlflow.exceptions import MlflowException
 
 from src.models.config import MODEL_FEATURE_SETS
 from src.models.evaluation import compute_outcome_probs
@@ -133,7 +134,7 @@ def run_prediction_all_models(
             continue
         try:
             model = load_shadow_model(name)
-        except ValueError:
+        except (ValueError, MlflowException):
             logger.warning(
                 "No registered shadow/staging version for %s — skipping.",
                 name,

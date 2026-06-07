@@ -167,3 +167,18 @@ TUNED_HALF_PERIODS: Final[dict[str, float]] = {
     "lstm": 3.0,           # landscape flat; A.6 offset = Keras nondeterminism
     "cnn": 3.0,            # Δ NLL = −0.0017 (within noise; TPE artefact)
 }
+
+# ---------------------------------------------------------------------------
+# A.9 — Live experiment roster
+# ---------------------------------------------------------------------------
+# All 10 candidate modules are preserved for offline reproducibility and the
+# thesis appendix.  During the live WC 2026 pipeline only these 4 are
+# simulated (Option A / RQ2 entropy).  The other 6 still appear in
+# predictions_all_models.csv as RPS-shadow rows — never simulated.
+# Roster selection rationale: docs/notes/decisions.md "Champion selection".
+EXPERIMENT_MODELS: Final[list[str]] = [
+    "xgboost",           # champion — tree ensemble, lowest holdout RPS
+    "poisson_glm",       # frequentist Poisson GLM — canonical Maher/Ley reference
+    "bayesian_poisson",  # Bayesian Poisson — native uncertainty quantification (RQ2)
+    "mean_rate_poisson", # no-information baseline — flat entropy floor (RQ2)
+]

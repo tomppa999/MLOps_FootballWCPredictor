@@ -8,7 +8,7 @@ WC 2026 starts: **June 11, 2026**
 
 ## Framing
 
-**Candidate titles** (to discuss Monday):
+**Candidate titles:**
 
 1. The effect of model update frequency on calibration and uncertainty
    resolution in multi-round probabilistic prediction
@@ -101,18 +101,27 @@ Code currently fits/QAs all 10 candidates. Before deployment, restrict the
 live pipeline to the 4-model roster while keeping the full set reproducible
 for the thesis appendix.
 
-- [ ] Decide the mechanism (do **not** delete candidate modules — keep the
-  full 10 for reproducibility/appendix): add a `LIVE_CHAMPIONS` /
-  `EXPERIMENT_MODELS` list in `src/models/config.py`
-  (`["xgboost", "poisson_glm", "bayesian_poisson", "mean_rate_poisson"]`).
-- [ ] Thread that list through the inference / per-round dispatch so only the
-  roster is loaded, predicted, simulated, and monitored during WC
-  (the A.5–A.7 full-candidate QA harness stays intact for offline runs).
-- [ ] Confirm `HOLDOUT_RPS_BASELINES` still keeps all 10 (context logging only)
-  — no change needed, just verify.
-- [ ] `bayesian_poisson` refit hardening: set `target_accept=0.9` and raise
-  `tune_steps` for the champion/per-round refit path (mitigation from
-  `decisions.md`), so the one unattended live fit is clean.
+- [x] **`EXPERIMENT_MODELS` added to `src/models/config.py` (2026-06-07):**
+  `["xgboost", "poisson_glm", "bayesian_poisson", "mean_rate_poisson"]`.
+  All 10 candidate modules kept intact for offline reproducibility.
+- [x] **Simulation narrowed to roster (Option A, 2026-06-07):** `run.py`
+  loops `simulate_tournament()` over `EXPERIMENT_MODELS`. Champion simulates
+  from its dedicated prediction path (reliable fallback); the other 3 roster
+  models simulate from filtered rows of `all_models_predictions_df`
+  (best-effort — skipped gracefully if predictions are missing).
+  `predictions_all_models.csv` still covers all 10 as RPS shadows;
+  simulation is roster-only.
+- [x] **Multi-model tournament artifacts (2026-06-07):** `tournament_probabilities.csv`,
+  `group_positions.csv`, and `ko_pairings.csv` are now long-format with a leading
+  `model_name` column stacking all simulated roster models. `scoreline_distributions.csv`
+  stays champion-only (not a byproduct of the per-model sims). `champion_model_name`
+  and `simulated_models` are logged as MLflow params on every inference run.
+- [x] **Dashboard champion filter (2026-06-07):** `load_artifacts.py` filters the
+  three multi-model artifacts to the champion's `model_name` before returning to
+  Streamlit. Backward-compatible: pre-Option-A runs without a `model_name` column
+  pass through unchanged.
+- [x] **Confirmed `HOLDOUT_RPS_BASELINES` unchanged** — keeps all 10 for
+  monitoring context logging; no code change needed.
 - [x] **Shadow-load URI bug fixed (2026-06-06).** `load_shadow_model` used the
   obsolete `runs:/<run_id>/model` URI; under MLflow 3.x the model lives at the
   version `source` (`models:/m-<id>`), so the download hung ~4 min then failed and
@@ -120,17 +129,10 @@ for the thesis appendix.
   whole time). Now loads via `models:/<name>/<version>`, mirroring `load_champion`.
   Verified: full cycle loads all 10 candidates (11280 rows) in 89.3s. See
   `docs/notes/decisions.md`.
-- [ ] **Defense-in-depth (per-model isolation):** broaden the `except ValueError`
-  around `load_shadow_model` in `run_prediction_all_models`
-  (`src/inference/predict.py`) to also catch `MlflowException`, so a single bad/slow
-  model is skipped instead of aborting the whole shadow loop. Add a bounded download
-  retry + timeout (`MLFLOW_HTTP_REQUEST_TIMEOUT`) so a transient hang fails fast.
-- [ ] **Option A — per-model simulation (RQ2).** `run_prediction_all_models`
-  currently feeds the monitoring layer only. For RQ2 entropy, loop
-  `simulate_tournament()` over the 4-model roster and write per-model-tagged
-  `tournament_probabilities` (champion still the only one shown in Streamlit via the
-  `champion` alias + `model_name` filter; no new registered model needed).
-
+- [x] **Defense-in-depth (per-model isolation, 2026-06-07):** broadened
+  `except ValueError` → `except (ValueError, MlflowException)` in
+  `run_prediction_all_models` (`src/inference/predict.py`) so a registry error on
+  one shadow skips that model without aborting the loop.
 #### A.10 — Freeze champions for both modes (pre-tournament snapshot)
 
 Deferred to the **last responsible moment before kickoff (≈ June 10–11)** so
@@ -138,6 +140,10 @@ the snapshot includes the final 2026 friendlies as training rows. This is a
 **re-fit, not a re-tune** (level 1 only; hyperparameters + half-periods stay
 locked from A.6/A.7). See `decisions.md` "Champion freeze process".
 
+- [ ] `bayesian_poisson` refit hardening: set `target_accept=0.9` and raise
+  `tune_steps` in `BayesianPoissonModel.__init__` defaults before running the
+  freeze refit (affects fit time only, not inference; do this once, here,
+  before the one unattended live fit).
 - [ ] Build the latest full Gold table (last friendlies included).
 - [ ] `run_champion_refit` for each of the 3 champions on full Gold
   (no Optuna, no half-period search, no re-selection).
@@ -190,15 +196,15 @@ locked from A.6/A.7). See `decisions.md` "Champion freeze process".
 **Problem:** The current `1.3 × per-model baseline` threshold permits an
 RPS of ~0.29 — worse than a uniform-random predictor (~0.235).
 
-- [ ] In `src/monitoring/baselines.py`:
+- [x] In `src/monitoring/baselines.py`:
   - Add `NAIVE_BASELINE_RPS: Final[float] = 0.235` with docstring
     (derivation: uniform-random predictor, neutral venue, p_draw ≈ 0.25)
   - Keep `HOLDOUT_RPS_BASELINES` for context logging
   - Remove or deprecate `ALERT_FACTOR`
-- [ ] In `src/monitoring/monitor.py:evaluate_alert_threshold`:
+- [x] In `src/monitoring/monitor.py:evaluate_alert_threshold`:
   - Change condition to `rolling_rps > NAIVE_BASELINE_RPS`
   - Update log message
-- [ ] Update tests referencing `ALERT_FACTOR`
+- [x] Update tests referencing `ALERT_FACTOR`
 
 ### 1b. Fix NegBin and Bayesian Poisson evaluation collapse
 
@@ -208,40 +214,40 @@ reduced to its mean before scoring. H4 was likely incorrectly rejected.
 
 #### Model interface
 
-- [ ] In `src/models/base.py`:
+- [x] In `src/models/base.py`:
   - Add `distribution_family` property (default `"poisson"`)
   - Keep `predict()` backward-compatible
 
 #### NegBin GLM (`src/models/candidates/negbin_glm.py`)
 
-- [ ] Store fitted `alpha` from statsmodels GLM result
-- [ ] Extend `predict()` to optionally return `(lambda_h, lambda_a, alpha_h,
+- [x] Store fitted `alpha` from statsmodels GLM result
+- [x] Extend `predict()` to optionally return `(lambda_h, lambda_a, alpha_h,
   alpha_a)`
-- [ ] Set `distribution_family = "negbin"`
+- [x] Set `distribution_family = "negbin"`
 
 #### Bayesian Poisson (`src/models/candidates/bayesian_poisson.py`)
 
-- [ ] Retain posterior samples (replace `.mean(dim=["chain", "draw"])`
+- [x] Retain posterior samples (replace `.mean(dim=["chain", "draw"])`
   collapse with stored sample arrays)
-- [ ] Add method to draw lambda samples for a given X (vectorised matmul)
-- [ ] Set `distribution_family = "bayesian_poisson"`
+- [x] Add method to draw lambda samples for a given X (vectorised matmul)
+- [x] Set `distribution_family = "bayesian_poisson"`
 
 #### Evaluation (`src/models/evaluation.py`)
 
-- [ ] Add `compute_outcome_probs_nb(lambda, alpha, max_goals=10)` using
+- [x] Add `compute_outcome_probs_nb(lambda, alpha, max_goals=10)` using
   `scipy.stats.nbinom.pmf`
-- [ ] Add `compute_outcome_probs_bayes(lambda_h_samples, lambda_a_samples,
+- [x] Add `compute_outcome_probs_bayes(lambda_h_samples, lambda_a_samples,
   max_goals=10)` — averages Poisson PMFs across N posterior samples
-- [ ] Add `compute_mean_nll_nb(...)` and `compute_mean_nll_bayes(...)`
-- [ ] Add dispatcher `compute_outcome_probs_dispatch(model, X)` that selects
+- [x] Add `compute_mean_nll_nb(...)` and `compute_mean_nll_bayes(...)`
+- [x] Add dispatcher `compute_outcome_probs_dispatch(model, X)` that selects
   scoring function based on `model.distribution_family`
 
 #### Training / tuning
 
-- [ ] In `src/models/tuning.py`: NegBin Optuna trials minimise NB NLL
-- [ ] In `src/models/tuning.py`: Bayesian Poisson trials minimise MC
+- [x] In `src/models/tuning.py`: NegBin Optuna trials minimise NB NLL
+- [x] In `src/models/tuning.py`: Bayesian Poisson trials minimise MC
   posterior NLL
-- [ ] Verify NegBin/Bayes no longer collapse to Poisson at evaluation time
+- [x] Verify NegBin/Bayes no longer collapse to Poisson at evaluation time
   during the post-A.4 refit (Phase 2; no separate pre-Phase-2 QA run)
 
 ### 1c. Add symmetric mean-rate Poisson baseline
@@ -262,21 +268,22 @@ Maher/D&C and is the direct state-of-the-art reference for this project.
 Groll et al. (2019) establish the broader Poisson goal-modeling framework
 and RPS as the standard evaluation metric.
 
-- [ ] New file `src/models/candidates/mean_rate_poisson.py`:
+- [x] New file `src/models/candidates/mean_rate_poisson.py`:
   - `MeanRatePoisson(BaseModel)`, no hyperparameters
   - `fit(X, y)`: `self._lambda = (y[:, 0].mean() + y[:, 1].mean()) / 2`
   - `predict(X)`: `(np.full(n, self._lambda), np.full(n, self._lambda))`
   - `distribution_family = "poisson"`, `name = "mean_rate_poisson"`
-- [ ] Register in `src/models/config.py` candidate list
-- [ ] Skip Optuna — fits in milliseconds
-- [ ] Walk-forward CV NLL and QA holdout RPS via existing harness
+- [x] Register in `src/models/config.py` candidate list
+- [x] Skip Optuna — fits in milliseconds
+- [x] Walk-forward CV NLL and QA holdout RPS via existing harness
 
 ### 1d. Drift monitoring acknowledgement
 
-- [ ] Thesis text (once document structure exists, see D.4): paragraph in
+- [x] Thesis text (once document structure exists, see D.4): paragraph in
   Threats to Validity acknowledging the absence of statistical data-drift
   monitoring and explaining the rationale (goals are statistically stable,
   Elo is self-correcting). Not blocking any code work.
+  Captured in `docs/threats_to_validity.md`.
 
 ---
 
@@ -287,19 +294,19 @@ and RPS as the standard evaluation metric.
 Permutation importance shows tactical features contribute essentially
 nothing; ~49% coverage gap biases training toward UEFA/CONMEBOL.
 
-- [ ] In `src/gold/schema.py`:
+- [x] In `src/gold/schema.py`:
   - Remove `ROLLING_SHOT_COLUMNS` and `ROLLING_TACTICAL_COLUMNS` from
     `FEATURE_COLUMNS` (keep in `GOLD_COLUMNS` for transparency)
-- [ ] Update tests asserting feature count or specific feature names
-- [ ] Refit all candidates on the slimmer feature set
+- [x] Update tests asserting feature count or specific feature names
+- [x] Refit all candidates on the slimmer feature set
 
-### A.2. Add rolling Elo-change (pending Monday approval)
+### A.2. Add rolling Elo-change
 
 Captures opponent-quality-adjusted form. Elo values reflect long-term
 strength but change slowly; rolling Elo-change captures recent relative
 performance in a single number. Full coverage, no new data source needed.
 
-**Preliminary analysis (to present Monday):**
+**Preliminary analysis:**
 - Qualitative case: Norway rose ~200 Elo points (1724 → 1922) over 18
   months via strong Nations League results, but latest friendlies show a
   dip — rolling Elo-change captures this while absolute Elo stays high.
@@ -314,27 +321,27 @@ rolling goals window). Candidates to test: 3 (short-term / tournament form),
 tune during the model refit/QA cycle — compute the feature at multiple
 windows, evaluate holdout RPS, select the best.
 
-- [ ] In `src/gold/rolling_features.py:_build_team_history`:
+- [x] In `src/gold/rolling_features.py:_build_team_history`:
   - Include `elo_pre` and `elo_post` in per-team history rows
-- [ ] In `_rolling_for_team`:
+- [x] In `_rolling_for_team`:
   - Compute `rolling_elo_change = (last_n["elo_post"] -
     last_n["elo_pre"]).sum()`
   - Make window size configurable (default 5, test 3/5/10)
-- [ ] In `src/gold/schema.py`:
+- [x] In `src/gold/schema.py`:
   - Add `home_team_rolling_elo_change` and `away_team_rolling_elo_change`
   - Add to `FEATURE_COLUMNS` and `GOLD_DTYPES` (`Float64`)
-- [ ] Tests:
+- [x] Tests:
   - Correctness on synthetic team history
   - Strict time-awareness (no future matches in window)
   - Empty history → NaN
 
-### A.3. Expand holdout (pending Monday approval)
+### A.3. Expand holdout
 
 Training cutoff stays at `WC_2022_START`. Holdout = union of WC 2022 +
 continental tournament finals through WC 2026. Expands holdout from 64 to
-~310+ matches (4.9×).
+~347 matches (5.4×).
 
-**Preliminary analysis (to present Monday):**
+**Preliminary analysis:**
 - KS tests: no tournament's goal distribution differs significantly from
   WC 2022 (all p > 0.6). Pooled tier-1 vs tier-2 confederations: KS=0.030,
   p=0.999.
@@ -358,12 +365,12 @@ Tournament match counts:
 | AFCON 2025       |      36 | group stage only |
 | **Total**        | **~347**|                  |
 
-- [ ] In `src/models/data_split.py`:
+- [x] In `src/models/data_split.py`:
   - Define tournament date/tier constants
   - Replace single-window holdout mask with union of date-range + tier
     filters
   - Training mask stays `date_utc < WC_2022_START`
-- [ ] Tests:
+- [x] Tests:
   - Each tournament contributes expected match count
   - No date overlap between training and holdout
   - Tier filter excludes friendlies/qualifiers inside tournament windows
@@ -398,21 +405,21 @@ serve different purposes and are complementary.
 
 Final sample weight = `w_time × w_importance`.
 
-- [ ] In training harness (`src/models/tuning.py` or `data_split.py`):
+- [x] In training harness (`src/models/tuning.py` or `data_split.py`):
   - Compute `days_ago` from `date_utc` relative to training cutoff
   - Compute `w_time = 0.5 ** (days_ago / (3 * 365.25))`
   - Map `competition_tier` → importance weight
   - Pass `sample_weight = w_time * w_importance` to model fit
-- [ ] XGBoost: `sample_weight` parameter in DMatrix
-- [ ] GLMs (Poisson, NegBin): frequency/exposure weights in statsmodels
-- [ ] Bayesian Poisson: weighted likelihood (scale log-likelihood per obs)
-- [ ] Use a fixed 3-year half-life for all weighted models (Ley et al.
+- [x] XGBoost: `sample_weight` parameter in DMatrix
+- [x] GLMs (Poisson, NegBin): frequency/exposure weights in statsmodels
+- [x] Bayesian Poisson: weighted likelihood (scale log-likelihood per obs)
+- [x] Use a fixed 3-year half-life for all weighted models (Ley et al.
   optimum). `mean_rate_poisson` is **not** weighted (no-information floor;
   weighting only nudges its single constant — see
   `docs/notes/decisions.md`). SARIMAX is left unweighted (no per-observation
   weight concept in its state-space MLE). Optuna tuning of
   `half_period_years` is **deferred** to the model-selection/refit step below.
-- [ ] Tests:
+- [x] Tests:
   - Weight of a match exactly half_period days ago = 0.5 × importance
   - Recent WC match has highest weight
   - Very old friendly has near-zero weight
@@ -449,6 +456,16 @@ The model selection must use the thesis feature set and expanded holdout.
 
 ## Phase 3 — Cadence experiment infrastructure (on `thesis`)
 
+**Scope note (Option A, decided 2026-06-07):** the live experiment runs the
+**4-model roster × 2 cadence modes** end to end — each of xgboost, poisson_glm,
+bayesian_poisson, mean_rate_poisson is predicted **and simulated** in both the
+frozen and per-round modes (needed for cross-family RQ2 entropy; mean_rate is
+the flat floor). Only the `champion` (xgboost) is shown in Streamlit, via the
+`champion` alias + a `model_name` artifact filter — **no new registered model
+is required** for the display distinction. All B-section work below therefore
+loops over `{roster model} × {cadence_mode}`, not a single champion. The 6
+non-selected candidates stay as match-level RPS shadows (never simulated).
+
 ### B.1. Snapshot metadata tagging
 
 Every inference cycle logs structured metadata for post-WC trajectory
@@ -465,17 +482,24 @@ reconstruction.
 
 ### B.2. Dual MLflow aliases and per-mode dispatch
 
-Two model artifacts run side by side during WC: frozen (never refitted) and
-per-round (refitted at matchday boundaries).
+Each roster model runs in two modes side by side during WC: frozen (never
+refitted) and per-round (refitted at matchday boundaries).
 
-- [ ] Define MLflow registry aliases: `champion_frozen`, `champion_per_round`
-  (`champion` stays for backward compat, points at frozen)
+- [ ] Define MLflow registry aliases for the display champion: `champion_frozen`,
+  `champion_per_round` (`champion` stays for backward compat, points at frozen).
+  The other 3 roster models resolve by `(model_name, cadence_mode)` tag search
+  (same tag-based path shadows already use), so no per-model alias proliferation.
 - [ ] In `src/models/mlflow_utils.py`:
-  - Add `get_production_run_id(alias: str)` to fetch by alias
+  - Add `get_production_run_id(alias: str)` to fetch the display champion by alias
+  - Add a `(model_name, cadence_mode)` resolver for the non-champion roster
 - [ ] In `src/pipeline/trigger.py:dispatch_training_or_inference`:
-  - Loop over both modes: load each mode's champion, predict, simulate, log
-    artifacts with the appropriate `cadence_mode`
-- [ ] Per-round refit logic only fires for the `champion_per_round` alias
+  - Loop over `{4 roster models} × {both modes}`: load each, predict, **simulate
+    (Option A)**, and log artifacts tagged with `model_name` + `cadence_mode`
+  - Pre-MD1 optimisation: frozen and per-round are identical until the first
+    refit, so reuse frozen's output for per-round until MD1 diverges them
+- [ ] Streamlit reads only the `champion` (xgboost) artifact set — filter the
+  logged artifacts by `model_name` (update `src/dashboard/load_artifacts.py`)
+- [ ] Per-round refit logic only fires for the per-round mode (see B.3)
 
 ### B.3. Per-round refit trigger
 
@@ -483,11 +507,17 @@ Matchday-boundary detection fires refit for the per-round mode only.
 
 - [ ] In `src/pipeline/trigger.py`:
   - Compare `next_matchday` against last per-round refit's recorded matchday
-  - On boundary change → `run_champion_refit` on current Gold → register
-    under `champion_per_round`
+  - On boundary change → `run_champion_refit` on current Gold **for all 4 roster
+    models** → register each tagged `cadence_mode=per_round` + `model_name`
+    (display champion also gets the `champion_per_round` alias)
 - [ ] Store last per-round refit matchday as MLflow tag on the refit run
 - [ ] Frozen mode never refits during WC
 - [ ] 7 expected refit events: MD1, MD2, MD3, R32, R16, QF, SF
+- [ ] **Concurrency guard:** a refit cycle (4 refits incl. bayesian MCMC + 8
+  simulations) is the long pole and may approach the 30-min trigger interval.
+  Prevent overlapping Cloud Run executions (max-instances=1 / lock) so the next
+  scheduled trigger cannot start before a refit cycle finishes. Measure the
+  bayesian_poisson single-fit wall-time first (see C.5 timeout sizing).
 
 ### B.4. Per-mode monitoring
 
@@ -530,7 +560,12 @@ Matchday-boundary detection fires refit for the per-round mode only.
 
 - [ ] Create `wc-mlops-trigger` job
 - [ ] Resources: 4 GiB / 2 vCPU routine, 8 GiB / 4 vCPU initial
-- [ ] Timeout: 60 min initial, 15 min routine
+- [ ] Timeout: 60 min initial, routine sized for Option A — a refit cycle is
+  4 refits (incl. bayesian MCMC) + 8 simulations; measure first, raise the
+  routine timeout above the old 15 min if needed (must stay under the trigger
+  interval, or rely on the B.3 concurrency guard)
+- [ ] Set max-instances=1 / concurrency lock so the 30-min scheduler cannot
+  overlap a still-running refit cycle (B.3)
 - [ ] Args: `--mode=auto`
 
 ### C.6. Cloud Scheduler
@@ -573,12 +608,14 @@ Matchday-boundary detection fires refit for the per-round mode only.
 
 ### D.1. Trajectory and entropy analysis
 
-- [ ] Extract `tournament_probabilities.csv` from all tagged MLflow
-  snapshots per mode → build trajectory DataFrames
+- [ ] Extract per-model `tournament_probabilities` from all tagged MLflow
+  snapshots, keyed by `(model_name, cadence_mode)` → build trajectory DataFrames
+  (4 roster models × 2 modes, per Option A)
 - [ ] Compute Shannon entropy per snapshot: normalise 48-team advancement
   vector to `p_i / 32`, then `H = -Σ p_i log(p_i)`. Decompose per-group.
-- [ ] Plot entropy resolution curves (frozen vs per-round vs mean-rate
-  baseline floor)
+- [ ] Plot entropy resolution curves: frozen vs per-round **for each roster
+  model** (cross-family robustness of the cadence effect), with mean_rate_poisson
+  as the flat floor
 
 ### D.2. Structural-driver regression
 

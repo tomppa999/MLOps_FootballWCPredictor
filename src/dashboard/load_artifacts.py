@@ -3,6 +3,13 @@
 This mirrors the pattern used in ``src/models/plot_feature_importance.py`` but
 targets the inference runs (tags.stage = "inference") and downloads the
 dashboard-relevant CSV artifacts.
+
+Tournament artifacts (tournament_probabilities, group_positions, ko_pairings)
+are stored in multi-model long format (one row per model_name × entity) since
+Option A (A.9).  ``load_latest_inference_artifacts`` filters them to the
+champion automatically, so the Streamlit app requires no changes.  Pre-Option-A
+runs that lack a ``model_name`` column are passed through unchanged
+(backward-compatible).
 """
 
 from __future__ import annotations
@@ -32,6 +39,14 @@ ARTIFACT_FILENAMES: tuple[str, ...] = (
     "ko_pairings.csv",
 )
 
+# Artifact keys that are stored in multi-model long format and should be
+# filtered to the champion before being handed to the dashboard.
+_MULTI_MODEL_ARTIFACTS: frozenset[str] = frozenset({
+    "tournament_probabilities",
+    "group_positions",
+    "ko_pairings",
+})
+
 
 @dataclass(frozen=True)
 class InferenceRunInfo:
@@ -40,7 +55,20 @@ class InferenceRunInfo:
     run_id: str
     n_sims: int | None
     champion_run_id: str | None
+    champion_model_name: str | None
     inference_timestamp: str | None
+
+
+def _filter_to_champion(df: pd.DataFrame, champion_model_name: str) -> pd.DataFrame:
+    """Return rows matching the champion and drop the model_name column.
+
+    Backward-compatible: if the DataFrame has no ``model_name`` column
+    (pre-Option-A runs), it is returned unchanged.
+    """
+    if "model_name" not in df.columns:
+        return df
+    filtered = df[df["model_name"] == champion_model_name].drop(columns=["model_name"])
+    return filtered.reset_index(drop=True)
 
 
 def _get_latest_inference_run() -> mlflow.entities.Run:
@@ -65,6 +93,10 @@ def _get_latest_inference_run() -> mlflow.entities.Run:
 def load_latest_inference_artifacts() -> tuple[dict[str, pd.DataFrame], InferenceRunInfo]:
     """Download CSV artifacts from the latest inference run.
 
+    Tournament-related artifacts (tournament_probabilities, group_positions,
+    ko_pairings) are filtered to the champion model before being returned,
+    so the Streamlit app sees single-model data exactly as before Option A.
+
     Returns:
         A tuple of:
           - mapping of base artifact name (without .csv) to DataFrame.
@@ -75,18 +107,25 @@ def load_latest_inference_artifacts() -> tuple[dict[str, pd.DataFrame], Inferenc
 
     artifact_dir = Path(client.download_artifacts(run.info.run_id, ""))
 
+    params: dict[str, Any] = run.data.params
+    champion_model_name: str | None = params.get("champion_model_name") or None
+
     dfs: dict[str, pd.DataFrame] = {}
     for filename in ARTIFACT_FILENAMES:
         path = artifact_dir / filename
-        if path.exists():
-            key = path.stem  # e.g. "tournament_probabilities"
-            dfs[key] = pd.read_csv(path)
+        if not path.exists():
+            continue
+        key = path.stem
+        df = pd.read_csv(path)
+        if key in _MULTI_MODEL_ARTIFACTS and champion_model_name:
+            df = _filter_to_champion(df, champion_model_name)
+        dfs[key] = df
 
-    params: dict[str, Any] = run.data.params
     info = InferenceRunInfo(
         run_id=run.info.run_id,
         n_sims=int(params["n_sims"]) if "n_sims" in params else None,
         champion_run_id=params.get("champion_run_id"),
+        champion_model_name=champion_model_name,
         inference_timestamp=params.get("inference_timestamp"),
     )
     return dfs, info
@@ -106,4 +145,3 @@ def load_group_mapping(config_path: Path | str = Path("data/tournament/wc2026.js
         for team in teams:
             mapping[team] = group_letter
     return mapping
-
