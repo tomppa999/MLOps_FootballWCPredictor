@@ -10,6 +10,7 @@ import pytest
 from src.inference.features import (
     _get_latest_elo,
     build_inference_features,
+    derive_snapshot_metadata,
     generate_all_wc_pairings,
     generate_wc_group_fixtures,
     parse_upcoming_fixtures,
@@ -485,6 +486,21 @@ class TestParseWcResults:
         assert result["ko_results"] == {}
         assert result["next_matchday"] == 1
 
+    def test_finished_fixtures_include_round(self, tmp_path):
+        fixtures_dir = tmp_path / "fixtures"
+        mapping = tmp_path / "mapping.csv"
+        _write_team_mapping(mapping, [
+            {"name": "France", "api_id": 2},
+            {"name": "Germany", "api_id": 25},
+        ])
+        _write_finished_fixture(fixtures_dir, {
+            "id": 1, "status": "FT",
+            "league_id": 1, "round": "Group A - 1",
+            "home_id": 2, "home_goals": 1, "away_id": 25, "away_goals": 0,
+        })
+        result = parse_wc_results(fixtures_dir, mapping)
+        assert result["finished_fixtures"][0]["round"] == "Group A - 1"
+
     def test_finished_fixtures_populated(self, tmp_path):
         fixtures_dir = tmp_path / "fixtures"
         mapping = tmp_path / "mapping.csv"
@@ -523,6 +539,73 @@ class TestParseWcResults:
         })
         result = parse_wc_results(fixtures_dir, mapping)
         assert result["finished_fixtures"][0]["is_knockout"] is True
+
+
+# ---------------------------------------------------------------------------
+# derive_snapshot_metadata
+# ---------------------------------------------------------------------------
+
+
+class TestDeriveSnapshotMetadata:
+    def test_empty_wc_results(self):
+        meta = derive_snapshot_metadata({
+            "group_results": {},
+            "ko_results": {},
+            "next_matchday": 1,
+            "finished_fixtures": [],
+        })
+        assert meta["matchday_label"] == "1"
+        assert meta["matches_completed_in_matchday"] == 0
+        assert meta["total_matches_completed"] == 0
+
+    def test_group_stage_after_md1(self):
+        meta = derive_snapshot_metadata({
+            "group_results": {("France", "Germany"): (2, 1)},
+            "ko_results": {},
+            "next_matchday": 2,
+            "finished_fixtures": [
+                {
+                    "round": "Group A - 1",
+                    "home_team": "France",
+                    "away_team": "Germany",
+                },
+            ],
+        })
+        assert meta["matchday_label"] == "2"
+        assert meta["matches_completed_in_matchday"] == 0
+        assert meta["total_matches_completed"] == 1
+
+    def test_partial_matchday_progress(self):
+        meta = derive_snapshot_metadata({
+            "group_results": {
+                ("France", "Germany"): (2, 1),
+                ("Brazil", "Argentina"): (1, 0),
+            },
+            "ko_results": {},
+            "next_matchday": 2,
+            "finished_fixtures": [
+                {"round": "Group A - 1", "home_team": "France", "away_team": "Germany"},
+                {"round": "Group B - 2", "home_team": "Brazil", "away_team": "Argentina"},
+            ],
+        })
+        assert meta["matchday_label"] == "2"
+        assert meta["matches_completed_in_matchday"] == 1
+        assert meta["total_matches_completed"] == 2
+
+    def test_ko_stage_r16(self):
+        meta = derive_snapshot_metadata({
+            "group_results": {},
+            "ko_results": {
+                90: {"home": "France", "away": "Germany", "home_goals": 2, "away_goals": 1},
+            },
+            "next_matchday": "R16",
+            "finished_fixtures": [
+                {"round": "Round of 32 - 3", "home_team": "France", "away_team": "Germany"},
+            ],
+        })
+        assert meta["matchday_label"] == "R16"
+        assert meta["matches_completed_in_matchday"] == 0
+        assert meta["total_matches_completed"] == 1
 
 
 # ---------------------------------------------------------------------------

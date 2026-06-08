@@ -54,12 +54,14 @@ from src.models.evaluation import (
     compute_rmse,
 )
 from src.models.mlflow_utils import (
+    CHAMPION_ALIAS_PER_ROUND,
     PRODUCTION_MODEL_NAME,
     SHADOW_MODEL_NAME,
     STAGING_MODEL_NAME,
     get_all_shadow_metadata,
     get_champion_metadata,
     get_champion_rps,
+    get_shadow_metadata,
     log_run,
     promote_to_production,
     register_model,
@@ -98,6 +100,12 @@ SHADOW_REFIT_TOTAL_TIMEOUT_S: float = 1200.0  # overall cap across candidates (2
 # bayesian_poisson is the slow/risky model — refit it last within the
 # experiment roster so the other selected models always complete first.
 _SLOW_EXPERIMENT_MODEL: str = "bayesian_poisson"
+
+# Refit order for the 4-model EXPERIMENT_MODELS roster: fast models first,
+# MCMC (bayesian_poisson) last so the other 3 always complete even on timeout.
+_PER_ROUND_REFIT_ORDER: list[str] = [
+    m for m in EXPERIMENT_MODELS if m != _SLOW_EXPERIMENT_MODEL
+] + ([_SLOW_EXPERIMENT_MODEL] if _SLOW_EXPERIMENT_MODEL in EXPERIMENT_MODELS else [])
 
 # ---------------------------------------------------------------------------
 # Result containers
@@ -528,6 +536,150 @@ def run_champion_refit(df: pd.DataFrame) -> str:
         len(splits.df_full),
     )
     return run_id
+
+
+# ---------------------------------------------------------------------------
+# Per-round refit (B.3) — 4-model EXPERIMENT_MODELS roster, per-round cadence
+# ---------------------------------------------------------------------------
+
+
+def run_per_round_refit(df: pd.DataFrame, *, matchday: str) -> dict[str, str]:
+    """Refit the 4 EXPERIMENT_MODELS roster entries for the per-round cadence.
+
+    Reads each model's hyperparameters from the registry (champion from
+    wc_production, non-champion roster models from wc_staging), refits on
+    the full Gold dataset, and registers results tagged cadence_mode=per_round.
+
+    The display champion receives the ``champion_per_round`` alias on
+    wc_production.  The other 3 roster models register to wc_shadow with
+    ``cadence_mode=per_round`` + ``model_name`` tags so
+    ``load_shadow_model(name, cadence_mode="per_round")`` picks them up.
+
+    ``bayesian_poisson`` is always refitted last (slow MCMC); per-model and
+    overall timeouts match the shadow-refit guards so a hung NUTS sampler
+    cannot stall the pipeline.
+
+    Args:
+        df: Full Gold DataFrame (already loaded by the caller).
+        matchday: Tournament stage label for the round being predicted
+            (e.g. ``"1"``, ``"2"``, ``"3"``, ``"R32"``, ``"R16"``,
+            ``"QF"``, ``"SF"``, ``"Final"``).  Stored as an MLflow run tag
+            so ``_last_per_round_refit_matchday()`` can detect the next
+            boundary.
+
+    Returns:
+        Dict mapping model_name → MLflow run_id for each model that was
+        successfully refitted.  Timed-out or failed models are skipped and
+        logged as warnings.
+    """
+    setup_mlflow()
+    champion_meta = get_champion_metadata()
+    run_ids: dict[str, str] = {}
+    overall_deadline = time.time() + SHADOW_REFIT_TOTAL_TIMEOUT_S
+
+    for model_name in _PER_ROUND_REFIT_ORDER:
+        if model_name not in CANDIDATE_MODELS:
+            logger.warning(
+                "Per-round refit: %s not in CANDIDATE_MODELS — skipping.", model_name,
+            )
+            continue
+
+        remaining = overall_deadline - time.time()
+        if remaining <= 0:
+            logger.warning(
+                "Per-round refit: overall timeout (%.0fs) reached — "
+                "skipping %s and remainder.",
+                SHADOW_REFIT_TOTAL_TIMEOUT_S,
+                model_name,
+            )
+            break
+
+        if model_name == champion_meta.model_name:
+            meta = champion_meta
+        else:
+            try:
+                meta = get_shadow_metadata(model_name)
+            except ValueError:
+                logger.warning(
+                    "Per-round refit: no wc_staging metadata for %s — skipping.",
+                    model_name,
+                )
+                continue
+
+        feature_cols = MODEL_FEATURE_SETS[model_name]
+        dropna = model_name != "xgboost"
+        splits = make_splits(
+            df, feature_cols, dropna=dropna, half_period_years=meta.half_period_years,
+        )
+        logger.info(
+            "Per-round refit: fitting %s on %d Gold rows "
+            "(matchday=%s, half_period=%.2fyr, timeout=%.0fs).",
+            model_name,
+            len(splits.df_full),
+            matchday,
+            meta.half_period_years,
+            min(SHADOW_FIT_TIMEOUT_S, remaining),
+        )
+
+        t0 = time.time()
+        model_obj = CANDIDATE_MODELS[model_name](**meta.best_params)
+        per_model_timeout = min(SHADOW_FIT_TIMEOUT_S, remaining)
+        try:
+            model_obj = _fit_with_timeout(
+                model_obj, splits.X_full, splits.y_full, splits.w_full, per_model_timeout,
+            )
+        except TimeoutError:
+            logger.warning(
+                "Per-round refit: %s timed out (%.0fs) — skipping.",
+                model_name, per_model_timeout,
+            )
+            continue
+        except Exception:
+            logger.exception("Per-round refit: %s failed during fit — skipping.", model_name)
+            continue
+
+        run_tags: dict[str, str] = {
+            "stage": "per-round-refit",
+            "model_name": model_name,
+            "cadence_mode": "per_round",
+            "per_round_refit_matchday": matchday,
+        }
+        with start_run(
+            run_name=f"per_round_refit_{model_name}_md{matchday}",
+            tags=run_tags,
+        ) as run:
+            log_run(
+                params={
+                    **meta.best_params,
+                    "half_period_years": meta.half_period_years,
+                    "gold_row_count": str(len(splits.df_full)),
+                },
+                metrics={**meta.holdout_metrics, "refit_wall_sec": time.time() - t0},
+            )
+            model_uri = _log_model_artifact(model_obj)
+            run_id = run.info.run_id
+
+        if model_name == champion_meta.model_name:
+            mv = register_model(model_uri=model_uri, model_name=PRODUCTION_MODEL_NAME)
+            promote_to_production(version=mv.version, alias=CHAMPION_ALIAS_PER_ROUND)
+            logger.info(
+                "Per-round refit: %s → wc_production v%s (champion_per_round, matchday=%s)",
+                model_name, mv.version, matchday,
+            )
+        else:
+            mv = register_model(model_uri=model_uri, model_name=SHADOW_MODEL_NAME)
+            logger.info(
+                "Per-round refit: %s → wc_shadow v%s (cadence_mode=per_round, matchday=%s)",
+                model_name, mv.version, matchday,
+            )
+
+        run_ids[model_name] = run_id
+
+    logger.info(
+        "Per-round refit complete — %d/%d models fitted (matchday=%s).",
+        len(run_ids), len(EXPERIMENT_MODELS), matchday,
+    )
+    return run_ids
 
 
 # ---------------------------------------------------------------------------

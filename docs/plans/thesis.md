@@ -148,12 +148,8 @@ locked from A.6/A.7). See `decisions.md` "Champion freeze process".
 **Prerequisite:** B.2 must exist first — A.10 assigns B.2's `champion_frozen`
 and `champion_per_round` aliases. Run B.1–B.4 before this step.
 
-- [ ] `bayesian_poisson` refit hardening: set `target_accept=0.9` and raise
-  `tune_steps` in `BayesianPoissonModel.__init__` defaults before running the
-  freeze refit (affects fit time only, not inference). **Now folded into B.3**
-  — it is also a prerequisite for B.3's 7 unattended per-round MCMC refits, not
-  just this one freeze fit. Do it once with B.3, before measuring refit-cycle
-  wall-time for the C.5 timeout / B.3 concurrency guard.
+- [x] `bayesian_poisson` refit hardening: `target_accept=0.9`, `tune_steps=1000`,
+  `max_eta=10.0`, `prior_sigma` capped at 2.0 — done with B.3.
 - [ ] Build the latest full Gold table (last friendlies included).
 - [ ] `run_champion_refit` for each of the 3 champions on full Gold
   (no Optuna, no half-period search, no re-selection).
@@ -169,10 +165,10 @@ and `champion_per_round` aliases. Run B.1–B.4 before this step.
 B.2's dual aliases, so the alias scheme must exist first. Built in parallel
 with the GCP skeleton (C.1–C.7). See `golive_runbook.md`.
 
-- [ ] **B.1** Snapshot metadata tagging
-- [ ] **B.2** Dual MLflow aliases + per-mode dispatch
-- [ ] **B.3** Per-round refit trigger
-- [ ] **B.4** Per-mode monitoring
+- [x] **B.1** Snapshot metadata tagging
+- [x] **B.2** Dual MLflow aliases + per-mode dispatch
+- [x] **B.3** Per-round refit trigger
+- [x] **B.4** Per-mode monitoring
 
 ### Phase 4 — GCP deployment (`thesis` branch, by June 10)
 
@@ -491,13 +487,13 @@ non-selected candidates stay as match-level RPS shadows (never simulated).
 Every inference cycle logs structured metadata for post-WC trajectory
 reconstruction.
 
-- [ ] In `src/inference/run.py`:
+- [x] In `src/inference/run.py`:
   - Accept `cadence_mode`, `matchday_label`,
     `matches_completed_in_matchday`, `total_matches_completed`
   - Derive matchday/sequence from `parse_wc_results()` output
-- [ ] In `src/inference/logging.py:log_inference_artifacts`:
+- [x] In `src/inference/logging.py:log_inference_artifacts`:
   - Add four fields to MLflow `params` dict
-- [ ] In `src/monitoring/monitor.py`:
+- [x] In `src/monitoring/monitor.py`:
   - Tag monitoring rows with `cadence_mode`
 
 ### B.2. Dual MLflow aliases and per-mode dispatch
@@ -505,50 +501,60 @@ reconstruction.
 Each roster model runs in two modes side by side during WC: frozen (never
 refitted) and per-round (refitted at matchday boundaries).
 
-- [ ] Define MLflow registry aliases for the display champion: `champion_frozen`,
+- [x] Define MLflow registry aliases for the display champion: `champion_frozen`,
   `champion_per_round` (`champion` stays for backward compat, points at frozen).
   The other 3 roster models resolve by `(model_name, cadence_mode)` tag search
   (same tag-based path shadows already use), so no per-model alias proliferation.
-- [ ] **Degrade gracefully:** until A.10 assigns the dual aliases, the per-mode
+- [x] **Degrade gracefully:** until A.10 assigns the dual aliases, the per-mode
   dispatch must fall back to the existing single `champion` path so the pre-WC
   pipeline (run locally or on the freshly deployed GCP job) keeps working.
-- [ ] In `src/models/mlflow_utils.py`:
+- [x] In `src/models/mlflow_utils.py`:
   - Add `get_production_run_id(alias: str)` to fetch the display champion by alias
   - Add a `(model_name, cadence_mode)` resolver for the non-champion roster
-- [ ] In `src/pipeline/trigger.py:dispatch_training_or_inference`:
-  - Loop over `{4 roster models} × {both modes}`: load each, predict, **simulate
-    (Option A)**, and log artifacts tagged with `model_name` + `cadence_mode`
-  - Pre-MD1 optimisation: frozen and per-round are identical until the first
-    refit, so reuse frozen's output for per-round until MD1 diverges them
-- [ ] Streamlit reads only the `champion` (xgboost) artifact set — filter the
-  logged artifacts by `model_name` (update `src/dashboard/load_artifacts.py`)
-- [ ] Per-round refit logic only fires for the per-round mode (see B.3)
+- [x] In `src/pipeline/trigger.py:dispatch_training_or_inference`:
+  - Loop over both cadence modes; each call runs the full roster simulation
+    (Option A) and logs artifacts tagged with `cadence_mode` (B.1)
+  - Pre-MD1: always run both modes independently (no reuse optimisation)
+- [x] Streamlit reads only the `champion` (xgboost) artifact set — filter the
+  logged artifacts by `model_name` (update `src/dashboard/load_artifacts.py`);
+  dashboard pinned to `cadence_mode=frozen` lineage
+- [x] Per-round refit logic only fires for the per-round mode (see B.3)
 
 ### B.3. Per-round refit trigger
 
 Matchday-boundary detection fires refit for the per-round mode only.
 
-- [ ] In `src/pipeline/trigger.py`:
-  - Compare `next_matchday` against last per-round refit's recorded matchday
-  - On boundary change → `run_champion_refit` on current Gold **for all 4 roster
-    models** → register each tagged `cadence_mode=per_round` + `model_name`
-    (display champion also gets the `champion_per_round` alias)
-- [ ] Store last per-round refit matchday as MLflow tag on the refit run
-- [ ] Frozen mode never refits during WC
-- [ ] 7 expected refit events: MD1, MD2, MD3, R32, R16, QF, SF
-- [ ] **Concurrency guard:** a refit cycle (4 refits incl. bayesian MCMC + 8
-  simulations) is the long pole and may approach the 30-min trigger interval.
-  Prevent overlapping Cloud Run executions (max-instances=1 / lock) so the next
-  scheduled trigger cannot start before a refit cycle finishes. Measure the
-  bayesian_poisson single-fit wall-time first (see C.5 timeout sizing).
+- [x] In `src/pipeline/trigger.py`:
+  - `_last_per_round_refit_matchday()` reads the `per_round_refit_matchday`
+    tag from the `champion_per_round` run; returns `None` (pre-A.10) or the
+    last matchday label.
+  - On boundary change → `run_per_round_refit(df, matchday=next_matchday)`
+    refit **all 4 EXPERIMENT_MODELS roster entries** → each registered with
+    `cadence_mode=per_round` + `model_name` tags; display champion (xgboost)
+    also gets the `champion_per_round` alias on `wc_production`; the other 3
+    go to `wc_shadow`.
+  - `promote_to_production` generalized to accept `alias=` kwarg.
+  - Pre-A.10 fallback: when `champion_per_round` alias absent, legacy
+    delta-based refit path is used unchanged.
+- [x] Store `per_round_refit_matchday` as MLflow run tag on each refit run
+- [x] Frozen mode never refits during WC
+- [x] 7 expected refit events: MD1, MD2, MD3, R32, R16, QF, SF
+- [x] **Concurrency guard:** whole-run `fcntl` lockfile in `trigger.main()`
+  prevents within-host overlap (skip tick if lock held). On Cloud Run Jobs there
+  is no `--max-instances` flag — cross-execution overlap is prevented by
+  keeping task timeout (50 min) under the scheduler interval (60 min hourly),
+  plus `--tasks 1 --parallelism 1`. Each execution has a fresh container
+  filesystem so the lockfile doesn't persist cross-execution. WC refits are
+  spaced hours apart; the guards cover the edge case of a slow bayesian MCMC
+  refit approaching the interval limit.
 
 ### B.4. Per-mode monitoring
 
-- [ ] In `src/monitoring/monitor.py:score_completed_wc_matches`:
+- [x] In `src/monitoring/monitor.py:score_completed_wc_matches`:
   - Look up pre-kickoff inference run for each mode separately
   - Emit rows tagged with `cadence_mode`
-- [ ] `evaluate_alert_threshold` groups by `(cadence_mode, model_name)`
-- [ ] `log_monitoring_run` creates `monitor_<mode>_<model_name>` runs
+- [x] `evaluate_alert_threshold` groups by `(cadence_mode, model_name)`
+- [x] `log_monitoring_run` creates `monitor_<mode>_<model_name>` runs
 
 ---
 
@@ -572,30 +578,71 @@ Matchday-boundary detection fires refit for the per-round mode only.
 
 - [ ] Create secrets: API-Football key, DagsHub username, DagsHub token,
   MLflow tracking URI
-- [ ] Wire as env vars in Cloud Run Job definition
+- [ ] Wire as env vars in Cloud Run Job definition (C.5). Four secrets map to
+  **six** env vars — `dagshub-username` and `dagshub-token` each serve two
+  names (`entrypoint.sh` needs `DAGSHUB_*`; MLflow needs `MLFLOW_TRACKING_*`):
+  ```
+  MLFLOW_TRACKING_URI=mlflow-tracking-uri:latest
+  MLFLOW_TRACKING_USERNAME=dagshub-username:latest
+  MLFLOW_TRACKING_PASSWORD=dagshub-token:latest
+  DAGSHUB_USERNAME=dagshub-username:latest
+  DAGSHUB_TOKEN=dagshub-token:latest
+  API_FOOTBALL_KEY=api-football-key:latest
+  ```
 
 ### C.4. Artifact Registry + image push
 
 - [ ] Create Docker repo in Artifact Registry
-- [ ] Tag and push image
+- [ ] Build for **`linux/amd64`** (Cloud Run; arm64 Mac builds fail otherwise):
+  `docker buildx build --platform linux/amd64 ...`
+- [ ] Tag with a **unique timestamp** (not `:latest` alone), e.g.
+  `20260608-1530`, and push. Cloud Run pins the digest at deploy time — a new
+  `:latest` push does nothing until you `gcloud run jobs update --image`.
+- [ ] **Rebuild only when code changes** (`src/`, `Dockerfile`, `entrypoint.sh`,
+  `pyproject.toml`). Data updates happen at runtime via DVC; no image rebuild.
+  Expect ~2 redeploys this sprint: initial (C.5) and Jun 9 (B.1–B.4 merged).
+- [ ] Commit `dvc.lock` / `data/raw.dvc` before build — baked pointers are the
+  `dvc pull` baseline; incremental ingestion only backfills `LOOKBACK_DAYS=2`.
 
 ### C.5. Cloud Run Job
 
-- [ ] Create `wc-mlops-trigger` job
-- [ ] Resources: 4 GiB / 2 vCPU routine, 8 GiB / 4 vCPU initial
-- [ ] Timeout: 60 min initial, routine sized for Option A — a refit cycle is
-  4 refits (incl. bayesian MCMC) + 8 simulations; measure first, raise the
-  routine timeout above the old 15 min if needed (must stay under the trigger
-  interval, or rely on the B.3 concurrency guard)
-- [ ] Set max-instances=1 / concurrency lock so the 30-min scheduler cannot
-  overlap a still-running refit cycle (B.3)
-- [ ] Args: `--mode=auto`
+- [ ] Create `wc-mlops-trigger` job with `--image` set to the **dated tag**
+  from C.4 (not `:latest`)
+- [ ] Attach C.3 secrets via `--set-secrets` (six env vars; see C.3)
+- [ ] Resources: 8 GiB / 4 vCPU for initial full-pipeline run; lower to 4 GiB /
+  2 vCPU with `gcloud run jobs update --memory 4Gi --cpu 2` once you've
+  measured that routine inference+simulation cycles fit within those limits.
+- [ ] **`--tasks 1 --parallelism 1`** — ensures one container per execution.
+  Cloud Run Jobs have no `--max-instances` flag (that is a Services setting).
+  Cross-execution overlap is prevented by keeping task timeout well under the
+  scheduler interval: use **50 min timeout** with a 60-min schedule so a slow
+  run finishes before the next tick fires. The `fcntl` lockfile in
+  `trigger.main()` covers local/manual overlap only (each Cloud Run execution
+  gets a fresh container filesystem, so the lockfile does not persist across
+  executions).
+- [ ] Timeout: **50 min** (`--task-timeout 3000`). Must stay under the 60-min
+  WC scheduler interval. A refit cycle is 4 refits (incl. bayesian MCMC) +
+  8 simulations; measure first and raise if needed (while keeping under the
+  interval). Start at 8 GiB / 4 vCPU; lower to 4 GiB / 2 vCPU after first
+  successful run confirms routine cycles fit.
+- [ ] Mode: **`auto` via `PIPELINE_MODE` env var** (default in `entrypoint.sh`).
+  Do **not** use `--args` — `entrypoint.sh` ignores container args and reads
+  `PIPELINE_MODE` (defaults to `auto`). `inference_only` would skip B.3
+  per-round refits and must not be used during WC.
+- [ ] On code changes: rebuild (C.4) → `gcloud run jobs update --image <dated-tag>`
 
 ### C.6. Cloud Scheduler
 
-- [ ] **Pre-WC** (now – June 10): daily 04:30 UTC. Cron: `0 6 * * *`
-- [ ] **WC** (June 11 – July 19): every 30 min. Cron: `*/30 * * * *`.
-  Pause pre-WC schedule.
+Two schedules hit the same `wc-mlops-trigger` job; **both use `mode=auto`**
+(default `PIPELINE_MODE`). Only the cron frequency changes — do not switch to
+`inference_only` (that skips per-round refit at matchday boundaries).
+
+- [ ] **Pre-WC** (now – June 10): daily 04:00 UTC. Cron: `0 4 * * *`.
+  Job: `daily-pipeline-trigger`. Leave enabled.
+- [ ] **WC** (June 11 – July 19): hourly. Cron: `0 * * * *`.
+  Job: `wc-pipeline-trigger`. Create paused; resume at kickoff. Sufficient
+  given match schedule; keeps task timeout (50 min) safely under the interval.
+  At kickoff: pause `daily-pipeline-trigger`, resume `wc-pipeline-trigger`.
 - [ ] Post-WC: pause both
 
 ### C.7. DVC remote on GCS

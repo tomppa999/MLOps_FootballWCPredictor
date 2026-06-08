@@ -314,6 +314,7 @@ def parse_wc_results(
                 "home_goals": home_goals,
                 "away_goals": away_goals,
                 "is_knockout": is_ko,
+                "round": round_str,
             })
             round_lower = round_str.lower()
 
@@ -372,6 +373,60 @@ def parse_wc_results(
         "ko_results": ko_results,
         "next_matchday": next_matchday,
         "finished_fixtures": finished_fixtures,
+    }
+
+
+def _round_to_matchday_label(round_str: str) -> str | None:
+    """Map an API-Football round string to a snapshot ``matchday_label``.
+
+    Labels align with ``parse_wc_results``'s ``next_matchday`` values:
+    group matchdays ``"1"``/``"2"``/``"3"``, then ``"R32"``, ``"R16"``,
+    ``"QF"``, ``"SF"``, ``"Final"``.
+    """
+    if not round_str:
+        return None
+    round_lower = round_str.lower()
+    if round_lower.startswith("group"):
+        parts = round_str.rsplit(" - ", 1)
+        if len(parts) == 2 and parts[1].isdigit():
+            return parts[1]
+        return None
+    if round_lower.startswith("round of 32"):
+        return "R32"
+    if round_lower.startswith("round of 16"):
+        return "R16"
+    if round_lower.startswith("quarter-final"):
+        return "QF"
+    if round_lower.startswith("semi-final"):
+        return "SF"
+    if round_lower.startswith("final"):
+        return "Final"
+    return None
+
+
+def derive_snapshot_metadata(wc_results: dict) -> dict[str, str | int]:
+    """Derive snapshot sequence metadata from ``parse_wc_results`` output.
+
+    Returns:
+        matchday_label: round currently being predicted (from ``next_matchday``).
+        matches_completed_in_matchday: finished fixtures in that round so far.
+        total_matches_completed: monotonic count of all locked group + KO matches.
+    """
+    matchday_label = str(wc_results.get("next_matchday", 1))
+    group_results = wc_results.get("group_results", {})
+    ko_results = wc_results.get("ko_results", {})
+    total_matches_completed = len(group_results) + len(ko_results)
+
+    matches_completed_in_matchday = 0
+    for fixture in wc_results.get("finished_fixtures", []):
+        label = _round_to_matchday_label(fixture.get("round", ""))
+        if label == matchday_label:
+            matches_completed_in_matchday += 1
+
+    return {
+        "matchday_label": matchday_label,
+        "matches_completed_in_matchday": matches_completed_in_matchday,
+        "total_matches_completed": total_matches_completed,
     }
 
 

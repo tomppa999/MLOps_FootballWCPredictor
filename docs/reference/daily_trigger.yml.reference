@@ -1,36 +1,52 @@
 # Daily Pipeline Trigger — Cloud Scheduler + Cloud Run Job reference
 #
-# Pre-tournament: runs daily at 04:30 UTC with --mode auto.
+# Pre-tournament: runs daily at 04:00 UTC with mode=auto (default PIPELINE_MODE).
 # The Cloud Run Job executes the same Docker image as local development.
 # Secrets are stored in GCP Secret Manager and mounted as env vars.
 
 # -----------------------------------------------------------------------
-# 1. Create the Cloud Run Job (one-time)
+# 1. Create the Cloud Run Job (one-time) — see thesis C.5 for full detail
 # -----------------------------------------------------------------------
-# gcloud run jobs create football-pipeline \
-#   --image REGION-docker.pkg.dev/PROJECT/REPO/football-pipeline:latest \
-#   --region REGION \
-#   --task-timeout 1800 \
+# export PROJECT_ID=wc-mlops-predictor
+# export REGION=europe-west1
+# export SA=wc-mlops-trigger@${PROJECT_ID}.iam.gserviceaccount.com
+# export IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/wc-mlops/wc-mlops-trigger@sha256:DIGEST
+#
+# gcloud run jobs create wc-mlops-trigger \
+#   --image "$IMAGE_URI" \
+#   --region "$REGION" \
+#   --service-account "$SA" \
+#   --tasks 1 \
+#   --parallelism 1 \
 #   --max-retries 1 \
+#   --task-timeout 3000 \
+#   --memory 8Gi \
+#   --cpu 4 \
 #   --set-secrets "MLFLOW_TRACKING_URI=mlflow-tracking-uri:latest,\
 #     MLFLOW_TRACKING_USERNAME=dagshub-username:latest,\
 #     MLFLOW_TRACKING_PASSWORD=dagshub-token:latest,\
-#     API_FOOTBALL_KEY=api-football-key:latest" \
-#   --args="--mode,auto"
+#     DAGSHUB_USERNAME=dagshub-username:latest,\
+#     DAGSHUB_TOKEN=dagshub-token:latest,\
+#     API_FOOTBALL_KEY=api-football-key:latest"
+#
+# Mode: entrypoint.sh reads PIPELINE_MODE (defaults to auto). Do not use --args.
 
 # -----------------------------------------------------------------------
 # 2. Create the Cloud Scheduler entry (one-time)
 # -----------------------------------------------------------------------
+# export JOB_URI="https://${REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT_ID}/jobs/wc-mlops-trigger:run"
+#
 # gcloud scheduler jobs create http daily-pipeline-trigger \
-#   --location REGION \
-#   --schedule "30 4 * * *" \
+#   --location "$REGION" \
+#   --schedule "0 4 * * *" \
 #   --time-zone "UTC" \
-#   --uri "https://REGION-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/PROJECT/jobs/football-pipeline:run" \
+#   --uri "$JOB_URI" \
 #   --http-method POST \
-#   --oauth-service-account-email SA@PROJECT.iam.gserviceaccount.com \
-#   --description "Daily pipeline trigger — pre-tournament, 04:30 UTC, mode=auto"
+#   --oauth-service-account-email "$SA" \
+#   --description "Pre-WC daily trigger, mode=auto"
 
 # -----------------------------------------------------------------------
 # 3. Manual execution (testing)
 # -----------------------------------------------------------------------
-# gcloud run jobs execute football-pipeline --region REGION
+# gcloud run jobs execute wc-mlops-trigger --region "$REGION"
+# gcloud scheduler jobs run daily-pipeline-trigger --location "$REGION"

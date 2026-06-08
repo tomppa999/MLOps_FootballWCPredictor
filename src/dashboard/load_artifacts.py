@@ -72,12 +72,27 @@ def _filter_to_champion(df: pd.DataFrame, champion_model_name: str) -> pd.DataFr
 
 
 def _get_latest_inference_run() -> mlflow.entities.Run:
-    """Return the most recent MLflow run tagged stage=inference."""
+    """Return the most recent frozen-lineage inference run for the dashboard.
+
+    Prefers runs with ``params.cadence_mode = frozen`` (B.2 display lineage).
+    Falls back to the latest inference run when no tagged run exists (pre-B.1).
+    """
     setup_mlflow()
     client = mlflow.tracking.MlflowClient()
     exp = client.get_experiment_by_name(EXPERIMENT_NAME)
     if exp is None:
         raise RuntimeError(f"Experiment '{EXPERIMENT_NAME}' not found")
+
+    frozen_runs = client.search_runs(
+        experiment_ids=[exp.experiment_id],
+        filter_string=(
+            'tags.stage = "inference" AND params.cadence_mode = "frozen"'
+        ),
+        order_by=["start_time DESC"],
+        max_results=1,
+    )
+    if frozen_runs:
+        return frozen_runs[0]
 
     runs = client.search_runs(
         experiment_ids=[exp.experiment_id],

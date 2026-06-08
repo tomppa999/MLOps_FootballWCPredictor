@@ -3,7 +3,9 @@
 .tmp_venv/
 mlruns/
 logs/
-data/
+data/*
+!data/mappings
+!data/tournament
 data_samples/
 tests/
 docs/

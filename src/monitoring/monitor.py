@@ -4,8 +4,9 @@ Scoring, not selection. Every settled WC 2026 match is joined with the most
 recent ``predictions_all_models.csv`` artifact whose
 ``inference_timestamp`` is strictly earlier than that match's kickoff.
 Per-match RPS / NLL / RMSE_h / RMSE_a are computed for each of the nine
-models. The cumulative long-format leaderboard is logged to per-model
-MLflow runs (``monitor_<model_name>``, ``stage=monitoring``).
+models. The cumulative long-format leaderboard is logged to per-mode,
+per-model MLflow runs (``monitor_<cadence_mode>_<model_name>``,
+``stage=monitoring``).
 """
 
 from __future__ import annotations
@@ -51,6 +52,7 @@ _TEAM_MAPPING_PATH: Final[Path] = Path("data/mappings/team_mapping_master_merged
 _WC_SEASONS: Final[frozenset[int]] = frozenset({2025, 2026})
 _PREDICTIONS_ALL_MODELS_FILENAME: Final[str] = "predictions_all_models.csv"
 _MONITORING_ARTIFACT_FILENAME: Final[str] = "wc2026_monitoring.csv"
+CADENCE_MODES: Final[tuple[str, ...]] = ("frozen", "per_round")
 
 
 # ---------------------------------------------------------------------------
@@ -154,11 +156,15 @@ def parse_wc_settled_matches(
 # ---------------------------------------------------------------------------
 
 
-def _list_inference_runs() -> list[dict]:
+def _list_inference_runs(cadence_mode: str | None = None) -> list[dict]:
     """Return inference runs sorted ascending by ``inference_timestamp``.
 
     Each entry has ``run_id`` and ``inference_timestamp`` (as a UTC
     ``pd.Timestamp``). Runs without that param are skipped.
+
+    When ``cadence_mode`` is set, only runs whose ``cadence_mode`` param
+    matches are returned. Legacy runs missing the param are treated as
+    ``frozen`` (pre-B.2 lineage).
     """
     setup_mlflow()
     client = mlflow.tracking.MlflowClient()
@@ -176,6 +182,9 @@ def _list_inference_runs() -> list[dict]:
     for r in runs:
         ts = r.data.params.get("inference_timestamp")
         if not ts:
+            continue
+        run_mode = r.data.params.get("cadence_mode", "frozen")
+        if cadence_mode is not None and run_mode != cadence_mode:
             continue
         try:
             ts_parsed = pd.to_datetime(ts, utc=True)
@@ -323,6 +332,8 @@ def _poisson_logpmf(k: int, lam: float) -> float:
 def score_completed_wc_matches(
     fixtures_dir: Path = _FIXTURES_DIR,
     mapping_path: Path = _TEAM_MAPPING_PATH,
+    *,
+    cadence_mode: str = "frozen",
 ) -> pd.DataFrame:
     """Score every settled WC 2026 match against pre-kickoff predictions.
 
@@ -339,9 +350,12 @@ def score_completed_wc_matches(
         logger.info("No settled WC 2026 matches yet — monitoring no-op.")
         return pd.DataFrame()
 
-    inference_runs = _list_inference_runs()
+    inference_runs = _list_inference_runs(cadence_mode)
     if not inference_runs:
-        logger.warning("No inference runs found — cannot score matches.")
+        logger.warning(
+            "No inference runs found for cadence_mode=%s — cannot score matches.",
+            cadence_mode,
+        )
         return pd.DataFrame()
 
     predictions_cache: dict[str, pd.DataFrame] = {}
@@ -378,11 +392,13 @@ def score_completed_wc_matches(
         return pd.DataFrame()
 
     out = pd.DataFrame(rows)
+    out["cadence_mode"] = cadence_mode
     out = out.sort_values(["kickoff_utc", "model_name"]).reset_index(drop=True)
     logger.info(
-        "Monitoring scored %d match-model rows across %d models.",
+        "Monitoring scored %d match-model rows across %d models (cadence_mode=%s).",
         len(out),
         out["model_name"].nunique(),
+        cadence_mode,
     )
     return out
 
@@ -397,21 +413,26 @@ def evaluate_alert_threshold(
     *,
     window: int = ALERT_WINDOW,
     naive_floor: float = NAIVE_BASELINE_RPS,
-) -> list[str]:
-    """Iterate every model and warn when rolling-mean RPS breaches the floor.
+) -> list[tuple[str, str]]:
+    """Warn when rolling-mean RPS breaches the floor per (cadence_mode, model).
 
     Threshold is ``naive_floor`` (universal naive-baseline floor).  Any model
     with rolling RPS above this has degraded to below-random and must be
     investigated.  Models with fewer than ``window`` scored matches are
     skipped (cold-start guard).
 
-    Returns the list of breaching model names.
+    Returns the list of breaching ``(cadence_mode, model_name)`` tuples.
     """
     if monitoring_df.empty:
         return []
 
-    breached: list[str] = []
-    for model_name, group in monitoring_df.groupby("model_name"):
+    df = monitoring_df
+    if "cadence_mode" not in df.columns:
+        df = df.copy()
+        df["cadence_mode"] = "frozen"
+
+    breached: list[tuple[str, str]] = []
+    for (mode, model_name), group in df.groupby(["cadence_mode", "model_name"]):
         recent = group.sort_values("kickoff_utc").tail(window)
         if len(recent) < window:
             continue
@@ -419,12 +440,12 @@ def evaluate_alert_threshold(
         if rolling_rps > naive_floor:
             holdout_ref = HOLDOUT_RPS_BASELINES.get(str(model_name), float("nan"))
             logger.warning(
-                "ALERT %s: rolling RPS %.4f over last %d matches > %.4f "
+                "ALERT %s/%s: rolling RPS %.4f over last %d matches > %.4f "
                 "(naive floor). Holdout audit RPS was %.4f. "
                 "Manual investigation required.",
-                model_name, rolling_rps, window, naive_floor, holdout_ref,
+                mode, model_name, rolling_rps, window, naive_floor, holdout_ref,
             )
-            breached.append(str(model_name))
+            breached.append((str(mode), str(model_name)))
     return breached
 
 
@@ -435,8 +456,10 @@ def evaluate_alert_threshold(
 
 def log_monitoring_run(
     monitoring_df: pd.DataFrame,
+    *,
+    cadence_mode: str = "frozen",
 ) -> dict[str, str]:
-    """Write one ``monitor_<model_name>`` run per model in the long table.
+    """Write one ``monitor_<cadence_mode>_<model_name>`` run per model.
 
     For each model:
       - per-match metrics (rps, nll, rmse_h, rmse_a) are logged with
@@ -465,12 +488,17 @@ def log_monitoring_run(
             group = group.sort_values("kickoff_utc").reset_index(drop=True)
 
             with start_run(
-                run_name=f"monitor_{model_name}",
-                tags={"stage": "monitoring", "model_name": str(model_name)},
+                run_name=f"monitor_{cadence_mode}_{model_name}",
+                tags={
+                    "stage": "monitoring",
+                    "model_name": str(model_name),
+                    "cadence_mode": cadence_mode,
+                },
             ) as run:
                 log_run(
                     params={
                         "model_name": str(model_name),
+                        "cadence_mode": cadence_mode,
                         "n_scored_matches": str(len(group)),
                         "monitoring_cycle_ts": cycle_ts,
                     },
@@ -488,7 +516,11 @@ def log_monitoring_run(
                 mlflow.log_artifact(str(artifact_path))
                 out[str(model_name)] = run.info.run_id
 
-    logger.info("Logged %d monitor_<model> runs.", len(out))
+    logger.info(
+        "Logged %d monitor_<mode>_<model> runs (cadence_mode=%s).",
+        len(out),
+        cadence_mode,
+    )
     return out
 
 
@@ -501,13 +533,22 @@ def run_monitoring_step(
     fixtures_dir: Path = _FIXTURES_DIR,
     mapping_path: Path = _TEAM_MAPPING_PATH,
 ) -> pd.DataFrame:
-    """Score → log → alert. Best-effort: callers wrap this in try/except.
+    """Score → log → alert for each cadence mode. Best-effort wrapper.
 
-    Returns the long-format monitoring DataFrame for inspection / testing.
+    Returns the concatenated long-format monitoring DataFrame across both
+    modes (may be empty pre-WC when no matches are settled).
     """
-    monitoring_df = score_completed_wc_matches(fixtures_dir, mapping_path)
-    if monitoring_df.empty:
-        return monitoring_df
-    log_monitoring_run(monitoring_df)
-    evaluate_alert_threshold(monitoring_df)
-    return monitoring_df
+    frames: list[pd.DataFrame] = []
+    for mode in CADENCE_MODES:
+        monitoring_df = score_completed_wc_matches(
+            fixtures_dir, mapping_path, cadence_mode=mode,
+        )
+        if monitoring_df.empty:
+            continue
+        log_monitoring_run(monitoring_df, cadence_mode=mode)
+        evaluate_alert_threshold(monitoring_df)
+        frames.append(monitoring_df)
+
+    if not frames:
+        return pd.DataFrame()
+    return pd.concat(frames, ignore_index=True)

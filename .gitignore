@@ -60,6 +60,10 @@ scripts/fix_tags.py
 .cursor/plans/
 .cursor/context-transfers/
 
+# Google Cloud SDK (installed locally, must never be committed)
+google-cloud-sdk/
+google-cloud-cli-*.tar.gz
+
 # Miscellaneous
 data_samples/MLOps_Pipeline_Development_The_OSSARA_Use_Case.pdf
 TAU template EN.pptx

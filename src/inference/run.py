@@ -18,6 +18,7 @@ import pandas as pd
 
 from src.inference.features import (
     build_inference_features,
+    derive_snapshot_metadata,
     generate_all_wc_pairings,
     generate_wc_group_fixtures,
     parse_wc_results,
@@ -32,7 +33,7 @@ from src.inference.simulation import (
 )
 from src.models.config import EXPERIMENT_MODELS
 from src.models.data_split import load_gold
-from src.models.mlflow_utils import get_champion_metadata
+from src.models.mlflow_utils import _alias_for_mode, get_champion_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +118,11 @@ def _simulate_roster(
 def run_inference_and_simulation(
     n_sims: int = 10_000,
     gold_path: Path | None = None,
+    *,
+    cadence_mode: str = "frozen",
+    matchday_label: str | None = None,
+    matches_completed_in_matchday: int | None = None,
+    total_matches_completed: int | None = None,
 ) -> str:
     """End-to-end inference: features → predict → simulate → log.
 
@@ -142,6 +148,13 @@ def run_inference_and_simulation(
 
     # Parse already-played WC results from Bronze and lock them into simulation
     wc_results = parse_wc_results()
+    snapshot_meta = derive_snapshot_metadata(wc_results)
+    if matchday_label is None:
+        matchday_label = str(snapshot_meta["matchday_label"])
+    if matches_completed_in_matchday is None:
+        matches_completed_in_matchday = int(snapshot_meta["matches_completed_in_matchday"])
+    if total_matches_completed is None:
+        total_matches_completed = int(snapshot_meta["total_matches_completed"])
     locked_group = wc_results["group_results"] or None
     locked_ko = wc_results["ko_results"] or None
     logger.info(
@@ -180,12 +193,14 @@ def run_inference_and_simulation(
 
     # Champion predictions (dedicated path; feeds scoreline sampling and
     # predictions.csv artifact).
-    all_predictions_df = run_prediction(all_features)
+    all_predictions_df = run_prediction(all_features, cadence_mode=cadence_mode)
     logger.info("All-pairs predictions: %d rows", len(all_predictions_df))
 
     # Resolve champion model name for simulation routing and artifact params.
     try:
-        champion_model_name = get_champion_metadata().model_name
+        champion_model_name = get_champion_metadata(
+            alias=_alias_for_mode(cadence_mode),
+        ).model_name
     except Exception:
         logger.warning(
             "Could not resolve champion model name — defaulting to 'xgboost'.",
@@ -196,7 +211,9 @@ def run_inference_and_simulation(
     # Best-effort: a failure must not block the simulation pipeline.
     all_models_predictions_df: pd.DataFrame | None = None
     try:
-        all_models_predictions_df = run_prediction_all_models(all_features)
+        all_models_predictions_df = run_prediction_all_models(
+            all_features, cadence_mode=cadence_mode,
+        )
     except Exception:
         logger.exception(
             "All-model prediction failed — non-champion roster simulations skipped.",
@@ -288,6 +305,10 @@ def run_inference_and_simulation(
         all_models_predictions_df=all_models_predictions_df,
         inference_timestamp=cycle_ts,
         simulation_seed=simulation_seed,
+        cadence_mode=cadence_mode,
+        matchday_label=matchday_label,
+        matches_completed_in_matchday=matches_completed_in_matchday,
+        total_matches_completed=total_matches_completed,
     )
 
     logger.info("=== Inference complete (run_id=%s) ===", run_id)

@@ -158,6 +158,59 @@ class TestSimulateGroup:
         assert top_counts["Strong"] > 30
 
 
+class TestSimulateGroupTiebreakers:
+    """Deterministic locked-result tests for FIFA group tiebreakers."""
+
+    _TEAMS = ["Germany", "Spain", "Morocco", "Australia"]
+    _RATES: dict[tuple[str, str], tuple[float, float]] = {}
+
+    def _standings(self, locked: dict[tuple[str, str], tuple[int, int]]) -> list[dict]:
+        rng = np.random.default_rng(0)
+        return _simulate_group(self._TEAMS, self._RATES, rng, locked_results=locked)
+
+    def test_2way_tie_h2h_beats_overall_gd(self):
+        """Spain beat Germany head-to-head; Germany's overall GD must not decide 1st."""
+        locked = {
+            ("Germany", "Spain"): (0, 1),
+            ("Morocco", "Australia"): (1, 0),
+            ("Germany", "Morocco"): (5, 0),
+            ("Australia", "Spain"): (0, 1),
+            ("Australia", "Germany"): (0, 5),
+            ("Spain", "Morocco"): (1, 0),
+        }
+        standings = self._standings(locked)
+        order = [entry["team"] for entry in standings]
+        assert order[:2] == ["Spain", "Germany"]
+
+    def test_3way_circular_tie_h2h_falls_to_overall_gd(self):
+        """Circular 3-way tie resolves via mini-table GD before overall stats."""
+        locked = {
+            ("Germany", "Spain"): (3, 0),
+            ("Morocco", "Australia"): (4, 0),
+            ("Germany", "Morocco"): (0, 1),
+            ("Australia", "Spain"): (0, 3),
+            ("Australia", "Germany"): (0, 5),
+            ("Spain", "Morocco"): (2, 0),
+        }
+        standings = self._standings(locked)
+        order = [entry["team"] for entry in standings]
+        assert order[:3] == ["Germany", "Spain", "Morocco"]
+
+    def test_3way_partial_separation(self):
+        """Clear mini-table winner; remaining sub-tie resolved by direct h2h."""
+        locked = {
+            ("Germany", "Spain"): (3, 0),
+            ("Morocco", "Australia"): (4, 0),
+            ("Germany", "Morocco"): (2, 0),
+            ("Australia", "Spain"): (0, 1),
+            ("Australia", "Germany"): (1, 0),
+            ("Spain", "Morocco"): (1, 0),
+        }
+        standings = self._standings(locked)
+        order = [entry["team"] for entry in standings]
+        assert order[:3] == ["Germany", "Spain", "Morocco"]
+
+
 # ---------------------------------------------------------------------------
 # build_group_tables
 # ---------------------------------------------------------------------------

@@ -149,6 +149,39 @@ def test_log_run_includes_simulated_models_param(
 @patch("src.inference.logging.log_run")
 @patch("src.inference.logging.get_latest_production_run_id", return_value="prod_run_123")
 @patch("src.inference.logging.setup_mlflow")
+def test_log_run_includes_snapshot_metadata_params(
+    mock_setup, mock_prod_id, mock_log_run, mock_start_run, mock_mlflow
+):
+    fake_run = MagicMock()
+    fake_run.info.run_id = "test_run_id"
+    mock_start_run.return_value.__enter__ = MagicMock(return_value=fake_run)
+    mock_start_run.return_value.__exit__ = MagicMock(return_value=False)
+
+    log_inference_artifacts(
+        predictions_df=_make_predictions(),
+        scoreline_dist=None,
+        per_model_tournament_results=_make_per_model_results(),
+        n_sims=100,
+        gold_row_count=6000,
+        champion_model_name="xgboost",
+        cadence_mode="per_round",
+        matchday_label="R32",
+        matches_completed_in_matchday=3,
+        total_matches_completed=75,
+    )
+
+    params = mock_log_run.call_args.kwargs.get("params", {})
+    assert params["cadence_mode"] == "per_round"
+    assert params["matchday_label"] == "R32"
+    assert params["matches_completed_in_matchday"] == "3"
+    assert params["total_matches_completed"] == "75"
+
+
+@patch("src.inference.logging.mlflow")
+@patch("src.inference.logging.start_run")
+@patch("src.inference.logging.log_run")
+@patch("src.inference.logging.get_latest_production_run_id", return_value="prod_run_123")
+@patch("src.inference.logging.setup_mlflow")
 def test_inference_timestamp_defaults_to_now_when_not_provided(
     mock_setup, mock_prod_id, mock_log_run, mock_start_run, mock_mlflow
 ):

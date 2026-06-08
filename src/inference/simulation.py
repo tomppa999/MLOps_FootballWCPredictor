@@ -127,6 +127,102 @@ def _resolve_ko_match(
     return h_total, a_total + 1, "PEN"
 
 
+def _compute_mini_table(
+    teams: list[str],
+    h2h: dict[tuple[str, str], tuple[int, int]],
+) -> dict[str, dict[str, int]]:
+    """Compute points/GD/GF among a tied subset only."""
+    stats = {t: {"pts": 0, "gf": 0, "ga": 0, "gd": 0} for t in teams}
+    for i, t1 in enumerate(teams):
+        for t2 in teams[i + 1:]:
+            key = (t1, t2) if (t1, t2) in h2h else (t2, t1)
+            hg, ag = h2h.get(key, (0, 0))
+            if key[0] == t1:
+                t1_goals, t2_goals = hg, ag
+            else:
+                t1_goals, t2_goals = ag, hg
+
+            stats[t1]["gf"] += t1_goals
+            stats[t1]["ga"] += t2_goals
+            stats[t2]["gf"] += t2_goals
+            stats[t2]["ga"] += t1_goals
+
+            if t1_goals > t2_goals:
+                stats[t1]["pts"] += 3
+            elif t1_goals == t2_goals:
+                stats[t1]["pts"] += 1
+                stats[t2]["pts"] += 1
+            else:
+                stats[t2]["pts"] += 3
+
+    for t in teams:
+        stats[t]["gd"] = stats[t]["gf"] - stats[t]["ga"]
+    return stats
+
+
+def _rank_tied_bucket(
+    tied: list[dict[str, Any]],
+    h2h: dict[tuple[str, str], tuple[int, int]],
+) -> list[dict[str, Any]]:
+    """Rank teams tied on overall points using FIFA mini-table rules."""
+    teams = [entry["team"] for entry in tied]
+    mini = _compute_mini_table(teams, h2h)
+
+    sorted_tied = sorted(
+        tied,
+        key=lambda x: mini[x["team"]]["pts"],
+        reverse=True,
+    )
+
+    ranked: list[dict[str, Any]] = []
+    i = 0
+    while i < len(sorted_tied):
+        j = i + 1
+        while (
+            j < len(sorted_tied)
+            and mini[sorted_tied[j]["team"]]["pts"] == mini[sorted_tied[i]["team"]]["pts"]
+        ):
+            j += 1
+        subgroup = sorted_tied[i:j]
+        if len(subgroup) == 1:
+            ranked.append(subgroup[0])
+        elif len(subgroup) < len(teams):
+            ranked.extend(_rank_tied_bucket(subgroup, h2h))
+        else:
+            subgroup.sort(
+                key=lambda x: (
+                    mini[x["team"]]["gd"],
+                    mini[x["team"]]["gf"],
+                    x["gd"],
+                    x["gf"],
+                    x["random"],
+                ),
+                reverse=True,
+            )
+            ranked.extend(subgroup)
+        i = j
+    return ranked
+
+
+def _rank_group_standings(
+    standings: list[dict[str, Any]],
+    h2h: dict[tuple[str, str], tuple[int, int]],
+) -> list[dict[str, Any]]:
+    """Sort group standings by FIFA tiebreakers."""
+    by_pts: dict[int, list[dict[str, Any]]] = {}
+    for entry in standings:
+        by_pts.setdefault(entry["pts"], []).append(entry)
+
+    ranked: list[dict[str, Any]] = []
+    for pts in sorted(by_pts.keys(), reverse=True):
+        bucket = by_pts[pts]
+        if len(bucket) == 1:
+            ranked.append(bucket[0])
+        else:
+            ranked.extend(_rank_tied_bucket(bucket, h2h))
+    return ranked
+
+
 def _simulate_group(
     teams: list[str],
     match_rates: dict[tuple[str, str], tuple[float, float]],
@@ -144,7 +240,7 @@ def _simulate_group(
     Poisson — zero RNG cost for those matches.
 
     Returns a list of dicts sorted by FIFA rules:
-      points -> GD -> GF -> head-to-head -> random tiebreak.
+      points -> h2h points -> h2h GD -> h2h GF -> overall GD -> overall GF -> random.
     """
     if matchdays is None:
         matchdays = _DEFAULT_MATCHDAYS
@@ -152,7 +248,7 @@ def _simulate_group(
     locked = locked_results or {}
 
     stats: dict[str, dict[str, int]] = {
-        t: {"pts": 0, "gf": 0, "ga": 0, "gd": 0, "h2h_pts": 0}
+        t: {"pts": 0, "gf": 0, "ga": 0, "gd": 0}
         for t in teams
     }
     h2h: dict[tuple[str, str], tuple[int, int]] = {}
@@ -188,31 +284,11 @@ def _simulate_group(
     for t in teams:
         stats[t]["gd"] = stats[t]["gf"] - stats[t]["ga"]
 
-    for i, t1 in enumerate(teams):
-        for t2 in teams[i + 1:]:
-            key = (t1, t2) if (t1, t2) in h2h else (t2, t1)
-            hg, ag = h2h.get(key, (0, 0))
-            if key[0] == t1:
-                t1_goals, t2_goals = hg, ag
-            else:
-                t1_goals, t2_goals = ag, hg
-            if t1_goals > t2_goals:
-                stats[t1]["h2h_pts"] += 3
-            elif t1_goals == t2_goals:
-                stats[t1]["h2h_pts"] += 1
-                stats[t2]["h2h_pts"] += 1
-            else:
-                stats[t2]["h2h_pts"] += 3
-
     standings = [
         {"team": t, **stats[t], "random": rng.random()}
         for t in teams
     ]
-    standings.sort(
-        key=lambda x: (x["pts"], x["gd"], x["gf"], x["h2h_pts"], x["random"]),
-        reverse=True,
-    )
-    return standings
+    return _rank_group_standings(standings, h2h)
 
 
 def _rank_third_place(

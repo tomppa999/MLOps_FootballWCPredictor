@@ -10,7 +10,7 @@ Covers:
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
@@ -159,7 +159,11 @@ def test_score_one_match_returns_empty_when_no_pair_match():
 # ---------------------------------------------------------------------------
 
 
-def _build_long_table(per_model_rps: dict[str, list[float]]) -> pd.DataFrame:
+def _build_long_table(
+    per_model_rps: dict[str, list[float]],
+    *,
+    cadence_mode: str = "frozen",
+) -> pd.DataFrame:
     """Construct a synthetic monitoring DataFrame from {model: [rps_per_match]}."""
     rows = []
     for model_name, rps_list in per_model_rps.items():
@@ -169,6 +173,7 @@ def _build_long_table(per_model_rps: dict[str, list[float]]) -> pd.DataFrame:
                 "kickoff_utc": pd.Timestamp("2026-06-11", tz="UTC")
                 + pd.Timedelta(hours=i),
                 "model_name": model_name,
+                "cadence_mode": cadence_mode,
                 "rps": rps,
                 "nll": 2.5,
                 "rmse_h": 1.0,
@@ -181,14 +186,14 @@ def test_alert_threshold_triggers_when_rolling_mean_breaches():
     bad_rps = [NAIVE_BASELINE_RPS + 0.05] * ALERT_WINDOW
     df = _build_long_table({"xgboost": bad_rps})
     breached = monitor.evaluate_alert_threshold(df)
-    assert "xgboost" in breached
+    assert ("frozen", "xgboost") in breached
 
 
 def test_alert_threshold_silent_when_rolling_mean_below():
     good_rps = [NAIVE_BASELINE_RPS - 0.05] * ALERT_WINDOW
     df = _build_long_table({"xgboost": good_rps})
     breached = monitor.evaluate_alert_threshold(df)
-    assert "xgboost" not in breached
+    assert ("frozen", "xgboost") not in breached
 
 
 def test_alert_threshold_cold_start_guard():
@@ -205,7 +210,64 @@ def test_alert_threshold_iterates_all_models():
     good = [0.10] * ALERT_WINDOW
     df = _build_long_table({"xgboost": bad, "ridge": good, "lstm": bad})
     breached = monitor.evaluate_alert_threshold(df)
-    assert set(breached) == {"xgboost", "lstm"}
+    assert set(breached) == {("frozen", "xgboost"), ("frozen", "lstm")}
+
+
+def test_alert_threshold_groups_by_cadence_mode():
+    """Same model in two modes is evaluated independently."""
+    bad = [0.9] * ALERT_WINDOW
+    good = [0.10] * ALERT_WINDOW
+    frozen_df = _build_long_table({"xgboost": bad}, cadence_mode="frozen")
+    per_round_df = _build_long_table({"xgboost": good}, cadence_mode="per_round")
+    df = pd.concat([frozen_df, per_round_df], ignore_index=True)
+    breached = monitor.evaluate_alert_threshold(df)
+    assert breached == [("frozen", "xgboost")]
+
+
+# ---------------------------------------------------------------------------
+# Per-mode inference run lookup
+# ---------------------------------------------------------------------------
+
+
+def test_list_inference_runs_filters_by_cadence_mode():
+    frozen_run = MagicMock()
+    frozen_run.info.run_id = "run-frozen"
+    frozen_run.data.params = {
+        "inference_timestamp": "2026-06-15T10:00:00+00:00",
+        "cadence_mode": "frozen",
+    }
+    per_round_run = MagicMock()
+    per_round_run.info.run_id = "run-pr"
+    per_round_run.data.params = {
+        "inference_timestamp": "2026-06-15T11:00:00+00:00",
+        "cadence_mode": "per_round",
+    }
+    legacy_run = MagicMock()
+    legacy_run.info.run_id = "run-legacy"
+    legacy_run.data.params = {
+        "inference_timestamp": "2026-06-15T09:00:00+00:00",
+    }
+
+    mock_exp = MagicMock()
+    mock_exp.experiment_id = "exp-1"
+    mock_client = MagicMock()
+    mock_client.get_experiment_by_name.return_value = mock_exp
+    mock_client.search_runs.return_value = [frozen_run, per_round_run, legacy_run]
+
+    with (
+        patch.object(monitor, "setup_mlflow"),
+        patch(
+            "src.monitoring.monitor.mlflow.tracking.MlflowClient",
+            return_value=mock_client,
+        ),
+    ):
+        frozen_only = monitor._list_inference_runs("frozen")
+        pr_only = monitor._list_inference_runs("per_round")
+        all_runs = monitor._list_inference_runs(None)
+
+    assert [r["run_id"] for r in frozen_only] == ["run-legacy", "run-frozen"]
+    assert [r["run_id"] for r in pr_only] == ["run-pr"]
+    assert len(all_runs) == 3
 
 
 # ---------------------------------------------------------------------------
@@ -217,3 +279,78 @@ def test_run_monitoring_step_returns_empty_when_no_settled_matches():
     with patch.object(monitor, "parse_wc_settled_matches", return_value=pd.DataFrame()):
         out = monitor.run_monitoring_step()
     assert out.empty
+
+
+def test_run_monitoring_step_invokes_both_cadence_modes():
+    with patch.object(
+        monitor,
+        "score_completed_wc_matches",
+        return_value=pd.DataFrame(),
+    ) as mock_score:
+        monitor.run_monitoring_step()
+
+    assert mock_score.call_count == 2
+    modes = {call.kwargs["cadence_mode"] for call in mock_score.call_args_list}
+    assert modes == {"frozen", "per_round"}
+
+
+def test_score_completed_wc_matches_tags_cadence_mode():
+    settled = pd.DataFrame([{
+        "match_id": 1,
+        "kickoff_utc": pd.Timestamp("2026-06-15T16:00", tz="UTC"),
+        "home": "France",
+        "away": "Germany",
+        "actual_h": 2,
+        "actual_a": 1,
+        "actual_outcome": 0,
+    }])
+    preds = _make_predictions(
+        "France", "Germany",
+        [("xgboost", 1.6, 1.0)],
+    )
+    inference_runs = [
+        {
+            "run_id": "inf-1",
+            "inference_timestamp": pd.Timestamp("2026-06-15T10:00", tz="UTC"),
+        },
+    ]
+
+    with (
+        patch.object(monitor, "parse_wc_settled_matches", return_value=settled),
+        patch.object(monitor, "_list_inference_runs", return_value=inference_runs) as mock_list,
+        patch.object(monitor, "_load_predictions_all_models", return_value=preds),
+    ):
+        out = monitor.score_completed_wc_matches(cadence_mode="per_round")
+
+    assert not out.empty
+    assert (out["cadence_mode"] == "per_round").all()
+    mock_list.assert_called_once_with("per_round")
+
+
+@patch("src.monitoring.monitor.mlflow")
+@patch("src.monitoring.monitor.start_run")
+@patch("src.monitoring.monitor.log_run")
+@patch("src.monitoring.monitor.setup_mlflow")
+@patch("src.monitoring.monitor.get_or_create_experiment")
+def test_log_monitoring_run_includes_cadence_mode(
+    mock_get_exp,
+    mock_setup,
+    mock_log_run,
+    mock_start_run,
+    mock_mlflow,
+):
+    df = _build_long_table({"xgboost": [0.15, 0.18]})
+    df["cadence_mode"] = "per_round"
+
+    fake_run = MagicMock()
+    fake_run.info.run_id = "mon_run_1"
+    mock_start_run.return_value.__enter__ = MagicMock(return_value=fake_run)
+    mock_start_run.return_value.__exit__ = MagicMock(return_value=False)
+
+    monitor.log_monitoring_run(df, cadence_mode="per_round")
+
+    assert mock_start_run.call_args.kwargs["run_name"] == "monitor_per_round_xgboost"
+    tags = mock_start_run.call_args.kwargs.get("tags", {})
+    assert tags["cadence_mode"] == "per_round"
+    params = mock_log_run.call_args.kwargs.get("params", {})
+    assert params["cadence_mode"] == "per_round"

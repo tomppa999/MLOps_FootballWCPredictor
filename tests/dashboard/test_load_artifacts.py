@@ -5,7 +5,9 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from src.dashboard.load_artifacts import _filter_to_champion
+from unittest.mock import MagicMock, patch
+
+from src.dashboard.load_artifacts import _filter_to_champion, _get_latest_inference_run
 
 
 def _multi_model_df() -> pd.DataFrame:
@@ -50,3 +52,39 @@ def test_filter_returns_empty_for_unknown_champion():
     result = _filter_to_champion(df, "nonexistent_model")
     assert len(result) == 0
     assert "model_name" not in result.columns
+
+
+@patch("src.dashboard.load_artifacts.setup_mlflow")
+@patch("src.dashboard.load_artifacts.mlflow.tracking.MlflowClient")
+def test_get_latest_inference_run_prefers_frozen_lineage(mock_client_cls, mock_setup):
+    frozen_run = MagicMock()
+    mock_client = MagicMock()
+    mock_client.get_experiment_by_name.return_value = MagicMock(experiment_id="exp-1")
+    mock_client.search_runs.side_effect = [
+        [frozen_run],
+    ]
+    mock_client_cls.return_value = mock_client
+
+    result = _get_latest_inference_run()
+    assert result is frozen_run
+    first_call = mock_client.search_runs.call_args_list[0]
+    assert 'params.cadence_mode = "frozen"' in first_call.kwargs["filter_string"]
+
+
+@patch("src.dashboard.load_artifacts.setup_mlflow")
+@patch("src.dashboard.load_artifacts.mlflow.tracking.MlflowClient")
+def test_get_latest_inference_run_falls_back_when_no_frozen_runs(
+    mock_client_cls, mock_setup,
+):
+    fallback_run = MagicMock()
+    mock_client = MagicMock()
+    mock_client.get_experiment_by_name.return_value = MagicMock(experiment_id="exp-1")
+    mock_client.search_runs.side_effect = [
+        [],
+        [fallback_run],
+    ]
+    mock_client_cls.return_value = mock_client
+
+    result = _get_latest_inference_run()
+    assert result is fallback_run
+    assert mock_client.search_runs.call_count == 2

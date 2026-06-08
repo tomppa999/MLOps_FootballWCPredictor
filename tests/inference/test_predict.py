@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from src.inference.predict import run_prediction
+from src.models.mlflow_utils import CHAMPION_ALIAS_FROZEN, CHAMPION_ALIAS_PER_ROUND
 
 
 def _make_upcoming_features() -> pd.DataFrame:
@@ -69,6 +70,32 @@ class TestRunPrediction:
 
         prob_sum = result.iloc[0]["p_home"] + result.iloc[0]["p_draw"] + result.iloc[0]["p_away"]
         assert abs(prob_sum - 1.0) < 1e-6
+
+    @patch("src.inference.predict.load_champion")
+    @patch("src.inference.predict.get_champion_metadata")
+    @patch("src.inference.predict.setup_mlflow")
+    def test_per_round_mode_uses_per_round_alias(
+        self, mock_setup, mock_meta, mock_load,
+    ):
+        mock_meta.return_value = MagicMock(model_name="xgboost")
+        mock_load.return_value = MagicMock(
+            predict=MagicMock(return_value=np.array([[1.5, 1.2]])),
+        )
+        run_prediction(_make_upcoming_features(), cadence_mode="per_round")
+        mock_meta.assert_called_once_with(alias=CHAMPION_ALIAS_PER_ROUND)
+        mock_load.assert_called_once_with(alias=CHAMPION_ALIAS_PER_ROUND)
+
+    @patch("src.inference.predict.load_champion")
+    @patch("src.inference.predict.get_champion_metadata")
+    @patch("src.inference.predict.setup_mlflow")
+    def test_frozen_mode_uses_frozen_alias(self, mock_setup, mock_meta, mock_load):
+        mock_meta.return_value = MagicMock(model_name="xgboost")
+        mock_load.return_value = MagicMock(
+            predict=MagicMock(return_value=np.array([[1.5, 1.2]])),
+        )
+        run_prediction(_make_upcoming_features(), cadence_mode="frozen")
+        mock_meta.assert_called_once_with(alias=CHAMPION_ALIAS_FROZEN)
+        mock_load.assert_called_once_with(alias=CHAMPION_ALIAS_FROZEN)
 
     @patch("src.inference.predict.load_champion")
     @patch("src.inference.predict.get_champion_metadata")

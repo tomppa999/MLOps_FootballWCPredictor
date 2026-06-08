@@ -21,6 +21,11 @@ STAGING_MODEL_NAME: str = "wc_staging"
 PRODUCTION_MODEL_NAME: str = "wc_production"
 SHADOW_MODEL_NAME: str = "wc_shadow"
 
+# B.2 cadence-mode aliases on wc_production (display champion only).
+CHAMPION_ALIAS_FROZEN: str = "champion_frozen"
+CHAMPION_ALIAS_PER_ROUND: str = "champion_per_round"
+CHAMPION_ALIAS_DEFAULT: str = "champion"
+
 
 def setup_mlflow(tracking_uri: str = TRACKING_URI) -> None:
     """Point MLflow at the local file store."""
@@ -104,11 +109,12 @@ def register_model(
 def promote_to_production(
     model_name: str = PRODUCTION_MODEL_NAME,
     version: int | str = 1,
+    alias: str = CHAMPION_ALIAS_DEFAULT,
 ) -> None:
-    """Set the 'champion' alias on a registered model version."""
+    """Set *alias* on a registered model version (default: ``champion``)."""
     client = mlflow.tracking.MlflowClient()
-    client.set_registered_model_alias(model_name, "champion", str(version))
-    logger.info("Promoted %s v%s to champion", model_name, version)
+    client.set_registered_model_alias(model_name, alias, str(version))
+    logger.info("Promoted %s v%s → alias=%s", model_name, version, alias)
 
 
 def set_challenger_alias(
@@ -121,9 +127,69 @@ def set_challenger_alias(
     logger.info("Set challenger alias on %s v%s", model_name, version)
 
 
-def load_champion(model_name: str = PRODUCTION_MODEL_NAME) -> Any:
-    """Load the current champion model from the registry."""
-    return mlflow.pyfunc.load_model(f"models:/{model_name}@champion")
+def _alias_for_mode(cadence_mode: str) -> str:
+    """Map a cadence mode to its MLflow registry alias on wc_production."""
+    if cadence_mode == "frozen":
+        return CHAMPION_ALIAS_FROZEN
+    if cadence_mode == "per_round":
+        return CHAMPION_ALIAS_PER_ROUND
+    return CHAMPION_ALIAS_DEFAULT
+
+
+def _resolve_champion_alias(
+    alias: str,
+    model_name: str = PRODUCTION_MODEL_NAME,
+) -> str:
+    """Return the alias to use, falling back to ``champion`` when missing."""
+    if alias == CHAMPION_ALIAS_DEFAULT:
+        return alias
+    client = mlflow.tracking.MlflowClient()
+    try:
+        client.get_model_version_by_alias(model_name, alias)
+    except mlflow.exceptions.MlflowException:
+        logger.info(
+            "Alias %r not found on %s — falling back to %r.",
+            alias,
+            model_name,
+            CHAMPION_ALIAS_DEFAULT,
+        )
+        return CHAMPION_ALIAS_DEFAULT
+    return alias
+
+
+def load_champion(
+    model_name: str = PRODUCTION_MODEL_NAME,
+    *,
+    alias: str = CHAMPION_ALIAS_DEFAULT,
+) -> Any:
+    """Load the champion model from the registry at ``alias``.
+
+    When ``alias`` is a mode-specific alias (``champion_frozen`` /
+    ``champion_per_round``) that does not yet exist, falls back to
+    ``champion`` so the pre-A.10 pipeline keeps working.
+    """
+    setup_mlflow()
+    resolved = _resolve_champion_alias(alias, model_name)
+    return mlflow.pyfunc.load_model(f"models:/{model_name}@{resolved}")
+
+
+def get_production_run_id(
+    alias: str = CHAMPION_ALIAS_DEFAULT,
+    model_name: str = PRODUCTION_MODEL_NAME,
+) -> str | None:
+    """Return the run_id for a registered-model alias, or None.
+
+    Falls back to the ``champion`` alias when a mode-specific alias is
+    requested but not yet assigned (pre-A.10).
+    """
+    setup_mlflow()
+    client = mlflow.tracking.MlflowClient()
+    resolved = _resolve_champion_alias(alias, model_name)
+    try:
+        mv = client.get_model_version_by_alias(model_name, resolved)
+    except mlflow.exceptions.MlflowException:
+        return None
+    return mv.run_id
 
 
 def get_latest_production_run_id(model_name: str = PRODUCTION_MODEL_NAME) -> str | None:
@@ -132,12 +198,7 @@ def get_latest_production_run_id(model_name: str = PRODUCTION_MODEL_NAME) -> str
     Returns None when no champion alias exists or the model is not yet
     registered (MLflow raises MlflowException in that case).
     """
-    client = mlflow.tracking.MlflowClient()
-    try:
-        mv = client.get_model_version_by_alias(model_name, "champion")
-    except mlflow.exceptions.MlflowException:
-        return None
-    return mv.run_id
+    return get_production_run_id(CHAMPION_ALIAS_DEFAULT, model_name)
 
 
 # ---------------------------------------------------------------------------
@@ -194,13 +255,15 @@ def _cast_params(model_name: str, raw_params: dict[str, str]) -> dict[str, Any]:
 
 def get_champion_metadata(
     model_name: str = PRODUCTION_MODEL_NAME,
+    *,
+    alias: str = CHAMPION_ALIAS_DEFAULT,
 ) -> ChampionMeta:
     """Return identity, hyperparameters, and holdout metrics of the champion.
 
     Raises:
         ValueError: if no champion exists or required metadata is missing.
     """
-    run_id = get_latest_production_run_id(model_name)
+    run_id = get_production_run_id(alias, model_name)
     if run_id is None:
         raise ValueError(f"No champion found for registered model '{model_name}'")
     client = mlflow.tracking.MlflowClient()
@@ -246,15 +309,16 @@ def get_champion_rps(model_name: str = PRODUCTION_MODEL_NAME) -> float | None:
 # ---------------------------------------------------------------------------
 
 
-def _latest_version_with_model_tag(
+def _latest_version_with_tags(
     registered_model: str,
     model_name: str,
+    cadence_mode: str | None = None,
 ) -> ModelVersion | None:
-    """Return the most recently created version of ``registered_model`` whose
-    backing run has tag ``model_name=<x>``.
+    """Return the newest registry version whose run matches ``model_name``.
 
-    Walks model versions newest-first and inspects each underlying run.
-    Returns ``None`` if no matching version exists.
+    When ``cadence_mode`` is given, prefer versions whose run also carries
+    tag ``cadence_mode=<mode>``.  If none match both tags, fall back to
+    ``model_name``-only (pre-B.2 / pre-A.10 shadow versions).
     """
     client = mlflow.tracking.MlflowClient()
     try:
@@ -267,14 +331,44 @@ def _latest_version_with_model_tag(
         key=lambda mv: int(mv.version),
         reverse=True,
     )
-    for mv in versions:
+
+    def _run_tags(mv: ModelVersion) -> dict[str, str] | None:
         try:
-            run = client.get_run(mv.run_id)
+            return client.get_run(mv.run_id).data.tags
         except mlflow.exceptions.MlflowException:
+            return None
+
+    if cadence_mode is not None:
+        for mv in versions:
+            tags = _run_tags(mv)
+            if tags is None:
+                continue
+            if (
+                tags.get("model_name") == model_name
+                and tags.get("cadence_mode") == cadence_mode
+            ):
+                return mv
+
+    for mv in versions:
+        tags = _run_tags(mv)
+        if tags is None:
             continue
-        if run.data.tags.get("model_name") == model_name:
+        if tags.get("model_name") == model_name:
             return mv
     return None
+
+
+def _latest_version_with_model_tag(
+    registered_model: str,
+    model_name: str,
+) -> ModelVersion | None:
+    """Return the most recently created version of ``registered_model`` whose
+    backing run has tag ``model_name=<x>``.
+
+    Walks model versions newest-first and inspects each underlying run.
+    Returns ``None`` if no matching version exists.
+    """
+    return _latest_version_with_tags(registered_model, model_name)
 
 
 def get_shadow_metadata(
@@ -376,16 +470,20 @@ def load_shadow_model(
     *,
     shadow_model: str = SHADOW_MODEL_NAME,
     staging_model: str = STAGING_MODEL_NAME,
+    cadence_mode: str | None = None,
 ) -> Any:
     """Load the latest shadow pyfunc artifact for the given candidate.
 
     Falls back to the latest ``wc_staging`` version with the same tag if no
     shadow version exists yet (cold-start). Mirrors the resolution order
     used by :func:`get_shadow_metadata`.
+
+    When ``cadence_mode`` is set, prefers versions tagged with both
+    ``model_name`` and ``cadence_mode``; falls back to ``model_name``-only.
     """
-    mv = _latest_version_with_model_tag(shadow_model, model_name)
+    mv = _latest_version_with_tags(shadow_model, model_name, cadence_mode)
     if mv is None:
-        mv = _latest_version_with_model_tag(staging_model, model_name)
+        mv = _latest_version_with_tags(staging_model, model_name, cadence_mode)
     if mv is None:
         raise ValueError(
             f"No registered version found for model_name='{model_name}' in "

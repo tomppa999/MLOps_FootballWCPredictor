@@ -19,6 +19,7 @@ from mlflow.exceptions import MlflowException
 from src.models.config import LIVE_SHADOW_MODELS, MODEL_FEATURE_SETS
 from src.models.evaluation import compute_outcome_probs
 from src.models.mlflow_utils import (
+    _alias_for_mode,
     get_champion_metadata,
     load_champion,
     load_shadow_model,
@@ -64,15 +65,20 @@ def _predict_one_model(
     })
 
 
-def run_prediction(upcoming_features_df: pd.DataFrame) -> pd.DataFrame:
+def run_prediction(
+    upcoming_features_df: pd.DataFrame,
+    *,
+    cadence_mode: str = "frozen",
+) -> pd.DataFrame:
     """Load the champion model and predict on upcoming fixtures.
 
     Returns a DataFrame with columns: fixture_id, home_team, away_team,
     date_utc, lambda_h, lambda_a, p_home, p_draw, p_away.
     """
     setup_mlflow()
-    meta = get_champion_metadata()
-    champion = load_champion()
+    alias = _alias_for_mode(cadence_mode)
+    meta = get_champion_metadata(alias=alias)
+    champion = load_champion(alias=alias)
     feature_cols = MODEL_FEATURE_SETS[meta.model_name]
 
     logger.info(
@@ -96,6 +102,7 @@ def _shadow_predict_worker(
     name: str,
     features_path: str,
     out_path: str,
+    cadence_mode: str | None = None,
 ) -> None:
     """Child-process target: load a shadow model, predict, write parquet result.
 
@@ -108,7 +115,7 @@ def _shadow_predict_worker(
 
     setup_mlflow()
     features = pd.read_parquet(features_path)
-    model = load_shadow_model(name)
+    model = load_shadow_model(name, cadence_mode=cadence_mode)
     block = _predict_one_model(model, features, MODEL_FEATURE_SETS[name], name)
     block.to_parquet(out_path, index=False)
 
@@ -117,6 +124,8 @@ def _safe_shadow_predict(
     name: str,
     upcoming_features_df: pd.DataFrame,
     timeout_s: float = _SHADOW_PREDICT_TIMEOUT_S,
+    *,
+    cadence_mode: str | None = None,
 ) -> pd.DataFrame | None:
     """Load and predict a shadow model in a child process.
 
@@ -132,7 +141,8 @@ def _safe_shadow_predict(
         upcoming_features_df.to_parquet(features_path, index=False)
 
         proc = ctx.Process(
-            target=_shadow_predict_worker, args=(name, features_path, out_path)
+            target=_shadow_predict_worker,
+            args=(name, features_path, out_path, cadence_mode),
         )
         proc.start()
         proc.join(timeout_s)
@@ -164,6 +174,7 @@ def _safe_shadow_predict(
 def run_prediction_all_models(
     upcoming_features_df: pd.DataFrame,
     *,
+    cadence_mode: str = "frozen",
     candidate_names: list[str] | None = None,
 ) -> pd.DataFrame:
     """Predict every fixture with the champion + every shadow model.
@@ -180,21 +191,23 @@ def run_prediction_all_models(
     function exists only to feed the monitoring layer.
     """
     setup_mlflow()
-    champion_meta = get_champion_metadata()
+    alias = _alias_for_mode(cadence_mode)
+    champion_meta = get_champion_metadata(alias=alias)
 
     if candidate_names is None:
         candidate_names = list(LIVE_SHADOW_MODELS)
 
     logger.info(
-        "Predicting all candidates (%d models, %d fixtures): champion=%s",
+        "Predicting all candidates (%d models, %d fixtures): champion=%s, cadence=%s",
         len(candidate_names),
         len(upcoming_features_df),
         champion_meta.model_name,
+        cadence_mode,
     )
 
     blocks: list[pd.DataFrame] = []
 
-    champion = load_champion()
+    champion = load_champion(alias=alias)
     blocks.append(
         _predict_one_model(
             champion,
@@ -207,7 +220,9 @@ def run_prediction_all_models(
     for name in candidate_names:
         if name == champion_meta.model_name:
             continue
-        block = _safe_shadow_predict(name, upcoming_features_df)
+        block = _safe_shadow_predict(
+            name, upcoming_features_df, cadence_mode=cadence_mode,
+        )
         if block is not None:
             blocks.append(block)
 

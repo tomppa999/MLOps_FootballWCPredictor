@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import fcntl
 import hashlib
 import json
 import logging
@@ -41,6 +42,13 @@ _API_FOOTBALL_RAW_DIR = _RAW_DIR / "api_football"
 LOOKBACK_DAYS = 2
 _ELO_TSV_URL = "https://eloratings.net/{slug}.tsv"
 _REQUEST_TIMEOUT = 30
+
+# Concurrency guard: prevents a second local invocation from running while the
+# first is still active.  On Cloud Run, max-instances=1 (C.5) is the primary
+# cross-execution guard; this lockfile covers within-host overlap (local dev /
+# manual runs).  Each Cloud Run execution gets a fresh container filesystem so
+# the lock does not persist between executions there.
+_LOCK_FILE = _PROJECT_ROOT / "data" / ".trigger.lock"
 
 
 # ---------------------------------------------------------------------------
@@ -253,7 +261,54 @@ def run_dvc_pipeline() -> None:
         log.info("No DVC changes to commit (data unchanged).")
 
 
+def _try_acquire_lock():
+    """Non-blocking attempt to acquire the per-host trigger lockfile.
+
+    Returns an open file handle (lock held) on success; the caller must close
+    it to release the lock.  Returns None when the lock is already held.
+    """
+    _LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
+    fh = open(_LOCK_FILE, "w")  # noqa: WPS515
+    try:
+        fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return fh
+    except (BlockingIOError, OSError):
+        fh.close()
+        return None
+
+
+def _last_per_round_refit_matchday() -> str | None:
+    """Return the matchday label stored on the champion_per_round run.
+
+    Returns ``None`` when the ``champion_per_round`` alias does not exist yet
+    (pre-A.10 / pre-first-freeze), indicating the pipeline should use the
+    legacy delta-based refit path.  Returns ``"0"`` when the alias exists but
+    no ``per_round_refit_matchday`` tag has been recorded (edge case: alias
+    assigned manually without a tagged refit run).
+    """
+    import mlflow  # noqa: PLC0415
+
+    from src.models.mlflow_utils import (  # noqa: PLC0415
+        CHAMPION_ALIAS_PER_ROUND,
+        PRODUCTION_MODEL_NAME,
+        setup_mlflow,
+    )
+
+    setup_mlflow()
+    client = mlflow.tracking.MlflowClient()
+    try:
+        mv = client.get_model_version_by_alias(PRODUCTION_MODEL_NAME, CHAMPION_ALIAS_PER_ROUND)
+    except mlflow.exceptions.MlflowException:
+        return None
+    try:
+        return client.get_run(mv.run_id).data.tags.get("per_round_refit_matchday", "0")
+    except Exception:
+        log.warning("Failed to read run tags for champion_per_round — treating as first refit.")
+        return "0"
+
+
 VALID_MODES = ("auto", "inference_only")
+CADENCE_MODES: tuple[str, ...] = ("frozen", "per_round")
 
 
 def _safe_monitoring_step() -> None:
@@ -265,6 +320,15 @@ def _safe_monitoring_step() -> None:
         log.exception("Monitoring step failed; continuing pipeline.")
 
 
+def _run_inference_for_all_modes() -> None:
+    """Run inference + simulation once per cadence mode (B.2)."""
+    from src.inference.run import run_inference_and_simulation  # noqa: PLC0415
+
+    for mode in CADENCE_MODES:
+        log.info("Running inference for cadence_mode=%s", mode)
+        run_inference_and_simulation(cadence_mode=mode)
+
+
 def _safe_shadow_refit(df) -> None:
     """Best-effort shadow refit. A failure here must not gate the pipeline."""
     try:
@@ -274,23 +338,34 @@ def _safe_shadow_refit(df) -> None:
         log.exception("Shadow refit failed; continuing pipeline.")
 
 
+def _safe_per_round_refit(df, matchday: str) -> None:
+    """Best-effort per-round roster refit (B.3). Must not gate inference."""
+    try:
+        from src.models.pipeline import run_per_round_refit  # noqa: PLC0415
+        run_per_round_refit(df, matchday=matchday)
+    except Exception:
+        log.exception(
+            "Per-round refit failed (matchday=%s); inference continues.", matchday,
+        )
+
+
 def dispatch_training_or_inference(mode: str = "auto") -> None:
     """Decide whether to train, refit, or run inference only.
 
     - 'auto': three paths based on state —
         1. No production champion → run full pipeline (Experimental + QA + Deploy).
-        2. Champion exists, Gold grew by >= RETRAIN_THRESHOLD rows → refit champion.
-        3. Champion exists, delta below threshold → inference only.
+        2. Champion exists, ``champion_per_round`` alias assigned (post-A.10,
+           WC mode) → per-round boundary-gated roster refit; frozen never
+           refits during WC.
+        3. Champion exists, no ``champion_per_round`` alias (pre-A.10) →
+           legacy delta-based champion refit path.
     - 'inference_only': load frozen champion from MLflow, predict + simulate.
 
-    All paths end with ``run_inference_and_simulation()`` followed by a
-    best-effort monitoring step. Paths A and B (full pipeline / champion
-    refit) also refresh the 8 ``wc_shadow`` candidates against the same
-    full-Gold dataset, reusing each candidate's frozen Optuna best_params.
+    All paths end with ``_run_inference_for_all_modes()`` (both cadence modes)
+    followed by a best-effort monitoring step.
     """
     import mlflow  # noqa: PLC0415
 
-    from src.inference.run import run_inference_and_simulation  # noqa: PLC0415
     from src.models.data_split import load_gold  # noqa: PLC0415
     from src.models.mlflow_utils import (  # noqa: PLC0415
         get_latest_production_run_id,
@@ -313,7 +388,7 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
 
     if mode == "inference_only":
         log.info("Mode is inference_only — skipping retrain check.")
-        run_inference_and_simulation()
+        _run_inference_for_all_modes()
         _safe_monitoring_step()
         return
 
@@ -322,10 +397,34 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
         log.info("No production champion found — running full pipeline.")
         run_full_pipeline(df)
         _safe_shadow_refit(df)
-        run_inference_and_simulation()
+        _run_inference_for_all_modes()
         _safe_monitoring_step()
         return
 
+    # B.3: WC mode — per-round boundary-gated refit (post-A.10).
+    # Active once champion_per_round alias is assigned; frozen never refits.
+    last_per_round_matchday = _last_per_round_refit_matchday()
+    if last_per_round_matchday is not None:
+        from src.inference.features import parse_wc_results  # noqa: PLC0415
+
+        wc_data = parse_wc_results()
+        next_matchday = str(wc_data["next_matchday"])
+        if next_matchday != last_per_round_matchday and next_matchday != "Complete":
+            log.info(
+                "Matchday boundary: %s → %s; per-round roster refit.",
+                last_per_round_matchday, next_matchday,
+            )
+            _safe_per_round_refit(df, matchday=next_matchday)
+        else:
+            log.info(
+                "No matchday boundary change (matchday=%s) — inference only.",
+                next_matchday,
+            )
+        _run_inference_for_all_modes()
+        _safe_monitoring_step()
+        return
+
+    # Pre-A.10 legacy path: delta-based champion refit.
     client = mlflow.tracking.MlflowClient()
     run_data = client.get_run(prod_run_id).data
     last_rows = int(run_data.params.get("gold_row_count", "0"))
@@ -342,11 +441,11 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
         log.info("Refit threshold met — refitting champion on fresh data.")
         run_champion_refit(df)
         _safe_shadow_refit(df)
-        run_inference_and_simulation()
+        _run_inference_for_all_modes()
         _safe_monitoring_step()
     else:
         log.info("Retrain threshold not met — running inference only.")
-        run_inference_and_simulation()
+        _run_inference_for_all_modes()
         _safe_monitoring_step()
 
 
@@ -368,30 +467,38 @@ def main(mode: str = "auto") -> int:
         log.error(f"Invalid mode: {mode!r}. Must be one of {VALID_MODES}.")
         return 1
 
-    log.info(f"=== Pipeline trigger start (mode={mode}) ===")
-
-    log.info("Checking ELO freshness...")
-    elo_fresh = check_elo_freshness()
-    log.info(f"ELO fresh: {elo_fresh}")
-
-    log.info("Checking API-Football freshness (runs incremental ingestion)...")
-    api_fresh = check_api_football_freshness()
-    log.info(f"API-Football fresh: {api_fresh}")
-
-    if not (elo_fresh or api_fresh):
-        log.info(f"No source has new data. elo_fresh={elo_fresh}, api_fresh={api_fresh}")
+    lock_fh = _try_acquire_lock()
+    if lock_fh is None:
+        log.info("Previous pipeline cycle still running — skipping this tick.")
         return 0
 
-    log.info(f"New data detected (elo={elo_fresh}, api={api_fresh}) — running pipeline.")
+    try:
+        log.info(f"=== Pipeline trigger start (mode={mode}) ===")
 
-    if elo_fresh:
-        run_elo_ingestion()
+        log.info("Checking ELO freshness...")
+        elo_fresh = check_elo_freshness()
+        log.info(f"ELO fresh: {elo_fresh}")
 
-    run_dvc_pipeline()
-    dispatch_training_or_inference(mode=mode)
+        log.info("Checking API-Football freshness (runs incremental ingestion)...")
+        api_fresh = check_api_football_freshness()
+        log.info(f"API-Football fresh: {api_fresh}")
 
-    log.info("=== Pipeline trigger complete ===")
-    return 0
+        if not (elo_fresh or api_fresh):
+            log.info(f"No source has new data. elo_fresh={elo_fresh}, api_fresh={api_fresh}")
+            return 0
+
+        log.info(f"New data detected (elo={elo_fresh}, api={api_fresh}) — running pipeline.")
+
+        if elo_fresh:
+            run_elo_ingestion()
+
+        run_dvc_pipeline()
+        dispatch_training_or_inference(mode=mode)
+
+        log.info("=== Pipeline trigger complete ===")
+        return 0
+    finally:
+        lock_fh.close()
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:

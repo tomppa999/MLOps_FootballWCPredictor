@@ -53,6 +53,10 @@ def log_inference_artifacts(
     all_models_predictions_df: pd.DataFrame | None = None,
     inference_timestamp: str | None = None,
     simulation_seed: int | None = None,
+    cadence_mode: str = "frozen",
+    matchday_label: str = "1",
+    matches_completed_in_matchday: int = 0,
+    total_matches_completed: int = 0,
 ) -> str:
     """Start an MLflow run tagged stage=inference and log all artifacts.
 
@@ -97,6 +101,10 @@ def log_inference_artifacts(
         "gold_row_count": str(gold_row_count),
         "inference_timestamp": ts,
         "simulated_models": ",".join(sorted(per_model_tournament_results.keys())),
+        "cadence_mode": cadence_mode,
+        "matchday_label": matchday_label,
+        "matches_completed_in_matchday": str(matches_completed_in_matchday),
+        "total_matches_completed": str(total_matches_completed),
     }
     if simulation_seed is not None:
         params["simulation_seed"] = str(simulation_seed)

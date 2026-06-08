@@ -121,6 +121,7 @@ class TestRunInferenceAndSimulation:
     @patch("src.inference.run.simulate_tournament")
     @patch("src.inference.run.run_prediction_all_models")
     @patch("src.inference.run.run_prediction")
+    @patch("src.inference.run._alias_for_mode", side_effect=lambda m: f"alias_{m}")
     @patch("src.inference.run.get_champion_metadata")
     @patch("src.inference.run.build_inference_features")
     @patch("src.inference.run.generate_wc_group_fixtures")
@@ -135,6 +136,7 @@ class TestRunInferenceAndSimulation:
         mock_group_fixtures,
         mock_features,
         mock_champion_meta,
+        mock_alias_for_mode,
         mock_predict,
         mock_predict_all,
         mock_simulate,
@@ -145,6 +147,7 @@ class TestRunInferenceAndSimulation:
             "group_results": {},
             "ko_results": {},
             "next_matchday": 1,
+            "finished_fixtures": [],
         }
 
         mock_all_pairings.return_value = _make_pairings()
@@ -159,12 +162,17 @@ class TestRunInferenceAndSimulation:
         mock_predict_all.return_value = _make_all_models_predictions()
         mock_simulate.return_value = _make_sim_results()
 
-        run_id = run_inference_and_simulation(n_sims=100)
+        run_id = run_inference_and_simulation(n_sims=100, cadence_mode="per_round")
 
         assert run_id == "run_123"
         mock_all_pairings.assert_called_once()
         mock_features.assert_called_once()
         mock_predict.assert_called_once()
+        mock_predict.assert_called_with(mock_features.return_value, cadence_mode="per_round")
+        mock_predict_all.assert_called_once_with(
+            mock_features.return_value, cadence_mode="per_round",
+        )
+        mock_champion_meta.assert_called_once_with(alias="alias_per_round")
         mock_log.assert_called_once()
 
         # Option A: one simulate_tournament call per EXPERIMENT_MODELS entry.
@@ -182,6 +190,10 @@ class TestRunInferenceAndSimulation:
         assert "simulation_seed" in log_kwargs
         assert log_kwargs["simulation_seed"] == seeds_used[0]
         assert "inference_timestamp" in log_kwargs
+        assert log_kwargs["cadence_mode"] == "per_round"
+        assert log_kwargs["matchday_label"] == "1"
+        assert log_kwargs["matches_completed_in_matchday"] == 0
+        assert log_kwargs["total_matches_completed"] == 0
 
     @patch("src.inference.run.generate_all_wc_pairings")
     @patch("src.inference.run.parse_wc_results")
@@ -194,6 +206,7 @@ class TestRunInferenceAndSimulation:
             "group_results": {},
             "ko_results": {},
             "next_matchday": 1,
+            "finished_fixtures": [],
         }
         mock_all_pairings.return_value = pd.DataFrame()
 
@@ -229,6 +242,7 @@ class TestRunInferenceAndSimulation:
             "group_results": {},
             "ko_results": {},
             "next_matchday": 1,
+            "finished_fixtures": [],
         }
         mock_all_pairings.return_value = _make_pairings()
         mock_group_fixtures.return_value = _make_pairings()
@@ -239,7 +253,13 @@ class TestRunInferenceAndSimulation:
         mock_predict.return_value = _make_champion_predictions()
         mock_simulate.return_value = _make_sim_results()
 
-        run_id = run_inference_and_simulation(n_sims=100)
+        run_id = run_inference_and_simulation(
+            n_sims=100,
+            cadence_mode="per_round",
+            matchday_label="R32",
+            matches_completed_in_matchday=5,
+            total_matches_completed=72,
+        )
 
         assert run_id == "run_456"
         # Champion-only fallback: exactly one sim call, seed still set.
@@ -249,3 +269,7 @@ class TestRunInferenceAndSimulation:
         log_kwargs = mock_log.call_args.kwargs
         assert "xgboost" in log_kwargs["per_model_tournament_results"]
         assert "simulation_seed" in log_kwargs
+        assert log_kwargs["cadence_mode"] == "per_round"
+        assert log_kwargs["matchday_label"] == "R32"
+        assert log_kwargs["matches_completed_in_matchday"] == 5
+        assert log_kwargs["total_matches_completed"] == 72

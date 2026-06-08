@@ -1,45 +1,42 @@
 # Tournament Pipeline Trigger — Cloud Scheduler + Cloud Run Job reference
 #
-# Tournament mode: runs every 30 minutes with --mode inference_only.
+# Tournament mode: runs hourly with mode=auto (default PIPELINE_MODE).
 # Active only during WC 2026 (June 11 – July 19).
 # Created in PAUSED state; manually resumed at tournament start.
-# The Cloud Run Job is the same as the daily trigger; only the --mode
-# argument and schedule differ.
+# The Cloud Run Job is the same as the daily trigger; only the schedule differs.
+#
+# Do NOT use inference_only — that skips B.3 per-round refit at matchday
+# boundaries. Both schedules must stay on auto so per-round cadence works.
 
 # -----------------------------------------------------------------------
-# 1. Override --mode for tournament runs
+# 1. Create the Cloud Scheduler entry (one-time, then pause)
 # -----------------------------------------------------------------------
-# The Cloud Run Job "football-pipeline" is shared with the daily trigger.
-# For tournament execution the scheduler overrides the container args:
+# export PROJECT_ID=wc-mlops-predictor
+# export REGION=europe-west1
+# export SA=wc-mlops-trigger@${PROJECT_ID}.iam.gserviceaccount.com
+# export JOB_URI="https://${REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT_ID}/jobs/wc-mlops-trigger:run"
 #
-# gcloud run jobs update football-pipeline \
-#   --region REGION \
-#   --args="--mode,inference_only"
-#
-# Alternatively, create a second Cloud Run Job with a fixed
-# --mode inference_only if you prefer not to mutate args between schedules.
-
-# -----------------------------------------------------------------------
-# 2. Create the Cloud Scheduler entry (one-time, paused)
-# -----------------------------------------------------------------------
-# gcloud scheduler jobs create http tournament-pipeline-trigger \
-#   --location REGION \
-#   --schedule "*/30 * * * *" \
+# gcloud scheduler jobs create http wc-pipeline-trigger \
+#   --location "$REGION" \
+#   --schedule "0 * * * *" \
 #   --time-zone "UTC" \
-#   --uri "https://REGION-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/PROJECT/jobs/football-pipeline:run" \
+#   --uri "$JOB_URI" \
 #   --http-method POST \
-#   --oauth-service-account-email SA@PROJECT.iam.gserviceaccount.com \
-#   --description "Tournament trigger — every 30 min, mode=inference_only, Jun 11 - Jul 19" \
-#   --state paused
+#   --oauth-service-account-email "$SA" \
+#   --description "WC hourly trigger, mode=auto, Jun 11 - Jul 19"
+#
+# gcloud scheduler jobs pause wc-pipeline-trigger --location "$REGION"
 
 # -----------------------------------------------------------------------
-# 3. Enable at tournament start / disable after
+# 2. Enable at tournament start / disable after
 # -----------------------------------------------------------------------
-# gcloud scheduler jobs resume tournament-pipeline-trigger --location REGION
-# gcloud scheduler jobs pause  tournament-pipeline-trigger --location REGION
+# gcloud scheduler jobs pause  daily-pipeline-trigger --location "$REGION"
+# gcloud scheduler jobs resume wc-pipeline-trigger    --location "$REGION"
+#
+# gcloud scheduler jobs pause wc-pipeline-trigger --location "$REGION"
 
 # -----------------------------------------------------------------------
-# 4. Pause the daily trigger during tournament (optional)
+# 3. Post-WC: pause both schedules
 # -----------------------------------------------------------------------
-# gcloud scheduler jobs pause  daily-pipeline-trigger --location REGION
-# gcloud scheduler jobs resume daily-pipeline-trigger --location REGION
+# gcloud scheduler jobs pause daily-pipeline-trigger --location "$REGION"
+# gcloud scheduler jobs pause wc-pipeline-trigger    --location "$REGION"
