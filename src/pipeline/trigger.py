@@ -43,6 +43,13 @@ LOOKBACK_DAYS = 2
 _ELO_TSV_URL = "https://eloratings.net/{slug}.tsv"
 _REQUEST_TIMEOUT = 30
 
+# Safety floor: refuse to snapshot/push a collapsed raw dataset. When `dvc pull`
+# fails to restore the historical raw in a fresh container, data/raw contains
+# only the freshly-ingested lookback window (tens of files) instead of the full
+# history (thousands). Pushing that would clobber the remote DVC pointer with a
+# truncated dataset (as happened on 2026-06-08). Overridable via env for tests.
+RAW_MIN_FILES = int(os.getenv("RAW_MIN_FILES", "1000"))
+
 # Concurrency guard: prevents a second local invocation from running while the
 # first is still active.  On Cloud Run, max-instances=1 (C.5) is the primary
 # cross-execution guard; this lockfile covers within-host overlap (local dev /
@@ -244,8 +251,23 @@ def _run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, check=True, **kwargs)
 
 
+def _count_files(root: Path) -> int:
+    """Recursively count regular files under ``root`` (0 if it does not exist)."""
+    if not root.exists():
+        return 0
+    return sum(len(files) for _, _, files in os.walk(root))
+
+
 def run_dvc_pipeline() -> None:
     """Update the DVC raw pointer, rebuild silver/gold, push data and commit."""
+    raw_files = _count_files(_RAW_DIR)
+    if raw_files < RAW_MIN_FILES:
+        raise RuntimeError(
+            f"Refusing to update DVC: data/raw has {raw_files} files "
+            f"(< RAW_MIN_FILES={RAW_MIN_FILES}). This indicates `dvc pull` did "
+            f"not restore the historical raw; aborting before a truncated "
+            f"dataset is snapshotted and pushed over the remote pointer."
+        )
     _run(["dvc", "add", "data/raw"])
     _run(["dvc", "repro"])
     _run(["dvc", "push"])

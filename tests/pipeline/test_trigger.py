@@ -300,6 +300,7 @@ def test_run_elo_ingestion_raises_on_failure(mocker):
 # ---------------------------------------------------------------------------
 
 def test_run_dvc_pipeline_commits_when_changes_staged(mocker):
+    mocker.patch("src.pipeline.trigger._count_files", return_value=9999)
     call_log = []
 
     def fake_run(cmd, **kwargs):
@@ -319,6 +320,7 @@ def test_run_dvc_pipeline_commits_when_changes_staged(mocker):
 
 
 def test_run_dvc_pipeline_skips_commit_when_nothing_staged(mocker):
+    mocker.patch("src.pipeline.trigger._count_files", return_value=9999)
     call_log = []
 
     def fake_run(cmd, **kwargs):
@@ -331,6 +333,17 @@ def test_run_dvc_pipeline_skips_commit_when_nothing_staged(mocker):
     run_dvc_pipeline()
 
     assert not any("commit" in cmd for cmd in call_log)
+
+
+def test_run_dvc_pipeline_aborts_on_collapsed_raw(mocker):
+    """Guard: a truncated data/raw (failed dvc pull) must abort before any push."""
+    mocker.patch("src.pipeline.trigger._count_files", return_value=322)
+    mock_run = mocker.patch("subprocess.run")
+
+    with pytest.raises(RuntimeError, match="Refusing to update DVC"):
+        run_dvc_pipeline()
+
+    mock_run.assert_not_called()  # no dvc add / repro / push / commit happened
 
 
 # ---------------------------------------------------------------------------
