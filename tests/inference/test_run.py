@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.inference.run import run_inference_and_simulation
+from src.inference.run import _seed_from_timestamp, run_inference_and_simulation
 from src.models.config import EXPERIMENT_MODELS
 
 
@@ -100,6 +100,22 @@ def _make_sim_results() -> dict:
     }
 
 
+class TestSeedFromTimestamp:
+    def test_deterministic(self):
+        ts = "2026-06-11T08:00:00+00:00"
+        assert _seed_from_timestamp(ts) == _seed_from_timestamp(ts)
+
+    def test_different_timestamps_give_different_seeds(self):
+        s1 = _seed_from_timestamp("2026-06-11T08:00:00+00:00")
+        s2 = _seed_from_timestamp("2026-06-11T08:30:00+00:00")
+        assert s1 != s2
+
+    def test_result_is_valid_32bit_uint(self):
+        seed = _seed_from_timestamp("2026-06-11T08:00:00+00:00")
+        assert isinstance(seed, int)
+        assert 0 <= seed < 2**32
+
+
 class TestRunInferenceAndSimulation:
     @patch("src.inference.run.log_inference_artifacts", return_value="run_123")
     @patch("src.inference.run.simulate_tournament")
@@ -154,10 +170,18 @@ class TestRunInferenceAndSimulation:
         # Option A: one simulate_tournament call per EXPERIMENT_MODELS entry.
         assert mock_simulate.call_count == len(EXPERIMENT_MODELS)
 
-        # log_inference_artifacts must receive per_model_tournament_results.
+        # All simulate_tournament calls must share the same seed.
+        seeds_used = [c.kwargs.get("seed") for c in mock_simulate.call_args_list]
+        assert len(set(seeds_used)) == 1, "All models in a cycle must share the same seed"
+        assert seeds_used[0] is not None
+
+        # log_inference_artifacts must receive per_model_tournament_results + seed.
         log_kwargs = mock_log.call_args.kwargs
         assert "per_model_tournament_results" in log_kwargs
         assert "xgboost" in log_kwargs["per_model_tournament_results"]
+        assert "simulation_seed" in log_kwargs
+        assert log_kwargs["simulation_seed"] == seeds_used[0]
+        assert "inference_timestamp" in log_kwargs
 
     @patch("src.inference.run.generate_all_wc_pairings")
     @patch("src.inference.run.parse_wc_results")
@@ -218,8 +242,10 @@ class TestRunInferenceAndSimulation:
         run_id = run_inference_and_simulation(n_sims=100)
 
         assert run_id == "run_456"
-        # Champion-only fallback: exactly one sim call.
+        # Champion-only fallback: exactly one sim call, seed still set.
         assert mock_simulate.call_count == 1
+        assert mock_simulate.call_args.kwargs.get("seed") is not None
         mock_log.assert_called_once()
         log_kwargs = mock_log.call_args.kwargs
         assert "xgboost" in log_kwargs["per_model_tournament_results"]
+        assert "simulation_seed" in log_kwargs

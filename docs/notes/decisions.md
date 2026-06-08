@@ -326,3 +326,64 @@ full top-5. Source ranking: A.7 / post-A.6 refit holdout RPS (expanded holdout,
   end-to-end (vs the prior 278s that was almost entirely the hung download), a
   comfortable margin for the 30-min cadence even before narrowing to the 4-model
   roster (A.9).
+
+### Per-cycle simulation seed (RQ2 reproducibility, 2026-06-07)
+
+Each inference cycle derives a single integer seed from a SHA-256 hash of its
+`inference_timestamp` and passes it to every `simulate_tournament()` call.
+All 4 roster models share the cycle's seed. The seed and timestamp are both
+logged as MLflow params (`simulation_seed`, `inference_timestamp`), so any
+cycle can be replayed exactly given only its logged metadata.
+
+**Why per-cycle, not a fixed constant:** RQ2 analyses Shannon entropy
+*trajectories* over ~60 inference cycles. A single fixed seed would correlate
+Monte Carlo noise across all snapshots, biasing the shape of the resolution
+curve. A per-cycle seed keeps MC noise independent across snapshots while
+preserving reproducibility within each cycle.
+
+**Why shared across the 4 models within a cycle:** most defensible
+cross-model setup; all models start from an identical RNG state. This does
+*not* achieve true common-random-numbers (CRN) variance reduction —
+`rng.poisson(λ≈1.3)` uses Knuth's algorithm, which consumes a λ-dependent
+number of underlying uniforms, so streams desynchronise after the first match.
+Cross-model comparability therefore rests on `n_sims=10_000` being large
+enough that MC noise ≪ between-model differences (verified adequate at
+~±0.5% advancement probability), not on seed coupling.
+
+**Why `hashlib`, not built-in `hash()`:** Python salts string hashing per
+process (`PYTHONHASHSEED`), making `hash()` non-reproducible across runs.
+SHA-256 mod 2³² is stable regardless of environment.
+
+**Scoreline sampling:** the same seed is also passed to `sample_scorelines()`
+(champion-only display artifact) for full cycle determinism, though this has
+no effect on RQ2.
+
+### Pre-WC deployment ordering & doc structure (2026-06-07)
+
+Sequencing decisions for the June 7–11 go-live sprint (tracked operationally in
+`docs/plans/golive_runbook.md`).
+
+- **B.1–B.4 before A.10.** A.10's freeze step assigns B.2's `champion_frozen` /
+  `champion_per_round` aliases, so the alias scheme is a hard prerequisite. The
+  dependency runs B → A.10, so building the cadence infrastructure first is the
+  correct direction, not a workaround. A.10 stays at the last responsible moment
+  (Jun 10) for data freshness (final friendlies), which is orthogonal.
+- **GCP (C.1–C.7) first, in parallel with B.\*.** Friendlies (Jun 7–10) are the
+  only fresh-data test window before kickoff and GCP is unfamiliar, so it gets
+  the most buffer. C.1–C.7 deploy the current champion as-is to prove the
+  plumbing; only C.9's dual-mode assertions need B.2 + A.10, so C.9 splits into
+  an early plumbing pass (Jun 9) and a final experiment pass (Jun 10). Hard gate:
+  C.1–C.5 working by EOD Jun 8; local pipeline is the fallback if GCP slips.
+- **B.2 must degrade gracefully.** Until A.10 assigns the dual aliases, per-mode
+  dispatch falls back to the single `champion` path so the pre-WC pipeline keeps
+  working.
+- **Bayesian hardening (`target_accept=0.9`, raised `tune_steps`) moved to B.3.**
+  It is a prerequisite for B.3's 7 unattended per-round MCMC refits, not just
+  A.10's single freeze fit; doing it with B.3 means refit-cycle wall-time
+  (for the C.5 timeout / B.3 concurrency guard) is measured against hardened
+  defaults.
+- **Doc structure: lightweight runbook, not a full split.** `thesis.md` stays
+  the canonical plan/archive (B/C/D bodies and cross-references remain there);
+  a short, dated `golive_runbook.md` holds the active sprint worklist and points
+  at section IDs. Avoids two sources of truth drifting. A full trim of `thesis.md`
+  is deferred to the D.4 writing phase.

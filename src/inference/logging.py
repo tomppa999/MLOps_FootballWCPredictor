@@ -51,6 +51,8 @@ def log_inference_artifacts(
     gold_row_count: int,
     champion_model_name: str = "unknown",
     all_models_predictions_df: pd.DataFrame | None = None,
+    inference_timestamp: str | None = None,
+    simulation_seed: int | None = None,
 ) -> str:
     """Start an MLflow run tagged stage=inference and log all artifacts.
 
@@ -72,33 +74,38 @@ def log_inference_artifacts(
 
     ``champion_model_name`` is logged as a param so the dashboard can
     filter tournament artifacts back to the champion without an extra
-    MLflow call.
+    MLflow call.  ``simulation_seed`` and ``inference_timestamp`` are logged
+    for reproducibility — a cycle can be replayed by re-running with the same
+    seed and the same Gold/predictions inputs.
 
     Returns the inference MLflow run_id.
     """
     setup_mlflow()
 
     champion_run_id = get_latest_production_run_id() or "unknown"
+    ts = inference_timestamp or datetime.now(timezone.utc).isoformat()
 
     # Stack per-model simulation artifacts
     combined_advancement = _stack_per_model(per_model_tournament_results, "advancement")
     combined_group_positions = _stack_per_model(per_model_tournament_results, "group_positions")
     combined_ko_pairings = _stack_per_model(per_model_tournament_results, "ko_pairings")
 
+    params: dict[str, str] = {
+        "n_sims": str(n_sims),
+        "champion_run_id": champion_run_id,
+        "champion_model_name": champion_model_name,
+        "gold_row_count": str(gold_row_count),
+        "inference_timestamp": ts,
+        "simulated_models": ",".join(sorted(per_model_tournament_results.keys())),
+    }
+    if simulation_seed is not None:
+        params["simulation_seed"] = str(simulation_seed)
+
     with start_run(
         run_name="inference",
         tags={"stage": "inference"},
     ) as run:
-        log_run(
-            params={
-                "n_sims": str(n_sims),
-                "champion_run_id": champion_run_id,
-                "champion_model_name": champion_model_name,
-                "gold_row_count": str(gold_row_count),
-                "inference_timestamp": datetime.now(timezone.utc).isoformat(),
-                "simulated_models": ",".join(sorted(per_model_tournament_results.keys())),
-            },
-        )
+        log_run(params=params)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)

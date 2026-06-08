@@ -18,6 +18,9 @@ dependencies = [
   "jax>=0.4.0",
   "jaxlib>=0.4.0",
   "plotly>=5.22.0",
+  "requests>=2.32.0",
+  "python-dotenv>=1.0.0",
+  "dvc[gs]>=3.0.0",
 ]
 
 [project.optional-dependencies]
@@ -25,7 +28,6 @@ dev = [
   "pytest>=8.0.0",
   "pytest-mock>=3.14.0",
   "ruff>=0.6.0",
-  "dvc>=3.0.0",
 ]
 dashboard = [
   "streamlit>=1.35.0",

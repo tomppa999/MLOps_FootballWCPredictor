@@ -4,6 +4,10 @@ Branch strategy: **`main`** (model fixes) → **`thesis`** (thesis-specific work
 MLflow experiment: `wc_mlops_thesis`
 WC 2026 starts: **June 11, 2026**
 
+> **Active sprint execution → `docs/plans/golive_runbook.md`** (day-by-day
+> June 7–11 deployment worklist). This file remains the canonical plan; the
+> runbook points at the section IDs below rather than duplicating them.
+
 ---
 
 ## Framing
@@ -133,6 +137,7 @@ for the thesis appendix.
   `except ValueError` → `except (ValueError, MlflowException)` in
   `run_prediction_all_models` (`src/inference/predict.py`) so a registry error on
   one shadow skips that model without aborting the loop.
+  
 #### A.10 — Freeze champions for both modes (pre-tournament snapshot)
 
 Deferred to the **last responsible moment before kickoff (≈ June 10–11)** so
@@ -140,10 +145,15 @@ the snapshot includes the final 2026 friendlies as training rows. This is a
 **re-fit, not a re-tune** (level 1 only; hyperparameters + half-periods stay
 locked from A.6/A.7). See `decisions.md` "Champion freeze process".
 
+**Prerequisite:** B.2 must exist first — A.10 assigns B.2's `champion_frozen`
+and `champion_per_round` aliases. Run B.1–B.4 before this step.
+
 - [ ] `bayesian_poisson` refit hardening: set `target_accept=0.9` and raise
   `tune_steps` in `BayesianPoissonModel.__init__` defaults before running the
-  freeze refit (affects fit time only, not inference; do this once, here,
-  before the one unattended live fit).
+  freeze refit (affects fit time only, not inference). **Now folded into B.3**
+  — it is also a prerequisite for B.3's 7 unattended per-round MCMC refits, not
+  just this one freeze fit. Do it once with B.3, before measuring refit-cycle
+  wall-time for the C.5 timeout / B.3 concurrency guard.
 - [ ] Build the latest full Gold table (last friendlies included).
 - [ ] `run_champion_refit` for each of the 3 champions on full Gold
   (no Optuna, no half-period search, no re-selection).
@@ -155,12 +165,22 @@ locked from A.6/A.7). See `decisions.md` "Champion freeze process".
 
 ### Phase 3 — Cadence infrastructure (`thesis` branch, weeks 2–3)
 
+**Ordering (decided 2026-06-07):** B.1–B.4 run **before A.10** — A.10 consumes
+B.2's dual aliases, so the alias scheme must exist first. Built in parallel
+with the GCP skeleton (C.1–C.7). See `golive_runbook.md`.
+
 - [ ] **B.1** Snapshot metadata tagging
 - [ ] **B.2** Dual MLflow aliases + per-mode dispatch
 - [ ] **B.3** Per-round refit trigger
 - [ ] **B.4** Per-mode monitoring
 
 ### Phase 4 — GCP deployment (`thesis` branch, by June 10)
+
+**Ordering (decided 2026-06-07):** C.1–C.7 start **first** (Jun 7), deploying
+the current champion as-is to prove the plumbing on fresh friendly data. Only
+C.9's dual-mode assertions depend on B.2 + A.10, so C.9 splits into an early
+plumbing pass (Jun 9) and a final experiment pass (Jun 10). See
+`golive_runbook.md`.
 
 - [ ] **C.1–C.9** Containerise, deploy, test
 
@@ -489,6 +509,9 @@ refitted) and per-round (refitted at matchday boundaries).
   `champion_per_round` (`champion` stays for backward compat, points at frozen).
   The other 3 roster models resolve by `(model_name, cadence_mode)` tag search
   (same tag-based path shadows already use), so no per-model alias proliferation.
+- [ ] **Degrade gracefully:** until A.10 assigns the dual aliases, the per-mode
+  dispatch must fall back to the existing single `champion` path so the pre-WC
+  pipeline (run locally or on the freshly deployed GCP job) keeps working.
 - [ ] In `src/models/mlflow_utils.py`:
   - Add `get_production_run_id(alias: str)` to fetch the display champion by alias
   - Add a `(model_name, cadence_mode)` resolver for the non-champion roster

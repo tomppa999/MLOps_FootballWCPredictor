@@ -209,10 +209,23 @@ def test_api_freshness_false_when_no_fixtures_in_window(tmp_path, mocker):
     assert result is False
 
 
-def test_api_freshness_false_when_match_in_progress(tmp_path, mocker):
+def test_api_freshness_true_when_finished_and_in_progress(tmp_path, mocker):
+    """In-progress games no longer block processing of finished ones."""
     _mock_subprocess_ok(mocker)
     _write_run_manifest(tmp_path / "runs", kept=2)
     _write_fixtures(tmp_path / "fixtures", statuses=["HT", "FT"])
+    result = check_api_football_freshness(
+        runs_dir=tmp_path / "runs",
+        fixtures_dir=tmp_path / "fixtures",
+    )
+    assert result is True
+
+
+def test_api_freshness_false_when_only_in_progress(tmp_path, mocker):
+    """All in-progress and none finished → still False (no settled data to process)."""
+    _mock_subprocess_ok(mocker)
+    _write_run_manifest(tmp_path / "runs", kept=2)
+    _write_fixtures(tmp_path / "fixtures", statuses=["HT", "1H"])
     result = check_api_football_freshness(
         runs_dir=tmp_path / "runs",
         fixtures_dir=tmp_path / "fixtures",
@@ -398,8 +411,9 @@ def test_dispatch_inference_only_calls_inference(mocker):
     mock_monitor.assert_called_once()
 
 
-def test_dispatch_auto_below_threshold_calls_inference(mocker):
+def test_dispatch_auto_below_threshold_calls_inference(mocker, monkeypatch):
     import mlflow
+    monkeypatch.setenv("RETRAIN_THRESHOLD", "10")  # delta=5 < 10 → inference only
     mocker.patch("src.models.data_split.load_gold", return_value=MagicMock(__len__=lambda s: 105))
     mocker.patch("src.models.mlflow_utils.setup_mlflow")
     mocker.patch("src.models.mlflow_utils.get_latest_production_run_id", return_value="prod_run")
@@ -409,7 +423,6 @@ def test_dispatch_auto_below_threshold_calls_inference(mocker):
     mock_inference = mocker.patch("src.inference.run.run_inference_and_simulation", return_value="inf_run")
     mock_monitor = mocker.patch("src.monitoring.monitor.run_monitoring_step")
     mock_shadow = mocker.patch("src.models.pipeline.run_shadow_refit")
-    mocker.patch("src.models.pipeline.RETRAIN_THRESHOLD", 10)
     dispatch_training_or_inference(mode="auto")
     mock_inference.assert_called_once()
     mock_monitor.assert_called_once()
@@ -445,7 +458,6 @@ def test_dispatch_auto_refit_threshold_calls_shadow_refit(mocker):
     mock_shadow = mocker.patch("src.models.pipeline.run_shadow_refit")
     mock_inference = mocker.patch("src.inference.run.run_inference_and_simulation", return_value="inf_run")
     mock_monitor = mocker.patch("src.monitoring.monitor.run_monitoring_step")
-    mocker.patch("src.models.pipeline.RETRAIN_THRESHOLD", 10)
     dispatch_training_or_inference(mode="auto")
     mock_refit.assert_called_once()
     mock_shadow.assert_called_once()

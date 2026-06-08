@@ -7,10 +7,13 @@ models (Option A), and logs all artifacts to MLflow.
 
 from __future__ import annotations
 
+import hashlib
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from src.inference.features import (
@@ -34,6 +37,19 @@ from src.models.mlflow_utils import get_champion_metadata
 logger = logging.getLogger(__name__)
 
 
+def _seed_from_timestamp(ts_iso: str) -> int:
+    """Derive a deterministic 32-bit seed from an ISO timestamp string.
+
+    Uses SHA-256 rather than built-in ``hash()`` because Python salts string
+    hashing per process (``PYTHONHASHSEED``), making ``hash()`` non-reproducible
+    across runs.  The result is stable for the same ``ts_iso`` regardless of
+    environment, so a cycle can always be replayed given only its logged
+    ``inference_timestamp``.
+    """
+    digest = hashlib.sha256(ts_iso.encode()).hexdigest()
+    return int(digest, 16) % (2**32)
+
+
 def _simulate_roster(
     all_models_predictions_df: pd.DataFrame,
     champion_predictions_df: pd.DataFrame,
@@ -41,6 +57,7 @@ def _simulate_roster(
     n_sims: int,
     locked_group: dict | None,
     locked_ko: dict | None,
+    seed: int | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Simulate the tournament for each EXPERIMENT_MODELS roster entry.
 
@@ -49,6 +66,14 @@ def _simulate_roster(
     roster models simulate from rows filtered out of
     ``all_models_predictions_df``; a missing or failed model is skipped and
     logged as a warning rather than aborting the full simulation.
+
+    All models in a cycle share the same ``seed`` so the simulations are
+    individually reproducible and start from a coupled RNG state.  Note: true
+    common-random-numbers variance reduction is not achieved because
+    ``rng.poisson(λ)`` consumes a λ-dependent number of underlying uniforms
+    (Knuth's algorithm), causing streams to desynchronise after the first
+    match.  Cross-model comparability relies on ``n_sims`` being large enough
+    rather than on seed coupling.
 
     Returns a dict mapping model_name → simulate_tournament result dict.
     """
@@ -79,6 +104,7 @@ def _simulate_roster(
                 n_sims=n_sims,
                 locked_group_results=locked_group,
                 locked_ko_results=locked_ko,
+                seed=seed,
             )
             per_model[model_name] = results
             logger.info("Simulation complete for %s.", model_name)
@@ -97,6 +123,15 @@ def run_inference_and_simulation(
     Returns the MLflow run_id of the inference run.
     """
     logger.info("=== Inference and simulation ===")
+
+    # Capture cycle timestamp and derive a deterministic per-cycle seed.
+    # The seed is shared across all 4 roster model simulations so each cycle
+    # is individually reproducible from its logged inference_timestamp.
+    # A different seed per cycle keeps MC noise independent along the RQ2
+    # entropy trajectory (see docs/notes/decisions.md).
+    cycle_ts = datetime.now(timezone.utc).isoformat()
+    simulation_seed = _seed_from_timestamp(cycle_ts)
+    logger.info("Cycle timestamp: %s  simulation_seed: %d", cycle_ts, simulation_seed)
 
     # Load Gold history
     if gold_path is not None:
@@ -193,6 +228,7 @@ def run_inference_and_simulation(
             group_predictions_df["lambda_h"].values,
             group_predictions_df["lambda_a"].values,
             n_sims=n_sims,
+            rng=np.random.default_rng(simulation_seed),
         )
         sl_dist = scoreline_distribution(samples)
         teams = group_predictions_df[["home_team", "away_team"]].reset_index(drop=True)
@@ -215,6 +251,7 @@ def run_inference_and_simulation(
             n_sims=n_sims,
             locked_group=locked_group,
             locked_ko=locked_ko,
+            seed=simulation_seed,
         )
     else:
         # Fallback: only the champion simulation is available.
@@ -228,6 +265,7 @@ def run_inference_and_simulation(
                 n_sims=n_sims,
                 locked_group_results=locked_group,
                 locked_ko_results=locked_ko,
+                seed=simulation_seed,
             )
             per_model_tournament_results[champion_model_name] = results
         except Exception:
@@ -248,6 +286,8 @@ def run_inference_and_simulation(
         gold_row_count=len(gold_df),
         champion_model_name=champion_model_name,
         all_models_predictions_df=all_models_predictions_df,
+        inference_timestamp=cycle_ts,
+        simulation_seed=simulation_seed,
     )
 
     logger.info("=== Inference complete (run_id=%s) ===", run_id)

@@ -80,11 +80,19 @@ def tmp_mlflow(tmp_path, monkeypatch):
         mlflow.end_run()
 
 
+def _inproc_fit(model, X, y, w, timeout_s):  # noqa: ANN001, ANN202, ARG001
+    """In-process stand-in for ``_fit_with_timeout`` so tests avoid spawning a
+    child process (which would hide the fake model's class-level fit counter)."""
+    model.fit(X, y, sample_weight=w)
+    return model
+
+
 # ---------------------------------------------------------------------------
 # Champion-skip + 8-candidate refit
 # ---------------------------------------------------------------------------
 
 
+@patch("src.models.pipeline._fit_with_timeout", side_effect=_inproc_fit)
 @patch("src.models.pipeline._log_model_artifact", return_value="models:/fake/1")
 @patch("src.models.pipeline.register_model")
 @patch("src.models.pipeline.make_splits")
@@ -96,6 +104,7 @@ def test_shadow_refit_skips_champion_and_fits_eight(
     mock_make_splits,
     mock_register,
     mock_log_artifact,
+    mock_fit_timeout,
     tmp_mlflow,
     fake_splits,
 ):
@@ -138,6 +147,7 @@ def test_shadow_refit_skips_champion_and_fits_eight(
     assert _FakeShadowModel.fit_calls == len(expected_shadow_names)
 
 
+@patch("src.models.pipeline._fit_with_timeout", side_effect=_inproc_fit)
 @patch("src.models.pipeline._log_model_artifact", return_value="models:/fake/1")
 @patch("src.models.pipeline.register_model")
 @patch("src.models.pipeline.make_splits")
@@ -149,6 +159,7 @@ def test_shadow_refit_does_not_invoke_optuna(
     mock_make_splits,
     mock_register,
     mock_log_artifact,
+    mock_fit_timeout,
     tmp_mlflow,
     fake_splits,
 ):
@@ -174,6 +185,106 @@ def test_shadow_refit_does_not_invoke_optuna(
         with patch("src.models.tuning.run_tuning") as mock_tuning:
             pipeline_module.run_shadow_refit(pd.DataFrame({"x": range(20)}))
         mock_tuning.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Candidate ordering (experiment roster first; bayesian_poisson last in group)
+# ---------------------------------------------------------------------------
+
+
+def test_ordered_shadow_candidates_experiment_first_bayesian_last():
+    """Experiment models lead, bayesian_poisson is last of them, champion absent."""
+    from src.models import pipeline as pipeline_module
+    from src.models.config import EXPERIMENT_MODELS
+
+    ordered = pipeline_module._ordered_shadow_candidates("xgboost")
+
+    # Champion excluded; every other candidate present exactly once.
+    assert "xgboost" not in ordered
+    assert set(ordered) == set(pipeline_module.CANDIDATE_MODELS) - {"xgboost"}
+    assert len(ordered) == len(set(ordered))
+
+    # Experiment roster (minus champion) forms the prefix.
+    experiment_minus_champion = [m for m in EXPERIMENT_MODELS if m != "xgboost"]
+    assert set(ordered[: len(experiment_minus_champion)]) == set(experiment_minus_champion)
+
+    # bayesian_poisson is last within the experiment prefix, before any shadow.
+    bayes_idx = ordered.index("bayesian_poisson")
+    assert bayes_idx == len(experiment_minus_champion) - 1
+    non_experiment = [m for m in ordered if m not in set(EXPERIMENT_MODELS)]
+    assert all(ordered.index(m) > bayes_idx for m in non_experiment)
+
+
+# ---------------------------------------------------------------------------
+# Hang guard — per-model fit timeout
+# ---------------------------------------------------------------------------
+
+
+class _SlowModel(BaseModel):
+    """Fit blocks longer than any test timeout, to exercise the hang guard."""
+
+    def __init__(self, sleep_s: float = 30.0) -> None:
+        self.sleep_s = sleep_s
+
+    @property
+    def name(self) -> str:
+        return "slow"
+
+    def fit(self, X, y, sample_weight=None):  # noqa: ANN001, ANN201, ARG002
+        import time as _time
+
+        _time.sleep(self.sleep_s)
+        return self
+
+    def predict(self, X):  # noqa: ANN001, ANN201
+        n = X.shape[0]
+        return np.ones(n), np.ones(n)
+
+    def get_params(self) -> dict[str, Any]:
+        return {"sleep_s": self.sleep_s}
+
+
+class _FastModel(BaseModel):
+    """Records its own fitted state so the cloudpickle round-trip is verifiable."""
+
+    def __init__(self) -> None:
+        self.fitted = False
+
+    @property
+    def name(self) -> str:
+        return "fast"
+
+    def fit(self, X, y, sample_weight=None):  # noqa: ANN001, ANN201, ARG002
+        self.fitted = True
+        return self
+
+    def predict(self, X):  # noqa: ANN001, ANN201
+        n = X.shape[0]
+        return np.ones(n), np.ones(n)
+
+    def get_params(self) -> dict[str, Any]:
+        return {}
+
+
+def test_fit_with_timeout_raises_on_hang():
+    """A fit exceeding the timeout is killed and surfaces TimeoutError."""
+    from src.models import pipeline as pipeline_module
+
+    X = np.zeros((4, 3))
+    y = np.zeros((4, 2))
+    with pytest.raises(TimeoutError):
+        pipeline_module._fit_with_timeout(_SlowModel(sleep_s=30.0), X, y, None, 0.5)
+
+
+def test_fit_with_timeout_returns_fitted_model():
+    """A fast fit returns the fitted model (state survives the subprocess)."""
+    from src.models import pipeline as pipeline_module
+
+    X = np.zeros((4, 3))
+    y = np.zeros((4, 2))
+    fitted = pipeline_module._fit_with_timeout(_FastModel(), X, y, None, 60.0)
+    assert isinstance(fitted, _FastModel)
+    assert fitted.fitted is True
 
 
 # ---------------------------------------------------------------------------

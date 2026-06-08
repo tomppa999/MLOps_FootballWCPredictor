@@ -197,12 +197,17 @@ def check_api_football_freshness(
         log.warning("No fixtures.json found after ingestion.")
         return False
 
-    settled, summary = check_fixtures_settled(fixtures_file)
+    _, summary = check_fixtures_settled(fixtures_file)
+    if summary["in_progress"] > 0:
+        log.warning(
+            f"API-Football: {summary['in_progress']} fixture(s) still in progress "
+            f"(IDs: {summary['in_progress_fixture_ids']}); processing settled matches anyway."
+        )
     log.info(
-        f"API-Football: kept={kept}, settled={settled}, "
-        f"finished={summary['finished']}, in_progress={summary['in_progress']}"
+        f"API-Football: kept={kept}, finished={summary['finished']}, "
+        f"in_progress={summary['in_progress']}"
     )
-    return settled and summary["finished"] > 0
+    return summary["finished"] > 0
 
 
 # ---------------------------------------------------------------------------
@@ -292,10 +297,13 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
         setup_mlflow,
     )
     from src.models.pipeline import (  # noqa: PLC0415
-        RETRAIN_THRESHOLD,
         run_champion_refit,
         run_full_pipeline,
     )
+
+    # Default 1 so every new match triggers a refit (WC cadence).
+    # Override with RETRAIN_THRESHOLD env var for testing / back-compat.
+    retrain_threshold = int(os.getenv("RETRAIN_THRESHOLD", "1"))
 
     setup_mlflow()
 
@@ -323,13 +331,14 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
     last_rows = int(run_data.params.get("gold_row_count", "0"))
     delta = current_rows - last_rows
     log.info(
-        "Gold delta: %d (current=%d, last=%d)",
+        "Gold delta: %d (current=%d, last=%d, threshold=%d)",
         delta,
         current_rows,
         last_rows,
+        retrain_threshold,
     )
 
-    if delta >= RETRAIN_THRESHOLD:
+    if delta >= retrain_threshold:
         log.info("Refit threshold met — refitting champion on fresh data.")
         run_champion_refit(df)
         _safe_shadow_refit(df)

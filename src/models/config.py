@@ -85,11 +85,12 @@ SEARCH_SPACES: Final[dict[str, dict]] = {
         "colsample_bytree": {"type": "float", "low": 0.5, "high": 1.0},
         "reg_lambda": {"type": "float", "low": 1e-3, "high": 10.0, "log": True},
     },
-    # Milestone 4 models — search spaces defined upfront
+    # B.3: prior_sigma capped at 2.0 (5.0 produced large-beta proposals that
+    # overflowed exp even with clipping; draws floor raised to match new default).
     "bayesian_poisson": {
-        "prior_sigma": {"type": "float", "low": 0.1, "high": 5.0, "log": False},
+        "prior_sigma": {"type": "float", "low": 0.1, "high": 2.0, "log": False},
         "draws": {"type": "int", "low": 500, "high": 2000},
-        "tune_steps": {"type": "int", "low": 500, "high": 2000},
+        "tune_steps": {"type": "int", "low": 1000, "high": 2000},
     },
     "sarimax": {
         "p": {"type": "int", "low": 0, "high": 3},
@@ -181,4 +182,23 @@ EXPERIMENT_MODELS: Final[list[str]] = [
     "poisson_glm",       # frequentist Poisson GLM — canonical Maher/Ley reference
     "bayesian_poisson",  # Bayesian Poisson — native uncertainty quantification (RQ2)
     "mean_rate_poisson", # no-information baseline — flat entropy floor (RQ2)
+]
+
+# ---------------------------------------------------------------------------
+# Live shadow refit / inference roster
+# ---------------------------------------------------------------------------
+# lstm and cnn are excluded from the live pipeline: they cause JAX + os.fork
+# deadlocks in the Docker container (Linux) and reliably exhaust the shadow
+# refit budget without contributing to simulation or promotion.  All 10
+# candidate modules are still present for offline reproducibility and the
+# thesis appendix; only this constant controls what runs live.
+LIVE_SHADOW_MODELS: Final[list[str]] = [
+    "mean_rate_poisson",
+    "poisson_glm",
+    "negbin_glm",
+    "ridge",
+    "random_forest",
+    "xgboost",
+    "bayesian_poisson",
+    "sarimax",
 ]

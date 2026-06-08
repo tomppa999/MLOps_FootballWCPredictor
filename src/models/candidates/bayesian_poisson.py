@@ -34,6 +34,10 @@ class BayesianPoissonModel(BaseModel):
         prior_sigma: Std of the Normal prior on all coefficients.
         draws: Posterior samples to draw per chain (1 chain used).
         tune_steps: Burn-in / tuning steps.
+        target_accept: NUTS target acceptance rate (higher → smaller step size,
+            fewer divergences, but slower).
+        max_eta: Hard clip applied to the linear predictor before exp to prevent
+            overflow/NaN gradients during sampling (B.3 numerical hardening).
         random_seed: Random seed for reproducibility.
     """
 
@@ -41,12 +45,16 @@ class BayesianPoissonModel(BaseModel):
         self,
         prior_sigma: float = 1.0,
         draws: int = 500,
-        tune_steps: int = 500,
+        tune_steps: int = 1000,
+        target_accept: float = 0.9,
+        max_eta: float = 10.0,
         random_seed: int = 42,
     ) -> None:
         self.prior_sigma = prior_sigma
         self.draws = draws
         self.tune_steps = tune_steps
+        self.target_accept = target_accept
+        self.max_eta = max_eta
         self.random_seed = random_seed
         self._scaler: StandardScaler | None = None
         # Posterior means (used by standard predict())
@@ -88,8 +96,16 @@ class BayesianPoissonModel(BaseModel):
             intercept_a = pm.Normal("intercept_a", 0.0, sigma=self.prior_sigma)
             beta_a = pm.Normal("beta_a", 0.0, sigma=self.prior_sigma, shape=p)
 
-            lam_h = pm.math.exp(intercept_h + pm.math.dot(Xs, beta_h))
-            lam_a = pm.math.exp(intercept_a + pm.math.dot(Xs, beta_a))
+            # B.3: clip linear predictor before exp to prevent overflow/NaN
+            # gradients when NUTS proposes large beta values during tuning.
+            eta_h = pm.math.clip(
+                intercept_h + pm.math.dot(Xs, beta_h), -self.max_eta, self.max_eta
+            )
+            eta_a = pm.math.clip(
+                intercept_a + pm.math.dot(Xs, beta_a), -self.max_eta, self.max_eta
+            )
+            lam_h = pm.math.exp(eta_h)
+            lam_a = pm.math.exp(eta_a)
 
             if w is None:
                 pm.Poisson("home_goals", mu=lam_h, observed=h_obs)
@@ -103,10 +119,15 @@ class BayesianPoissonModel(BaseModel):
                 pm.Potential("home_goals_weighted", (w * logp_h).sum())
                 pm.Potential("away_goals_weighted", (w * logp_a).sum())
 
+            # B.3: adapt_diag gives a diagonal mass-matrix estimate that
+            # handles correlated posteriors better than the default jitter+adapt_diag;
+            # target_accept=0.9 shrinks step size to avoid divergences.
             trace = pm.sample(
                 draws=self.draws,
                 tune=self.tune_steps,
                 chains=1,
+                init="adapt_diag",
+                target_accept=self.target_accept,
                 progressbar=False,
                 random_seed=self.random_seed,
             )
@@ -172,4 +193,6 @@ class BayesianPoissonModel(BaseModel):
             "prior_sigma": self.prior_sigma,
             "draws": self.draws,
             "tune_steps": self.tune_steps,
+            "target_accept": self.target_accept,
+            "max_eta": self.max_eta,
         }

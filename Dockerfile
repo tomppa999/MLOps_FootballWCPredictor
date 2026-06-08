@@ -1,14 +1,20 @@
 FROM python:3.11-slim
 
+RUN apt-get update && apt-get install -y --no-install-recommends git g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-COPY pyproject.toml /app/pyproject.toml
-COPY README.md /app/README.md
-COPY src /app/src
-COPY tests /app/tests
-COPY docs /app/docs
-COPY data_samples /app/data_samples
+COPY pyproject.toml README.md ./
 
 RUN pip install --upgrade pip && pip install .
 
-CMD ["python", "-m", "src"]
+COPY src ./src
+COPY entrypoint.sh ./entrypoint.sh
+COPY .dvc/config ./.dvc/config
+COPY dvc.yaml dvc.lock ./
+
+RUN chmod +x ./entrypoint.sh \
+    && git init && git config user.email "ci@local" && git config user.name "ci"
+
+ENTRYPOINT ["./entrypoint.sh"]

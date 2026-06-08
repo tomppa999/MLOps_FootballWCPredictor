@@ -8,12 +8,15 @@ analytical outcome probabilities.
 from __future__ import annotations
 
 import logging
+import multiprocessing as mp
+import tempfile
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from mlflow.exceptions import MlflowException
 
-from src.models.config import MODEL_FEATURE_SETS
+from src.models.config import LIVE_SHADOW_MODELS, MODEL_FEATURE_SETS
 from src.models.evaluation import compute_outcome_probs
 from src.models.mlflow_utils import (
     get_champion_metadata,
@@ -86,6 +89,78 @@ def run_prediction(upcoming_features_df: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
+_SHADOW_PREDICT_TIMEOUT_S: float = 120.0
+
+
+def _shadow_predict_worker(
+    name: str,
+    features_path: str,
+    out_path: str,
+) -> None:
+    """Child-process target: load a shadow model, predict, write parquet result.
+
+    Runs in isolation so a SIGSEGV from a native library (e.g. jax/pytensor
+    loaded with a mismatched version) kills only this child, not the pipeline.
+    """
+    import pandas as pd  # noqa: PLC0415
+
+    from src.models.mlflow_utils import load_shadow_model, setup_mlflow  # noqa: PLC0415
+
+    setup_mlflow()
+    features = pd.read_parquet(features_path)
+    model = load_shadow_model(name)
+    block = _predict_one_model(model, features, MODEL_FEATURE_SETS[name], name)
+    block.to_parquet(out_path, index=False)
+
+
+def _safe_shadow_predict(
+    name: str,
+    upcoming_features_df: pd.DataFrame,
+    timeout_s: float = _SHADOW_PREDICT_TIMEOUT_S,
+) -> pd.DataFrame | None:
+    """Load and predict a shadow model in a child process.
+
+    Returns the prediction DataFrame on success, or None if the child crashes
+    (SIGSEGV / non-zero exit) or exceeds *timeout_s*.  This prevents a native
+    crash (mismatched jax/pytensor/keras version in a loaded pickle) from
+    killing the parent inference process.
+    """
+    ctx = mp.get_context()  # fork on Linux (cheap), spawn on macOS
+    with tempfile.TemporaryDirectory() as tmpdir:
+        features_path = str(Path(tmpdir) / "features.parquet")
+        out_path = str(Path(tmpdir) / "predictions.parquet")
+        upcoming_features_df.to_parquet(features_path, index=False)
+
+        proc = ctx.Process(
+            target=_shadow_predict_worker, args=(name, features_path, out_path)
+        )
+        proc.start()
+        proc.join(timeout_s)
+
+        if proc.is_alive():
+            proc.terminate()
+            proc.join()
+            logger.warning(
+                "Shadow prediction: %s exceeded %.0fs — skipping.", name, timeout_s
+            )
+            return None
+        if proc.exitcode != 0:
+            # Negative exit code = killed by signal (e.g. -11 = SIGSEGV).
+            logger.warning(
+                "Shadow prediction: %s exited with code %d — skipping.",
+                name,
+                proc.exitcode,
+            )
+            return None
+        result_path = Path(out_path)
+        if not result_path.exists():
+            logger.warning(
+                "Shadow prediction: %s produced no output — skipping.", name
+            )
+            return None
+        return pd.read_parquet(out_path)
+
+
 def run_prediction_all_models(
     upcoming_features_df: pd.DataFrame,
     *,
@@ -108,7 +183,7 @@ def run_prediction_all_models(
     champion_meta = get_champion_metadata()
 
     if candidate_names is None:
-        candidate_names = list(MODEL_FEATURE_SETS.keys())
+        candidate_names = list(LIVE_SHADOW_MODELS)
 
     logger.info(
         "Predicting all candidates (%d models, %d fixtures): champion=%s",
@@ -132,22 +207,9 @@ def run_prediction_all_models(
     for name in candidate_names:
         if name == champion_meta.model_name:
             continue
-        try:
-            model = load_shadow_model(name)
-        except (ValueError, MlflowException):
-            logger.warning(
-                "No registered shadow/staging version for %s — skipping.",
-                name,
-            )
-            continue
-        try:
-            block = _predict_one_model(
-                model, upcoming_features_df, MODEL_FEATURE_SETS[name], name,
-            )
-        except Exception as exc:  # noqa: BLE001 - one bad shadow shouldn't kill the others
-            logger.warning("Shadow prediction failed for %s: %s", name, exc)
-            continue
-        blocks.append(block)
+        block = _safe_shadow_predict(name, upcoming_features_df)
+        if block is not None:
+            blocks.append(block)
 
     out = pd.concat(blocks, ignore_index=True)
     logger.info(

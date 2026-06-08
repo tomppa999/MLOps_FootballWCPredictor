@@ -131,11 +131,41 @@ def test_log_run_includes_simulated_models_param(
         n_sims=100,
         gold_row_count=6000,
         champion_model_name="xgboost",
+        inference_timestamp="2026-06-11T08:00:00+00:00",
+        simulation_seed=42,
     )
 
-    # Verify that log_run was called with the required params
     call_kwargs = mock_log_run.call_args.kwargs
     params = call_kwargs.get("params", {})
     assert "simulated_models" in params
     assert "champion_model_name" in params
     assert params["champion_model_name"] == "xgboost"
+    assert params["simulation_seed"] == "42"
+    assert params["inference_timestamp"] == "2026-06-11T08:00:00+00:00"
+
+
+@patch("src.inference.logging.mlflow")
+@patch("src.inference.logging.start_run")
+@patch("src.inference.logging.log_run")
+@patch("src.inference.logging.get_latest_production_run_id", return_value="prod_run_123")
+@patch("src.inference.logging.setup_mlflow")
+def test_inference_timestamp_defaults_to_now_when_not_provided(
+    mock_setup, mock_prod_id, mock_log_run, mock_start_run, mock_mlflow
+):
+    """When inference_timestamp is omitted, logging generates one itself."""
+    fake_run = MagicMock()
+    fake_run.info.run_id = "test_run_id"
+    mock_start_run.return_value.__enter__ = MagicMock(return_value=fake_run)
+    mock_start_run.return_value.__exit__ = MagicMock(return_value=False)
+
+    log_inference_artifacts(
+        predictions_df=_make_predictions(),
+        scoreline_dist=None,
+        per_model_tournament_results=_make_per_model_results(),
+        n_sims=100,
+        gold_row_count=6000,
+    )
+
+    params = mock_log_run.call_args.kwargs.get("params", {})
+    assert "inference_timestamp" in params
+    assert params["inference_timestamp"]  # non-empty

@@ -8,6 +8,7 @@ Phase 3 (Deploy):       Refit the winner on *all* Gold data, register, promote.
 from __future__ import annotations
 
 import logging
+import multiprocessing as mp
 import tempfile
 import time
 from dataclasses import dataclass
@@ -15,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import cloudpickle
 import mlflow
 import numpy as np
 import pandas as pd
@@ -30,7 +32,14 @@ from src.models.candidates.random_forest import RandomForestModel
 from src.models.candidates.ridge import RidgeModel
 from src.models.candidates.sarimax import SARIMAXModel
 from src.models.candidates.xgboost_model import XGBoostModel
-from src.models.config import DEFAULT_N_TRIALS, MODEL_FEATURE_SETS, SEARCH_SPACES, TUNED_HALF_PERIODS
+from src.models.config import (
+    DEFAULT_N_TRIALS,
+    EXPERIMENT_MODELS,
+    LIVE_SHADOW_MODELS,
+    MODEL_FEATURE_SETS,
+    SEARCH_SPACES,
+    TUNED_HALF_PERIODS,
+)
 from src.models.data_split import (
     DEFAULT_HALF_PERIOD_YEARS,
     DataSplits,
@@ -80,6 +89,15 @@ CANDIDATE_MODELS: dict[str, type[BaseModel]] = {
 }
 
 RETRAIN_THRESHOLD: int = 10
+
+# Shadow-refit hang guards (B.3). A native sampler (PyMC NUTS) can wedge
+# indefinitely; a thread-based timeout cannot interrupt a C-extension call, so
+# each fit runs in a child process that is killed on timeout.
+SHADOW_FIT_TIMEOUT_S: float = 600.0          # per-model hard cap (10 min)
+SHADOW_REFIT_TOTAL_TIMEOUT_S: float = 1200.0  # overall cap across candidates (20 min)
+# bayesian_poisson is the slow/risky model — refit it last within the
+# experiment roster so the other selected models always complete first.
+_SLOW_EXPERIMENT_MODEL: str = "bayesian_poisson"
 
 # ---------------------------------------------------------------------------
 # Result containers
@@ -517,6 +535,81 @@ def run_champion_refit(df: pd.DataFrame) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _shadow_fit_worker(
+    model: BaseModel,
+    X: np.ndarray,
+    y: np.ndarray,
+    w: np.ndarray | None,
+    out_path: str,
+) -> None:
+    """Child-process target: fit *model* and cloudpickle it to *out_path*.
+
+    Runs in a separate process so a hung native sampler (e.g. PyMC NUTS) can be
+    killed via termination — a thread-based timeout cannot interrupt a
+    C-extension call. cloudpickle matches MLflow's own model serialisation, so
+    keras/xgboost/PyMC models round-trip cleanly.
+    """
+    model.fit(X, y, sample_weight=w)
+    with open(out_path, "wb") as fh:
+        cloudpickle.dump(model, fh)
+
+
+def _fit_with_timeout(
+    model: BaseModel,
+    X: np.ndarray,
+    y: np.ndarray,
+    w: np.ndarray | None,
+    timeout_s: float,
+) -> BaseModel:
+    """Fit *model* in a child process, enforcing a hard wall-clock timeout.
+
+    Returns the fitted model (read back from the child via cloudpickle).
+
+    Raises:
+        TimeoutError: if fitting exceeds *timeout_s* (the child is terminated).
+        RuntimeError: if the child exits non-zero or produces no artifact.
+    """
+    ctx = mp.get_context()  # fork on Linux (cheap), spawn on macOS
+    with tempfile.TemporaryDirectory() as tmpdir:
+        out_path = str(Path(tmpdir) / "fitted_model.pkl")
+        proc = ctx.Process(
+            target=_shadow_fit_worker, args=(model, X, y, w, out_path)
+        )
+        proc.start()
+        proc.join(timeout_s)
+        if proc.is_alive():
+            proc.terminate()
+            proc.join()
+            raise TimeoutError(f"fit exceeded {timeout_s:.0f}s")
+        if proc.exitcode != 0:
+            raise RuntimeError(f"fit subprocess exited with code {proc.exitcode}")
+        artifact = Path(out_path)
+        if not artifact.exists():
+            raise RuntimeError("fit subprocess produced no model artifact")
+        with artifact.open("rb") as fh:
+            return cloudpickle.load(fh)
+
+
+def _ordered_shadow_candidates(champion_name: str) -> list[str]:
+    """Order non-champion candidates for refit.
+
+    Only models in LIVE_SHADOW_MODELS are considered (lstm and cnn are
+    excluded from the live pipeline).  Experiment-roster models come first
+    so the simulated models always refit before the RPS-only shadows; the
+    slow/risky ``bayesian_poisson`` is placed last within that group.
+    """
+    live = set(LIVE_SHADOW_MODELS)
+    non_champion = [n for n in CANDIDATE_MODELS if n != champion_name and n in live]
+    experiment = [
+        n for n in EXPERIMENT_MODELS if n != champion_name and n in CANDIDATE_MODELS and n in live
+    ]
+    # Stable sort: keeps roster order but pushes the slow model to the end.
+    experiment.sort(key=lambda n: n == _SLOW_EXPERIMENT_MODEL)
+    experiment_set = set(experiment)
+    non_experiment = [n for n in non_champion if n not in experiment_set]
+    return experiment + non_experiment
+
+
 def run_shadow_refit(df: pd.DataFrame) -> list[str]:
     """Refit all non-champion candidates on full Gold using stored best_params.
 
@@ -533,12 +626,13 @@ def run_shadow_refit(df: pd.DataFrame) -> list[str]:
     """
     setup_mlflow()
     champion = get_champion_metadata()
-    candidate_names = [n for n in CANDIDATE_MODELS if n != champion.model_name]
+    candidate_names = _ordered_shadow_candidates(champion.model_name)
     shadow_metas = get_all_shadow_metadata(
         candidate_names,
         exclude_model_name=champion.model_name,
     )
 
+    overall_deadline = time.time() + SHADOW_REFIT_TOTAL_TIMEOUT_S
     run_ids: list[str] = []
     for meta in shadow_metas:
         if meta.model_name == champion.model_name:
@@ -550,6 +644,17 @@ def run_shadow_refit(df: pd.DataFrame) -> list[str]:
             )
             continue
 
+        remaining = overall_deadline - time.time()
+        if remaining <= 0:
+            logger.warning(
+                "Shadow refit overall timeout (%.0fs) reached — skipping "
+                "remaining candidates from %s onward.",
+                SHADOW_REFIT_TOTAL_TIMEOUT_S,
+                meta.model_name,
+            )
+            break
+        per_model_timeout = min(SHADOW_FIT_TIMEOUT_S, remaining)
+
         model_cls = CANDIDATE_MODELS[meta.model_name]
         feature_cols = MODEL_FEATURE_SETS[meta.model_name]
         dropna = meta.model_name != "xgboost"
@@ -558,14 +663,34 @@ def run_shadow_refit(df: pd.DataFrame) -> list[str]:
         )
 
         logger.info(
-            "Shadow refit: fitting %s on %d Gold rows (half_period=%.2fyr).",
+            "Shadow refit: fitting %s on %d Gold rows (half_period=%.2fyr, timeout=%.0fs).",
             meta.model_name,
             len(splits.df_full),
             meta.half_period_years,
+            per_model_timeout,
         )
         t0 = time.time()
         model = model_cls(**meta.best_params)
-        model.fit(splits.X_full, splits.y_full, sample_weight=splits.w_full)
+        try:
+            model = _fit_with_timeout(
+                model,
+                splits.X_full,
+                splits.y_full,
+                splits.w_full,
+                per_model_timeout,
+            )
+        except TimeoutError:
+            logger.warning(
+                "Shadow refit: %s exceeded %.0fs — skipping (previous version kept).",
+                meta.model_name,
+                per_model_timeout,
+            )
+            continue
+        except Exception:
+            logger.exception(
+                "Shadow refit: %s failed during fit — skipping.", meta.model_name
+            )
+            continue
 
         with start_run(
             run_name=f"shadow_refit_{meta.model_name}",
