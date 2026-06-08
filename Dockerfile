@@ -14,6 +14,7 @@ COPY entrypoint.sh ./entrypoint.sh
 COPY .dvc/config ./.dvc/config
 COPY dvc.yaml dvc.lock ./
 COPY data/mappings ./data/mappings
+COPY data/tournament ./data/tournament
 
 RUN chmod +x ./entrypoint.sh \
     && git init && git config user.email "ci@local" && git config user.name "ci"
