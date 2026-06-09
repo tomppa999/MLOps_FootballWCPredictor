@@ -22,6 +22,10 @@ if [ -n "${DAGSHUB_TOKEN}" ]; then
     git remote add origin "${GIT_REPO}" 2>/dev/null || git remote set-url origin "${GIT_REPO}"
     git fetch --depth 1 origin thesis
     git reset --mixed FETCH_HEAD
+    # Materialize pointer files so dvc pull restores the full raw dataset.
+    # --mixed updates the index but not the working tree, leaving raw.dvc/dvc.lock
+    # as deleted on disk; without this checkout dvc pull only fetches ~13 files.
+    git checkout FETCH_HEAD -- data/raw.dvc dvc.lock
     git branch -M thesis
     git branch --set-upstream-to=origin/thesis thesis
 fi
