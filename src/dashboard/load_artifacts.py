@@ -21,6 +21,7 @@ import sys
 
 import mlflow
 import pandas as pd
+import streamlit as st
 
 try:
     from src.models.mlflow_utils import EXPERIMENT_NAME, setup_mlflow
@@ -106,6 +107,7 @@ def _get_latest_inference_run() -> mlflow.entities.Run:
     return runs[0]
 
 
+@st.cache_data(ttl=300)
 def load_latest_inference_artifacts() -> tuple[dict[str, pd.DataFrame], InferenceRunInfo]:
     """Download CSV artifacts from the latest inference run.
 
