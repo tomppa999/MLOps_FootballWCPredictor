@@ -83,20 +83,13 @@ Do this first, before the hourly scheduler test. Publishing is quick and low-ris
 - [x] Add `.env.example` with placeholder values for local setup instructions
 - [x] Commit all of the above to `thesis` and push
 
-**Phase B — PR**
-- [ ] Open PR `thesis` → `main` (clean fast-forward, ~27 commits, no conflicts)
-- [ ] Merge
-
-> Do the PR *before* the hourly test. The hourly ticks auto-commit data pointers to `thesis`; merging first avoids those commits landing in the PR diff.
+**Phase B — default branch**
+- [x] Set GitHub default branch to `thesis` (Settings → Branches). No PR/merge needed — `thesis` is the live branch and the entrypoint is already hardwired to it. `main` kept as a stale snapshot; ignored.
 
 **Phase C — GitHub hardening (web settings, after merge)**
-- [ ] Branch protection on `main` and `thesis`: block force-push and deletion (do not require PR approvals — you can't approve your own PR as sole owner)
-- [ ] Disable Issues (Settings → General → Features)
-- [ ] Enable Secret scanning + Push protection (free on public repos — blocks future accidental secret commits)
-
-**Phase D — Streamlit**
-- [ ] Flip Streamlit Cloud deployment branch from `thesis` → `main` (two clicks in app settings)
-- [ ] Verify app still loads after redeploy (predictions come from MLflow at runtime, not the git branch — flip is code-only)
+- [x] Branch protection on `main` and `thesis`: block force-push and deletion (do not require PR approvals — you can't approve your own PR as sole owner)
+- [x] Disable Issues (Settings → General → Features)
+- [x] Enable Secret scanning + Push protection (free on public repos — blocks future accidental secret commits)
 
 ---
 
