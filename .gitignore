@@ -51,6 +51,16 @@ data/interim/
 *.xlsx
 *.numbers
 
+# Literature PDFs and docx (copyrighted — keep locally, not in public repo)
+docs/literature/*.pdf
+docs/literature/*.docx
+
+# Presentation binaries (local only)
+docs/presentation/*.pptx
+
+# Cursor debug logs
+.cursor/debug-*.log
+
 # One-off scripts (not committed)
 scripts/retro_tag_runs.py
 scripts/scrape_wc2026_bracket.py

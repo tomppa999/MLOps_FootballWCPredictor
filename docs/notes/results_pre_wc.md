@@ -25,89 +25,32 @@ Holdout: WC 2022 only (64 matches).
 
 ---
 
-## After Phase 1 fixes (1a / 1b / 1c)
-
-_Fill after QA rerun._
-
-Mean-rate Poisson baseline RPS: [fill]
-
-| Model            | holdout RPS | Δ vs v2 | Notes |
-|------------------|-------------|---------|-------|
-| mean_rate_poisson | [fill]     | —       | baseline floor |
-| xgboost          | [fill]      | [fill]  |       |
-| ...              |             |         |       |
-
-NegBin fitted alpha (dispersion): [fill]
-Bayesian Poisson: posterior samples retained? Y/N
-
----
-
-## After A.1 (drop tactical features)
-
-_Fill after refit._
-
-Gold rows after drop: [fill]
-
-| Model | RPS before | RPS after | Δ |
-|-------|-----------|-----------|---|
-| xgboost | 0.2109 | [fill] | [fill] |
-| ... | | | |
-
-Notable: did any model improve meaningfully after dropping tactical features?
-
----
-
 ## After A.2 (add rolling Elo-change)
 
-_Fill after refit._
+A.1–A.4 were implemented simultaneously; no standalone per-step refit was run.
+The first measured checkpoint reflecting all four changes is A.5 below.
 
-Elo-change window selected (3 / 5 / 10 matches): [fill]
-Justification: [fill]
-
-| Model | RPS before | RPS after | Δ |
-|-------|-----------|-----------|---|
-| ... | | | |
-
-Was `rolling_elo_change` in any model's top-5 importance? [fill]
+Elo-change window selected: **5 matches** (tied to the existing rolling goals window; no ablation run performed — window kept at the default).
 
 ---
 
 ## After A.3 (expanded holdout)
 
-_Fill after data split change._
-
-New holdout match count: [fill] (target ~347)
-Match counts by tournament:
+New holdout match count: **~347**
 
 | Tournament     | Matches in holdout |
 |----------------|--------------------|
 | WC 2022        | 64                 |
-| AFCON 2024     | [fill]             |
-| Asian Cup 2024 | [fill]             |
-| Gold Cup 2023  | [fill]             |
-| Copa 2024      | [fill]             |
-| EURO 2024      | [fill]             |
-| Gold Cup 2025  | [fill]             |
-| AFCON 2025     | [fill] (group stage only) |
-| **Total**      | [fill]             |
+| AFCON 2024     | 52                 |
+| Asian Cup 2024 | 51                 |
+| Gold Cup 2023  | 31                 |
+| Copa 2024      | 31                 |
+| EURO 2024      | 51                 |
+| Gold Cup 2025  | 31                 |
+| AFCON 2025     | 36 (group stage only) |
+| **Total**      | **~347**           |
 
-| Model | WC-only RPS | Expanded holdout RPS | Δ |
-|-------|------------|---------------------|---|
-| xgboost | 0.2109 | [fill] | [fill] |
-| ... | | | |
-
----
-
-## After A.4 (time-decay + importance weights)
-
-_Fill after refit with sample weights (A.5 interim values in baselines.py)._
-
-RPS delta vs pre-weights baseline (expanded holdout):
-
-| Model | without weights | with weights | Δ |
-|-------|----------------|-------------|---|
-| xgboost | [fill] | [fill] | [fill] |
-| ... | | | |
+No standalone A.3 RPS comparison run. Individual per-step deltas were not measured — see A.5 for the combined result.
 
 ---
 

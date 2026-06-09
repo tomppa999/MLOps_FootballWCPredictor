@@ -66,10 +66,45 @@ Thesis track (on `thesis`):
     --mixed` left `raw.dvc`/`dvc.lock` unmaterialized → `dvc pull` fetched ~13
     files → truncated pointer clobbered `thesis`). Fixed in `entrypoint.sh`.
 
+### Jun 10 (before hourly test) — publish the repo
+
+Do this first, before the hourly scheduler test. Publishing is quick and low-risk; it also means the new Docker image built later in the day carries the updated README.
+
+**Phase A — cleanup + README + `.env.example` on `thesis` (local)**
+- [ ] Remove copyrighted PDFs/docx and presentation binaries from tracking:
+  ```
+  git rm --cached docs/literature/*.pdf docs/literature/*.docx
+  git rm --cached "docs/presentation/wc_mlops_presentation_draft.pptx"
+  git rm --cached "docs/presentation/wc_mlops_presentation_draft.bak.pptx"
+  git rm --cached "docs/presentation/~\$wc_mlops_presentation_draft.pptx"
+  ```
+- [ ] Add to `.gitignore`: `docs/literature/*.pdf`, `docs/literature/*.docx`, `docs/presentation/*.pptx`, `.cursor/debug-*.log`
+- [ ] Rewrite `README.md` (accurate status, GCP live, cadence experiment, Streamlit link, full how-to-run)
+- [ ] Add `.env.example` with placeholder values for local setup instructions
+- [ ] Commit all of the above to `thesis` and push
+
+**Phase B — PR**
+- [ ] Open PR `thesis` → `main` (clean fast-forward, ~27 commits, no conflicts)
+- [ ] Merge
+
+> Do the PR *before* the hourly test. The hourly ticks auto-commit data pointers to `thesis`; merging first avoids those commits landing in the PR diff.
+
+**Phase C — GitHub hardening (web settings, after merge)**
+- [ ] Branch protection on `main` and `thesis`: block force-push and deletion (do not require PR approvals — you can't approve your own PR as sole owner)
+- [ ] Disable Issues (Settings → General → Features)
+- [ ] Enable Secret scanning + Push protection (free on public repos — blocks future accidental secret commits)
+
+**Phase D — Streamlit**
+- [ ] Flip Streamlit Cloud deployment branch from `thesis` → `main` (two clicks in app settings)
+- [ ] Verify app still loads after redeploy (predictions come from MLflow at runtime, not the git branch — flip is code-only)
+
+---
+
 ### Jun 10 — test the hourly cadence on live friendly data
 - [ ] Build + push new image (carries the timeout change + any other pending
   code changes); `docker build --platform linux/amd64 -t ...:20260610a .` →
-  `docker push` → `gcloud run jobs update --image ...:20260610a`
+  `docker push` → `gcloud run jobs update --image ...:20260610a --memory 4Gi --cpu 2`
+  (resource downsize is unblocked — first successful run was ~35 min)
 - [ ] Temporarily switch `daily-pipeline-trigger` to hourly (`0 * * * *`) for a
   short window (watch 1–2 ticks), then revert to daily. Validates the cadence
   mechanics + the 50-min-under-60-min timing budget on real friendly data.
