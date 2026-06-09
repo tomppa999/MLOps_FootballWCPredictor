@@ -71,17 +71,17 @@ Thesis track (on `thesis`):
 Do this first, before the hourly scheduler test. Publishing is quick and low-risk; it also means the new Docker image built later in the day carries the updated README.
 
 **Phase A — cleanup + README + `.env.example` on `thesis` (local)**
-- [ ] Remove copyrighted PDFs/docx and presentation binaries from tracking:
+- [x] Remove copyrighted PDFs/docx and presentation binaries from tracking:
   ```
   git rm --cached docs/literature/*.pdf docs/literature/*.docx
   git rm --cached "docs/presentation/wc_mlops_presentation_draft.pptx"
   git rm --cached "docs/presentation/wc_mlops_presentation_draft.bak.pptx"
   git rm --cached "docs/presentation/~\$wc_mlops_presentation_draft.pptx"
   ```
-- [ ] Add to `.gitignore`: `docs/literature/*.pdf`, `docs/literature/*.docx`, `docs/presentation/*.pptx`, `.cursor/debug-*.log`
-- [ ] Rewrite `README.md` (accurate status, GCP live, cadence experiment, Streamlit link, full how-to-run)
-- [ ] Add `.env.example` with placeholder values for local setup instructions
-- [ ] Commit all of the above to `thesis` and push
+- [x] Add to `.gitignore`: `docs/literature/*.pdf`, `docs/literature/*.docx`, `docs/presentation/*.pptx`, `.cursor/debug-*.log`
+- [x] Rewrite `README.md` (accurate status, GCP live, cadence experiment, Streamlit link, full how-to-run)
+- [x] Add `.env.example` with placeholder values for local setup instructions
+- [x] Commit all of the above to `thesis` and push
 
 **Phase B — PR**
 - [ ] Open PR `thesis` → `main` (clean fast-forward, ~27 commits, no conflicts)
