@@ -95,8 +95,10 @@ RETRAIN_THRESHOLD: int = 10
 # Shadow-refit hang guards (B.3). A native sampler (PyMC NUTS) can wedge
 # indefinitely; a thread-based timeout cannot interrupt a C-extension call, so
 # each fit runs in a child process that is killed on timeout.
-SHADOW_FIT_TIMEOUT_S: float = 600.0          # per-model hard cap (10 min)
-SHADOW_REFIT_TOTAL_TIMEOUT_S: float = 1200.0  # overall cap across candidates (20 min)
+# No per-model cap: each model gets the remaining overall budget. bayesian_poisson
+# is the only model that ever approaches the limit and it runs last, so the fast
+# models are never blocked by it.
+SHADOW_REFIT_TOTAL_TIMEOUT_S: float = 1800.0  # overall cap across candidates (30 min)
 # bayesian_poisson is the slow/risky model — refit it last within the
 # experiment roster so the other selected models always complete first.
 _SLOW_EXPERIMENT_MODEL: str = "bayesian_poisson"
@@ -618,12 +620,12 @@ def run_per_round_refit(df: pd.DataFrame, *, matchday: str) -> dict[str, str]:
             len(splits.df_full),
             matchday,
             meta.half_period_years,
-            min(SHADOW_FIT_TIMEOUT_S, remaining),
+            remaining,
         )
 
         t0 = time.time()
         model_obj = CANDIDATE_MODELS[model_name](**meta.best_params)
-        per_model_timeout = min(SHADOW_FIT_TIMEOUT_S, remaining)
+        per_model_timeout = remaining
         try:
             model_obj = _fit_with_timeout(
                 model_obj, splits.X_full, splits.y_full, splits.w_full, per_model_timeout,
@@ -805,7 +807,7 @@ def run_shadow_refit(df: pd.DataFrame) -> list[str]:
                 meta.model_name,
             )
             break
-        per_model_timeout = min(SHADOW_FIT_TIMEOUT_S, remaining)
+        per_model_timeout = remaining
 
         model_cls = CANDIDATE_MODELS[meta.model_name]
         feature_cols = MODEL_FEATURE_SETS[meta.model_name]

@@ -178,7 +178,17 @@ C.9's dual-mode assertions depend on B.2 + A.10, so C.9 splits into an early
 plumbing pass (Jun 9) and a final experiment pass (Jun 10). See
 `golive_runbook.md`.
 
-- [ ] **C.1–C.9** Containerise, deploy, test
+- [x] **C.1** Containerise the trigger
+- [x] **C.2** Service account + permissions
+- [x] **C.3** Secret Manager
+- [x] **C.4** Artifact Registry + image push
+- [x] **C.5** Cloud Run Job (created; resource reduction to 4 GiB / 2 vCPU still pending)
+- [x] **C.6** Cloud Scheduler `daily-pipeline-trigger` created + enabled (`0 4 * * *`);
+  WC hourly flip deferred to Jun 11 kickoff
+- [~] **C.7** DVC remote on GCS — **deferred to post-WC** (DagsHub remote verified)
+- [ ] **C.8** Observability (log-based metric, alerting policy)
+- [x] **C.9** (first pass, Jun 9): dual-mode dispatch, all 4 models simulated, DVC push
+  succeeded, gold 6921 rows. Final pass (alias resolution) pending A.10.
 
 ### During WC (June 11 – July 19)
 
@@ -464,8 +474,9 @@ The model selection must use the thesis feature set and expanded holdout.
   Bayesian) if performance is close
 - [x] These 3 + mean-rate baseline = 4 models in the live WC experiment
   (A.8 roster: xgboost, poisson_glm, bayesian_poisson + mean_rate_poisson)
-- [ ] Narrow live pipeline to the 4-model roster (A.9) and freeze champions
-  for both modes (A.10) — frozen + per-round start identical. See the A.8–A.10
+- [x] Narrow live pipeline to the 4-model roster (A.9) — `EXPERIMENT_MODELS` and
+  `LIVE_SHADOW_MODELS` wired; done 2026-06-07.
+- [ ] Freeze champions for both modes (A.10) — Jun 11 pre-kickoff. See the A.10
   steps in the Sequencing section above for the detailed checklist.
 
 ---
@@ -562,23 +573,23 @@ Matchday-boundary detection fires refit for the per-round mode only.
 
 ### C.1. Containerise the trigger
 
-- [ ] Wire Dockerfile CMD to `python -m src.pipeline.trigger --mode=auto`
-- [ ] Verify `pyproject.toml` declares all runtime dependencies
-- [ ] Add `.dockerignore` (exclude `data/`, `mlruns/`, `.git/`, notebooks)
-- [ ] Local build + run with mounted credentials
+- [x] Wire Dockerfile CMD to `python -m src.pipeline.trigger --mode=auto`
+- [x] Verify `pyproject.toml` declares all runtime dependencies
+- [x] Add `.dockerignore` (exclude `data/`, `mlruns/`, `.git/`, notebooks)
+- [x] Local build + run with mounted credentials
 
 ### C.2. Service account and permissions
 
-- [ ] Create `wc-mlops-trigger@<project>.iam`
-- [ ] Grant: `roles/run.invoker`, `roles/artifactregistry.reader`,
+- [x] Create `wc-mlops-trigger@<project>.iam`
+- [x] Grant: `roles/run.invoker`, `roles/artifactregistry.reader`,
   `roles/secretmanager.secretAccessor`, `roles/logging.logWriter`,
   `roles/storage.objectAdmin`
 
 ### C.3. Secret Manager
 
-- [ ] Create secrets: API-Football key, DagsHub username, DagsHub token,
+- [x] Create secrets: API-Football key, DagsHub username, DagsHub token,
   MLflow tracking URI
-- [ ] Wire as env vars in Cloud Run Job definition (C.5). Four secrets map to
+- [x] Wire as env vars in Cloud Run Job definition (C.5). Four secrets map to
   **six** env vars — `dagshub-username` and `dagshub-token` each serve two
   names (`entrypoint.sh` needs `DAGSHUB_*`; MLflow needs `MLFLOW_TRACKING_*`):
   ```
@@ -592,44 +603,29 @@ Matchday-boundary detection fires refit for the per-round mode only.
 
 ### C.4. Artifact Registry + image push
 
-- [ ] Create Docker repo in Artifact Registry
-- [ ] Build for **`linux/amd64`** (Cloud Run; arm64 Mac builds fail otherwise):
+- [x] Create Docker repo in Artifact Registry
+- [x] Build for **`linux/amd64`** (Cloud Run; arm64 Mac builds fail otherwise):
   `docker buildx build --platform linux/amd64 ...`
-- [ ] Tag with a **unique timestamp** (not `:latest` alone), e.g.
-  `20260608-1530`, and push. Cloud Run pins the digest at deploy time — a new
-  `:latest` push does nothing until you `gcloud run jobs update --image`.
-- [ ] **Rebuild only when code changes** (`src/`, `Dockerfile`, `entrypoint.sh`,
-  `pyproject.toml`). Data updates happen at runtime via DVC; no image rebuild.
-  Expect ~2 redeploys this sprint: initial (C.5) and Jun 9 (B.1–B.4 merged).
-- [ ] Commit `dvc.lock` / `data/raw.dvc` before build — baked pointers are the
-  `dvc pull` baseline; incremental ingestion only backfills `LOOKBACK_DAYS=2`.
+- [x] Tag with a **unique timestamp** (not `:latest` alone). Deployed tags so
+  far: `20260608b` (initial), `20260609a` (entrypoint fix + guard + B.1–B.4).
+- [x] **Rebuild only when code changes.** Jun 10 rebuild pending (timeout change).
+- [x] Commit `dvc.lock` / `data/raw.dvc` before build — done Jun 9 (7708 files).
 
 ### C.5. Cloud Run Job
 
-- [ ] Create `wc-mlops-trigger` job with `--image` set to the **dated tag**
+- [x] Create `wc-mlops-trigger` job with `--image` set to the **dated tag**
   from C.4 (not `:latest`)
-- [ ] Attach C.3 secrets via `--set-secrets` (six env vars; see C.3)
-- [ ] Resources: 8 GiB / 4 vCPU for initial full-pipeline run; lower to 4 GiB /
-  2 vCPU with `gcloud run jobs update --memory 4Gi --cpu 2` once you've
-  measured that routine inference+simulation cycles fit within those limits.
-- [ ] **`--tasks 1 --parallelism 1`** — ensures one container per execution.
-  Cloud Run Jobs have no `--max-instances` flag (that is a Services setting).
-  Cross-execution overlap is prevented by keeping task timeout well under the
-  scheduler interval: use **50 min timeout** with a 60-min schedule so a slow
-  run finishes before the next tick fires. The `fcntl` lockfile in
-  `trigger.main()` covers local/manual overlap only (each Cloud Run execution
-  gets a fresh container filesystem, so the lockfile does not persist across
-  executions).
-- [ ] Timeout: **50 min** (`--task-timeout 3000`). Must stay under the 60-min
-  WC scheduler interval. A refit cycle is 4 refits (incl. bayesian MCMC) +
-  8 simulations; measure first and raise if needed (while keeping under the
-  interval). Start at 8 GiB / 4 vCPU; lower to 4 GiB / 2 vCPU after first
-  successful run confirms routine cycles fit.
-- [ ] Mode: **`auto` via `PIPELINE_MODE` env var** (default in `entrypoint.sh`).
-  Do **not** use `--args` — `entrypoint.sh` ignores container args and reads
-  `PIPELINE_MODE` (defaults to `auto`). `inference_only` would skip B.3
-  per-round refits and must not be used during WC.
-- [ ] On code changes: rebuild (C.4) → `gcloud run jobs update --image <dated-tag>`
+- [x] Attach C.3 secrets via `--set-secrets` (six env vars; see C.3)
+- [x] **`--tasks 1 --parallelism 1`** — ensures one container per execution.
+- [x] Timeout: **50 min** (`--task-timeout 3000`). Python-level shadow-refit
+  budget is 30 min (`SHADOW_REFIT_TOTAL_TIMEOUT_S`; raised from 20 min Jun 9,
+  per-model cap removed — each model gets the full remaining budget). First
+  successful full run was ~35 min, well within both limits.
+- [x] Mode: **`auto` via `PIPELINE_MODE` env var** (default in `entrypoint.sh`).
+- [x] On code changes: rebuild (C.4) → `gcloud run jobs update --image <dated-tag>`
+- [ ] Lower resources: 8 GiB / 4 vCPU → 4 GiB / 2 vCPU
+  (`gcloud run jobs update --memory 4Gi --cpu 2`). First successful run (~35 min)
+  confirms routine cycles fit. **Unblocked — do before WC.**
 
 ### C.6. Cloud Scheduler
 
@@ -637,19 +633,23 @@ Two schedules hit the same `wc-mlops-trigger` job; **both use `mode=auto`**
 (default `PIPELINE_MODE`). Only the cron frequency changes — do not switch to
 `inference_only` (that skips per-round refit at matchday boundaries).
 
-- [ ] **Pre-WC** (now – June 10): daily 04:00 UTC. Cron: `0 4 * * *`.
-  Job: `daily-pipeline-trigger`. Leave enabled.
+- [x] **Pre-WC** (now – June 10): daily 04:00 UTC. Cron: `0 4 * * *`.
+  Job: `daily-pipeline-trigger`. Created and enabled.
 - [ ] **WC** (June 11 – July 19): hourly. Cron: `0 * * * *`.
-  Job: `wc-pipeline-trigger`. Create paused; resume at kickoff. Sufficient
-  given match schedule; keeps task timeout (50 min) safely under the interval.
-  At kickoff: pause `daily-pipeline-trigger`, resume `wc-pipeline-trigger`.
+  At kickoff (19:00 UTC Jun 11): pause `daily-pipeline-trigger`, enable hourly.
+  Keeps task timeout (50 min) safely under the 60-min interval.
 - [ ] Post-WC: pause both
 
 ### C.7. DVC remote on GCS
 
-- [ ] Create bucket `gs://wc-mlops-dvc-<project>/`
-- [ ] `dvc remote add -d gcs gs://wc-mlops-dvc-<project>/`
-- [ ] Verify `dvc push` works from inside the container
+**Deferred to post-WC.** DagsHub remote is working (blobs + git pointers
+verified Jun 9, 7779 files on remote). Migrating days before kickoff is
+avoidable risk for marginal gain (only upside is dropping the DagsHub token
+from Secret Manager in favour of IAM). Revisit after the tournament.
+
+- [~] Create bucket `gs://wc-mlops-dvc-<project>/`
+- [~] `dvc remote add -d gcs gs://wc-mlops-dvc-<project>/`
+- [~] Verify `dvc push` works from inside the container
 
 ### C.8. Observability
 
@@ -664,13 +664,18 @@ Two schedules hit the same `wc-mlops-trigger` job; **both use `mode=auto`**
 
 ### C.9. Pre-WC test runs
 
-- [ ] Trigger Cloud Run Job manually 2–3 times before June 10
-- [ ] Verify:
-  - Both modes' MLflow runs appear
-  - Both artifact sets written with correct metadata tags
-  - `champion_frozen` and `champion_per_round` aliases resolve
-  - Monitoring runs empty pre-WC
-  - DVC push succeeds
+**First pass — done Jun 9 (execution `wc-mlops-trigger-qgwsf`):**
+- [x] Trigger Cloud Run Job manually
+- [x] Both modes' MLflow runs appear (`cadence_mode=frozen` + `cadence_mode=per_round`)
+- [x] Both artifact sets written with correct metadata tags
+- [x] All 4 roster models simulated in both modes (`bayesian_poisson, mean_rate_poisson,
+  poisson_glm, xgboost`)
+- [x] DVC push succeeded (gold 6921 rows, 9 files pushed)
+
+**Final pass — pending A.10 (Jun 11 pre-kickoff):**
+- [ ] `champion_frozen` and `champion_per_round` aliases resolve
+- [ ] Monitoring runs empty pre-WC
+- [ ] Both alias-tagged artifact sets written correctly
 
 ---
 

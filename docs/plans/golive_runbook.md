@@ -37,8 +37,12 @@ GCP track (deploy code as-is, single `champion` alias, pre-B.2):
 - [x] **C.3** Secret Manager
 - [x] **C.4** Artifact Registry + image push
 - [x] **C.5** Cloud Run Job
-- [ ] **C.6** Cloud Scheduler (pre-WC daily + WC hourly paused)
-- [ ] **C.7** DVC remote on GCS
+- [x] **C.6 (created)** Cloud Scheduler `daily-pipeline-trigger` ENABLED at
+  `0 4 * * *`. The flip to WC hourly is moved to **Jun 11** (kickoff section).
+- [~] **C.7** DVC remote on GCS — **deferred to post-WC.** The DagsHub remote
+  works (blobs + git pointers verified Jun 9). Migrating ~32 MB to GCS days
+  before kickoff is avoidable risk for marginal gain (only upside is dropping
+  the DagsHub token from Secret Manager). Revisit after the tournament.
 
 Thesis track (on `thesis`):
 - [x] **B.1** Snapshot metadata tagging
@@ -53,20 +57,42 @@ Thesis track (on `thesis`):
 > for the freeze.
 
 ### Jun 9 — redeploy with B.1–B.4 merged + first C.9 (dress rehearsal)
-- [ ] Redeploy image with B.1–B.4 (code change → new dated tag + `jobs update`;
-  see thesis C.4)
-- [ ] **C.9** (first pass): dual-mode dispatch runs on GCP, metadata tags land,
-  `predictions_all_models.csv` covers the full roster, DVC push succeeds
+- [x] Redeploy image with B.1–B.4 (deployed `20260609a`; also carries the
+  entrypoint pointer-checkout fix + the collapsed-raw guard)
+- [x] **C.9** (first pass): dual-mode dispatch ran on GCP (frozen + per_round),
+  metadata tags landed, `predictions_all_models.csv` covered the full roster
+  (all 4 models simulated), DVC push succeeded. Clean run = gold 6921 rows.
+  - Also resolved: the Cloud Run truncation incident (entrypoint `git reset
+    --mixed` left `raw.dvc`/`dvc.lock` unmaterialized → `dvc pull` fetched ~13
+    files → truncated pointer clobbered `thesis`). Fixed in `entrypoint.sh`.
 
-### Jun 10 — A.10 freeze + final C.9
+### Jun 10 — test the hourly cadence on live friendly data
+- [ ] Build + push new image (carries the timeout change + any other pending
+  code changes); `docker build --platform linux/amd64 -t ...:20260610a .` →
+  `docker push` → `gcloud run jobs update --image ...:20260610a`
+- [ ] Temporarily switch `daily-pipeline-trigger` to hourly (`0 * * * *`) for a
+  short window (watch 1–2 ticks), then revert to daily. Validates the cadence
+  mechanics + the 50-min-under-60-min timing budget on real friendly data.
+  - Caveats: pre-A.10 each tick may fire the legacy delta refit on every new
+    friendly (extra MLflow runs / compute — cosmetic); each cycle must stay
+    < 60 min (today's full run was ~35 min); do **not** kick off a manual job
+    while a scheduled tick is running (Cloud Run Jobs have no cross-execution
+    lock); remember to revert to daily afterwards.
+
+### Jun 11 (pre-kickoff, early) — A.10 freeze + final C.9
+- The last 2026 friendly kicks off **01:00 UTC Jun 11**; its result is ingested
+  by the 04:00 UTC daily tick. Run A.10 after that and before the **19:00 UTC**
+  opening-match kickoff — plenty of buffer.
 - [ ] **A.10** build latest full Gold (final friendlies) → `run_champion_refit`
-  for the 3 champions → assign `champion_frozen` + `champion_per_round`
+  for the 3 champions → assign `champion_frozen` + `champion_per_round`.
+  **Pause `daily-pipeline-trigger` during the manual freeze** to avoid an
+  execution overlap (no cross-execution lock on Cloud Run Jobs).
 - [ ] Record frozen `run_id` + aliases in `results_pre_wc.md` (fills the
   existing `[fill]` slots)
 - [ ] **C.9** (final pass): both aliases resolve, both artifact sets written,
   monitoring runs empty pre-WC
 
-### Jun 11 — kickoff
+### Jun 11 — kickoff (opening match 19:00 UTC)
 - [ ] **C.6** flip scheduler: pause pre-WC daily, enable hourly (`0 * * * *`)
 - [ ] First live cycle verified; start logging in `wc_live.md`
 
@@ -97,4 +123,12 @@ Thesis track (on `thesis`):
   `mode=auto` (default `PIPELINE_MODE` in `entrypoint.sh`). Do **not** use
   `inference_only` — it skips B.3 per-round refits. No `--args` on the job;
   mode is env-driven only.
+- **Shadow-refit timeout raised + per-model cap removed (Jun 9):**
+  `SHADOW_REFIT_TOTAL_TIMEOUT_S = 1800` (30 min); `SHADOW_FIT_TIMEOUT_S`
+  removed entirely. In the pre-WC full 8-model refit, bayesian_poisson (fit
+  last) was starved by the 20-min overall cap (~8 min → timed out → prior
+  version kept). The per-model cap was redundant since bayesian is the only
+  slow model and it runs last — fast models are never blocked by it. Each model
+  now gets the full remaining overall budget. Keep worst-case cycle < 50-min
+  Cloud Run task timeout.
 - (add live blockers / decisions here; promote durable ones to `decisions.md`)
