@@ -195,13 +195,13 @@ def test_shadow_refit_does_not_invoke_optuna(
 def test_ordered_shadow_candidates_experiment_first_bayesian_last():
     """Experiment models lead, bayesian_poisson is last of them, champion absent."""
     from src.models import pipeline as pipeline_module
-    from src.models.config import EXPERIMENT_MODELS
+    from src.models.config import EXPERIMENT_MODELS, LIVE_SHADOW_MODELS
 
     ordered = pipeline_module._ordered_shadow_candidates("xgboost")
 
-    # Champion excluded; every other candidate present exactly once.
+    # Champion excluded; only LIVE_SHADOW_MODELS are considered (lstm/cnn excluded).
     assert "xgboost" not in ordered
-    assert set(ordered) == set(pipeline_module.CANDIDATE_MODELS) - {"xgboost"}
+    assert set(ordered) == set(LIVE_SHADOW_MODELS) - {"xgboost"}
     assert len(ordered) == len(set(ordered))
 
     # Experiment roster (minus champion) forms the prefix.

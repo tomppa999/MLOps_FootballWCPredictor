@@ -37,6 +37,7 @@ ARTIFACT_FILENAMES: tuple[str, ...] = (
     "predictions.csv",
     "scoreline_distributions.csv",
     "ko_pairings.csv",
+    "ko_fixtures.csv",
 )
 
 # Artifact keys that are stored in multi-model long format and should be

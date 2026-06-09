@@ -28,6 +28,10 @@ except ModuleNotFoundError:
 
 TOURNAMENT_CONFIG_PATH = Path("data/tournament/wc2026.json")
 
+_KO_STAGE_ORDER = {"R32": 0, "R16": 1, "QF": 2, "SF": 3, "Final": 4}
+_KO_STAGE_LABELS = {"R32": "Round of 32", "R16": "Round of 16", "QF": "Quarter-finals",
+                    "SF": "Semi-finals", "Final": "Final"}
+
 
 def _format_percentage_columns(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
     """Return a copy with selected columns scaled to 0-100 and rounded."""
@@ -145,6 +149,25 @@ def view_group_positions(group_df: pd.DataFrame, team_to_group: dict[str, str]) 
             margin=dict(l=80, r=10, t=30, b=40),
         )
         st.plotly_chart(fig, use_container_width=True)
+
+
+# ---------------------------------------------------------------------------
+# KO fixture helpers
+# ---------------------------------------------------------------------------
+
+
+def resolve_ko_fixtures(ko_fixtures_df: pd.DataFrame) -> list[dict]:
+    """Return KO fixtures as a list of dicts, ordered by stage then match_num.
+
+    Each dict has: match_num, stage, home_team, away_team, status,
+    home_goals, away_goals, decided_by, pairing_frequency.
+    """
+    if ko_fixtures_df is None or ko_fixtures_df.empty:
+        return []
+    df = ko_fixtures_df.copy()
+    df["_stage_order"] = df["stage"].map(_KO_STAGE_ORDER).fillna(99)
+    df = df.sort_values(["_stage_order", "match_num"]).drop(columns=["_stage_order"])
+    return df.to_dict(orient="records")
 
 
 # ---------------------------------------------------------------------------
@@ -289,7 +312,10 @@ def _build_match_bar(fixtures_with_preds: pd.DataFrame) -> None:
     st.plotly_chart(fig, use_container_width=True)
 
 
-def view_match_predictions(pred_df: pd.DataFrame) -> None:
+def view_match_predictions(
+    pred_df: pd.DataFrame,
+    ko_fixtures_df: pd.DataFrame | None = None,
+) -> None:
     st.header("Match predictions")
 
     fixtures = _load_tournament_fixtures()
@@ -339,6 +365,44 @@ def view_match_predictions(pred_df: pd.DataFrame) -> None:
                         "P(H) %", "P(D) %", "P(A) %"]
         st.dataframe(raw, use_container_width=True)
 
+    # KO fixtures section
+    if ko_fixtures_df is not None and not ko_fixtures_df.empty:
+        st.divider()
+        st.subheader("Knockout stage")
+        ko_fixtures = resolve_ko_fixtures(ko_fixtures_df)
+        stage_groups: dict[str, list[dict]] = {}
+        for fix in ko_fixtures:
+            stage_groups.setdefault(fix["stage"], []).append(fix)
+        for stage_key in sorted(stage_groups.keys(), key=lambda s: _KO_STAGE_ORDER.get(s, 99)):
+            label = _KO_STAGE_LABELS.get(stage_key, stage_key)
+            st.markdown(f"**{label}**")
+            ko_records = []
+            for fix in stage_groups[stage_key]:
+                pred = _lookup_prediction(pred_df, fix["home_team"], fix["away_team"])
+                status_badge = (
+                    "🔒 Locked" if fix["status"] == "locked"
+                    else f"🔮 Predicted ({fix['pairing_frequency']:.0%})"
+                )
+                ko_records.append({
+                    "status": status_badge,
+                    "home_team": fix["home_team"],
+                    "away_team": fix["away_team"],
+                    "lambda_h": pred["lambda_h"] if pred else None,
+                    "lambda_a": pred["lambda_a"] if pred else None,
+                    "p_home": round((pred["p_home"] if pred else 0.0) * 100, 1),
+                    "p_draw": round((pred["p_draw"] if pred else 0.0) * 100, 1),
+                    "p_away": round((pred["p_away"] if pred else 0.0) * 100, 1),
+                })
+            ko_df = pd.DataFrame(ko_records)
+            ko_df.columns = ["Status", "Home", "Away", "xG Home", "xG Away",
+                              "P(H) %", "P(D) %", "P(A) %"]
+            st.dataframe(ko_df, use_container_width=True)
+        st.caption(
+            "Predicted matchups show the most likely pairing for each slot based on "
+            "independent marginal probabilities from the latest simulation run. "
+            "These are per-slot estimates and do not represent a single coherent bracket path."
+        )
+
 
 # ---------------------------------------------------------------------------
 # View D: Most common matchups
@@ -380,59 +444,6 @@ def view_common_matchups(ko_df: pd.DataFrame) -> None:
 
 
 # ---------------------------------------------------------------------------
-# View E: Top scorelines per group match
-# ---------------------------------------------------------------------------
-
-def view_scoreline_distributions(score_df: pd.DataFrame, team_to_group: dict[str, str]) -> None:
-    st.header("Top scorelines per match")
-
-    if "home_team" not in score_df.columns or "away_team" not in score_df.columns:
-        st.warning(
-            "Scoreline artifact is missing team name columns. "
-            "Re-run inference to regenerate the artifact."
-        )
-        return
-
-    top_n = st.sidebar.slider("Top N scorelines", min_value=1, max_value=10, value=3, step=1)
-    selected_group = st.sidebar.selectbox(
-        "Filter by group",
-        options=["All"] + sorted(team_to_group.values() if team_to_group else []),
-        key="scoreline_group_filter",
-    )
-
-    df = score_df.copy()
-    df["group"] = df["home_team"].map(team_to_group)
-    if selected_group != "All":
-        df = df[df["group"] == selected_group]
-
-    df["scoreline"] = df["home_goals"].astype(str) + "–" + df["away_goals"].astype(str)
-    df["pct"] = (df["probability"] * 100).round(1)
-
-    match_keys = (
-        df[["home_team", "away_team", "group"]]
-        .drop_duplicates()
-        .sort_values(["group", "home_team"])
-    )
-
-    for _, row in match_keys.iterrows():
-        home, away = row["home_team"], row["away_team"]
-        group = row.get("group", "")
-        label = f"Group {group} — {home} vs {away}" if pd.notna(group) else f"{home} vs {away}"
-        st.subheader(label)
-
-        match_df = (
-            df[(df["home_team"] == home) & (df["away_team"] == away)]
-            .sort_values("probability", ascending=False)
-            .head(top_n)
-            .reset_index(drop=True)
-        )
-
-        cols = st.columns(len(match_df))
-        for col, (_, r) in zip(cols, match_df.iterrows()):
-            col.metric(r["scoreline"], f"{r['pct']}%")
-
-
-# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -452,15 +463,19 @@ def main() -> None:
     group_df = data.get("group_positions")
     pred_df = data.get("predictions")
     ko_df = data.get("ko_pairings")
+    ko_fixtures_df = data.get("ko_fixtures")
 
     if group_df is not None:
         team_to_group = load_group_mapping()
     else:
         team_to_group = {}
 
-    score_df = data.get("scoreline_distributions")
-
-    views = ["Tournament overview", "Group positions", "Match predictions", "Scoreline distributions", "Common matchups"]
+    views = [
+        "Tournament overview",
+        "Group positions",
+        "Match predictions",
+        "Common matchups",
+    ]
     view = st.sidebar.radio("View", options=views)
 
     if view == "Tournament overview":
@@ -477,12 +492,7 @@ def main() -> None:
         if pred_df is None:
             st.warning("predictions.csv not found.")
         else:
-            view_match_predictions(pred_df)
-    elif view == "Scoreline distributions":
-        if score_df is None:
-            st.warning("scoreline_distributions.csv not found.")
-        else:
-            view_scoreline_distributions(score_df, team_to_group)
+            view_match_predictions(pred_df, ko_fixtures_df=ko_fixtures_df)
     else:
         if ko_df is None:
             st.warning("ko_pairings.csv not found.")

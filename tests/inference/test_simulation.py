@@ -475,6 +475,62 @@ class TestSimulateTournament:
         assert len(row) == 1
         assert row.iloc[0]["count"] == n_sims
 
+    def test_ko_slot_pairings_in_result(self, tmp_path):
+        """ko_slot_pairings must be present with expected schema."""
+        config_path = _make_toy_config(tmp_path)
+        result = simulate_tournament(
+            _make_all_pairs_predictions(),
+            n_sims=20,
+            config_path=config_path,
+            seed=7,
+        )
+        assert "ko_slot_pairings" in result
+        ksp = result["ko_slot_pairings"]
+        assert set(ksp.columns) == {"stage", "match_num", "home_team", "away_team", "count", "frequency"}
+
+    def test_ko_slot_pairings_counts_sum_to_n_sims_per_slot(self, tmp_path):
+        """For each match_num, the sum of counts across all pairings equals n_sims."""
+        config_path = _make_toy_config(tmp_path)
+        n_sims = 30
+        result = simulate_tournament(
+            _make_all_pairs_predictions(),
+            n_sims=n_sims,
+            config_path=config_path,
+            seed=99,
+        )
+        ksp = result["ko_slot_pairings"]
+        for match_num, group in ksp.groupby("match_num"):
+            total = group["count"].sum()
+            assert total == n_sims, f"match_num {match_num}: expected {n_sims}, got {total}"
+
+    def test_locked_ko_slot_has_single_pair_frequency_one(self, tmp_path):
+        """A fully locked R32 slot must have exactly one pairing with frequency 1.0."""
+        config_path = _make_toy_config(tmp_path)
+        locked_group = {
+            ("T1", "T2"): (3, 0), ("T3", "T4"): (1, 1),
+            ("T1", "T3"): (2, 0), ("T4", "T2"): (0, 2),
+            ("T4", "T1"): (0, 1), ("T2", "T3"): (1, 2),
+        }
+        locked_ko = {
+            73: {"home": "T1", "away": "T9", "home_goals": 2, "away_goals": 0, "decided_by": "FT"}
+        }
+        n_sims = 25
+        result = simulate_tournament(
+            _make_all_pairs_predictions(),
+            n_sims=n_sims,
+            config_path=config_path,
+            seed=0,
+            locked_group_results=locked_group,
+            locked_ko_results=locked_ko,
+        )
+        ksp = result["ko_slot_pairings"]
+        slot = ksp[ksp["match_num"] == 73]
+        assert len(slot) == 1
+        assert slot.iloc[0]["home_team"] == "T1"
+        assert slot.iloc[0]["away_team"] == "T9"
+        assert slot.iloc[0]["count"] == n_sims
+        assert abs(slot.iloc[0]["frequency"] - 1.0) < 1e-9
+
     def test_winner_probabilities_sum_approximately(self, tmp_path):
         config_path = _make_toy_config(tmp_path)
 

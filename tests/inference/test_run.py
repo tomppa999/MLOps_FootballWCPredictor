@@ -96,6 +96,14 @@ def _make_sim_results() -> dict:
         "advancement": pd.DataFrame([{"team": "France", "p_winner": 0.15}]),
         "group_positions": pd.DataFrame([{"team": "France", "p_1st": 0.6}]),
         "ko_pairings": pd.DataFrame([{"team_a": "France", "team_b": "Germany", "count": 500}]),
+        "ko_slot_pairings": pd.DataFrame([{
+            "stage": "R32",
+            "match_num": 49,
+            "home_team": "France",
+            "away_team": "Germany",
+            "count": 100,
+            "frequency": 1.0,
+        }]),
         "n_sims": 100,
     }
 
@@ -194,6 +202,14 @@ class TestRunInferenceAndSimulation:
         assert log_kwargs["matchday_label"] == "1"
         assert log_kwargs["matches_completed_in_matchday"] == 0
         assert log_kwargs["total_matches_completed"] == 0
+
+        # ko_fixtures is built from champion sim and passed to log_inference_artifacts.
+        assert "ko_fixtures" in log_kwargs
+        kf = log_kwargs["ko_fixtures"]
+        # mock sim result has one predicted R32 slot; ko_results is empty → status=predicted
+        assert kf is not None
+        assert isinstance(kf, pd.DataFrame)
+        assert set(kf.columns) >= {"match_num", "stage", "home_team", "away_team", "status"}
 
     @patch("src.inference.run.generate_all_wc_pairings")
     @patch("src.inference.run.parse_wc_results")

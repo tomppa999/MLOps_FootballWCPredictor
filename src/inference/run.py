@@ -115,6 +115,138 @@ def _simulate_roster(
     return per_model
 
 
+def _build_ko_fixtures(
+    locked_ko: dict[int, dict],
+    ko_slot_pairings: "pd.DataFrame | None",
+) -> pd.DataFrame:
+    """Build a champion-only ko_fixtures DataFrame (one row per KO match slot).
+
+    For locked slots: status='locked', actual score, pairing_frequency=1.0.
+    For predicted slots: status='predicted', modal (home, away) from
+    ko_slot_pairings, with their observed frequency.
+    """
+    if ko_slot_pairings is None or ko_slot_pairings.empty:
+        # No simulation results available; populate only locked fixtures.
+        rows = []
+        for match_num, res in sorted(locked_ko.items()):
+            rows.append({
+                "match_num": match_num,
+                "stage": "Unknown",
+                "home_team": res["home"],
+                "away_team": res["away"],
+                "status": "locked",
+                "home_goals": res["home_goals"],
+                "away_goals": res["away_goals"],
+                "decided_by": res.get("decided_by", ""),
+                "pairing_frequency": 1.0,
+            })
+        return pd.DataFrame(rows)
+
+    rows = []
+    # Modal predicted pair per slot (already sorted by match_num, count desc)
+    modal = (
+        ko_slot_pairings.groupby("match_num", sort=False)
+        .first()
+        .reset_index()
+    )
+    for _, m_row in modal.iterrows():
+        match_num = int(m_row["match_num"])
+        if match_num in locked_ko:
+            res = locked_ko[match_num]
+            rows.append({
+                "match_num": match_num,
+                "stage": m_row["stage"],
+                "home_team": res["home"],
+                "away_team": res["away"],
+                "status": "locked",
+                "home_goals": int(res["home_goals"]),
+                "away_goals": int(res["away_goals"]),
+                "decided_by": res.get("decided_by", ""),
+                "pairing_frequency": 1.0,
+            })
+        else:
+            rows.append({
+                "match_num": match_num,
+                "stage": m_row["stage"],
+                "home_team": m_row["home_team"],
+                "away_team": m_row["away_team"],
+                "status": "predicted",
+                "home_goals": None,
+                "away_goals": None,
+                "decided_by": "",
+                "pairing_frequency": float(m_row["frequency"]),
+            })
+
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        df = df.sort_values("match_num").reset_index(drop=True)
+    return df
+
+
+def _sample_ko_scorelines(
+    ko_fixtures: pd.DataFrame,
+    predictions_df: pd.DataFrame,
+    n_sims: int,
+    seed: int | None,
+) -> pd.DataFrame:
+    """Sample Poisson scoreline distributions for KO fixtures.
+
+    Uses the champion model's predicted rates for every slot, whether locked
+    or predicted (the actual result for locked slots is shown separately in
+    the UI; the distribution still reflects model predictions).
+    """
+    if ko_fixtures.empty:
+        return pd.DataFrame(
+            columns=["match_idx", "home_goals", "away_goals", "probability",
+                     "home_team", "away_team", "stage", "match_num"]
+        )
+
+    rate_lookup: dict[tuple[str, str], tuple[float, float]] = {}
+    for _, row in predictions_df.iterrows():
+        rate_lookup[(row["home_team"], row["away_team"])] = (
+            float(row["lambda_h"]),
+            float(row["lambda_a"]),
+        )
+        if (row["away_team"], row["home_team"]) not in rate_lookup:
+            rate_lookup[(row["away_team"], row["home_team"])] = (
+                float(row["lambda_a"]),
+                float(row["lambda_h"]),
+            )
+
+    lambda_h_list, lambda_a_list, valid_rows = [], [], []
+    for _, fix in ko_fixtures.iterrows():
+        h, a = fix["home_team"], fix["away_team"]
+        rates = rate_lookup.get((h, a)) or rate_lookup.get((a, h))
+        if rates is None:
+            logger.warning("No rate found for KO fixture %s vs %s — skipping scoreline.", h, a)
+            continue
+        lambda_h_list.append(rates[0] if (h, a) in rate_lookup else rates[1])
+        lambda_a_list.append(rates[1] if (h, a) in rate_lookup else rates[0])
+        valid_rows.append(fix)
+
+    if not lambda_h_list:
+        return pd.DataFrame(
+            columns=["match_idx", "home_goals", "away_goals", "probability",
+                     "home_team", "away_team", "stage", "match_num"]
+        )
+
+    samples = sample_scorelines(
+        np.array(lambda_h_list),
+        np.array(lambda_a_list),
+        n_sims=n_sims,
+        rng=np.random.default_rng(seed),
+    )
+    sl = scoreline_distribution(samples)
+    valid_df = pd.DataFrame(valid_rows).reset_index(drop=True)
+    sl["home_team"] = sl["match_idx"].map(valid_df["home_team"])
+    sl["away_team"] = sl["match_idx"].map(valid_df["away_team"])
+    sl["stage"] = sl["match_idx"].map(valid_df["stage"].reset_index(drop=True))
+    sl["match_num"] = sl["match_idx"].map(
+        valid_df["match_num"].reset_index(drop=True)
+    )
+    return sl
+
+
 def run_inference_and_simulation(
     n_sims: int = 10_000,
     gold_path: Path | None = None,
@@ -220,18 +352,38 @@ def run_inference_and_simulation(
         )
 
     # Scoreline sampling: champion only (group fixtures, unplayed only).
+    # Build a rate lookup keyed by (home, away) so we can look up in either orientation.
     all_group_fixtures = generate_wc_group_fixtures()
     locked_group_keys = set(wc_results["group_results"].keys())
-    upcoming_group_teams = set()
-    for _, r in all_group_fixtures.iterrows():
-        if (r["home_team"], r["away_team"]) not in locked_group_keys:
-            upcoming_group_teams.add((r["home_team"], r["away_team"]))
+    pred_rate_lookup: dict[tuple[str, str], pd.Series] = {
+        (row["home_team"], row["away_team"]): row
+        for _, row in all_predictions_df.iterrows()
+    }
 
-    group_mask = all_predictions_df.apply(
-        lambda r: (r["home_team"], r["away_team"]) in upcoming_group_teams,
-        axis=1,
-    )
-    group_predictions_df = all_predictions_df.loc[group_mask]
+    group_rows: list[dict] = []
+    for _, fix in all_group_fixtures.iterrows():
+        fwd = (fix["home_team"], fix["away_team"])
+        rev = (fix["away_team"], fix["home_team"])
+        if fwd in locked_group_keys or rev in locked_group_keys:
+            continue
+        if fwd in pred_rate_lookup:
+            group_rows.append(pred_rate_lookup[fwd].to_dict())
+        elif rev in pred_rate_lookup:
+            # Prediction exists with flipped orientation — reorient to the
+            # canonical fixture home/away so scorelines are attributed correctly.
+            pr = pred_rate_lookup[rev].to_dict()
+            pr["home_team"] = fix["home_team"]
+            pr["away_team"] = fix["away_team"]
+            pr["lambda_h"], pr["lambda_a"] = pr["lambda_a"], pr["lambda_h"]
+            pr["p_home"], pr["p_away"] = pr["p_away"], pr["p_home"]
+            group_rows.append(pr)
+        else:
+            logger.warning(
+                "No prediction found for group fixture %s vs %s — skipping scoreline.",
+                fix["home_team"], fix["away_team"],
+            )
+
+    group_predictions_df = pd.DataFrame(group_rows).reset_index(drop=True)
 
     logger.info(
         "Group fixtures: %d total, %d locked, %d to sample scorelines",
@@ -248,12 +400,15 @@ def run_inference_and_simulation(
             rng=np.random.default_rng(simulation_seed),
         )
         sl_dist = scoreline_distribution(samples)
-        teams = group_predictions_df[["home_team", "away_team"]].reset_index(drop=True)
-        sl_dist["home_team"] = sl_dist["match_idx"].map(teams["home_team"])
-        sl_dist["away_team"] = sl_dist["match_idx"].map(teams["away_team"])
+        group_teams = group_predictions_df[["home_team", "away_team"]].reset_index(drop=True)
+        sl_dist["home_team"] = sl_dist["match_idx"].map(group_teams["home_team"])
+        sl_dist["away_team"] = sl_dist["match_idx"].map(group_teams["away_team"])
+        sl_dist["stage"] = "Group"
+        sl_dist["match_num"] = None
     else:
         sl_dist = pd.DataFrame(
-            columns=["match_idx", "home_goals", "away_goals", "probability", "home_team", "away_team"]
+            columns=["match_idx", "home_goals", "away_goals", "probability",
+                     "home_team", "away_team", "stage", "match_num"]
         )
 
     # Option A: simulate all 4 EXPERIMENT_MODELS roster entries.
@@ -294,10 +449,21 @@ def run_inference_and_simulation(
         ", ".join(sorted(per_model_tournament_results.keys())),
     )
 
+    # Build ko_fixtures and sample KO scorelines from champion results.
+    champion_sim = per_model_tournament_results.get(champion_model_name, {})
+    ko_slot_pairings = champion_sim.get("ko_slot_pairings")
+    ko_fixtures = _build_ko_fixtures(wc_results["ko_results"], ko_slot_pairings)
+    ko_sl_dist = _sample_ko_scorelines(
+        ko_fixtures, all_predictions_df, n_sims, simulation_seed
+    )
+    if not ko_sl_dist.empty:
+        sl_dist = pd.concat([sl_dist, ko_sl_dist], ignore_index=True)
+
     # Log to MLflow
     run_id = log_inference_artifacts(
         predictions_df=all_predictions_df,
         scoreline_dist=sl_dist,
+        ko_fixtures=ko_fixtures if not ko_fixtures.empty else None,
         per_model_tournament_results=per_model_tournament_results,
         n_sims=n_sims,
         gold_row_count=len(gold_df),

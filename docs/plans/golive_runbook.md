@@ -91,6 +91,7 @@ Thesis track (on `thesis`):
   existing `[fill]` slots)
 - [ ] **C.9** (final pass): both aliases resolve, both artifact sets written,
   monitoring runs empty pre-WC
+- [ ] Make sure the Streamlit app takes the predictions from the frozen model and updates the predictions after each new inference run
 
 ### Jun 11 — kickoff (opening match 19:00 UTC)
 - [ ] **C.6** flip scheduler: pause pre-WC daily, enable hourly (`0 * * * *`)

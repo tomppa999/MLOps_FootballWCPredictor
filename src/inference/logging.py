@@ -49,6 +49,7 @@ def log_inference_artifacts(
     *,
     n_sims: int,
     gold_row_count: int,
+    ko_fixtures: pd.DataFrame | None = None,
     champion_model_name: str = "unknown",
     all_models_predictions_df: pd.DataFrame | None = None,
     inference_timestamp: str | None = None,
@@ -131,6 +132,11 @@ def log_inference_artifacts(
                 sl_path = tmp / "scoreline_distributions.csv"
                 scoreline_dist.to_csv(sl_path, index=False)
                 mlflow.log_artifact(str(sl_path))
+
+            if ko_fixtures is not None and not ko_fixtures.empty:
+                kf_path = tmp / "ko_fixtures.csv"
+                ko_fixtures.to_csv(kf_path, index=False)
+                mlflow.log_artifact(str(kf_path))
 
             if combined_advancement is not None:
                 tp_path = tmp / "tournament_probabilities.csv"
