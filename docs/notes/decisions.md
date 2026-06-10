@@ -327,40 +327,52 @@ full top-5. Source ranking: A.7 / post-A.6 refit holdout RPS (expanded holdout,
   comfortable margin for the 30-min cadence even before narrowing to the 4-model
   roster (A.9).
 
-### Per-cycle simulation seed (RQ2 reproducibility, 2026-06-07; updated 2026-06-10)
+### Per-matchday simulation seed (RQ2 reproducibility, 2026-06-07; updated 2026-06-10)
 
-`_run_inference_for_all_modes()` (in `trigger.py`) derives a single seed from a
-SHA-256 hash of a cycle timestamp and passes it to every
-`run_inference_and_simulation()` call within that dispatch cycle — i.e. **both**
-cadence modes (frozen and per_round) share the same seed. Each run still logs
-its own `inference_timestamp`, but the `simulation_seed` MLflow param is the
-authoritative replay key; the two may differ within a cycle. All 4 roster
-models within each mode call also share the seed.
+`run_inference_and_simulation()` derives its Monte Carlo seed from the
+**matchday label** (`_seed_from_string(matchday_label)`) rather than the
+cycle wall-clock timestamp. The seed is derived after `matchday_label` is
+resolved from `parse_wc_results()` / `derive_snapshot_metadata()`, so it
+changes exactly when tournament information changes (i.e. at each matchday
+boundary), not on every pipeline tick.
 
-**Why per-cycle, not a fixed constant:** RQ2 analyses Shannon entropy
-*trajectories* over ~60 inference cycles. A single fixed seed would correlate
-Monte Carlo noise across all snapshots, biasing the shape of the resolution
-curve. A per-cycle seed keeps MC noise independent across snapshots while
-preserving reproducibility within each cycle.
+**Why matchday-keyed, not per-cycle timestamp:** between matchday boundaries
+the pipeline may fire many times (every-2h cadence, ELO updates, etc.) without
+any new WC results. A timestamp-based seed produced ~±0.5% MC jitter on
+displayed probabilities across those cycles even though the underlying model
+and locked results were unchanged. Keying on matchday eliminates this noise:
+cycles within the same window are bit-identical; cycles across boundaries are
+independent. This is strictly better for RQ2 — the entropy trajectory should
+change only when information arrives or the model updates, not due to MC noise
+in no-information windows.
 
-**Why shared across both cadence modes:** before any per-round refit fires
-(e.g. pre-MD1 or between matchday boundaries), frozen and per_round use the
-same underlying model. Giving them the same seed makes their simulations
-bit-identical, so any probability difference in that period unambiguously
-indicates a model change, not MC noise.
+**Why shared across both cadence modes:** `_run_inference_for_all_modes()`
+passes no explicit seed; each mode call derives the seed independently from
+the same matchday label and therefore produces the same value. This keeps
+frozen vs per_round simulations bit-identical within a cycle so any probability
+difference between modes unambiguously reflects a model change.
 
 **Why shared across the 4 roster models within a mode call:** most defensible
 cross-model setup; all models start from an identical RNG state. This does
 *not* achieve true common-random-numbers (CRN) variance reduction —
 `rng.poisson(λ≈1.3)` uses Knuth's algorithm, which consumes a λ-dependent
 number of underlying uniforms, so streams desynchronise after the first match.
-Cross-model comparability therefore rests on `n_sims=10_000` being large
-enough that MC noise ≪ between-model differences (verified adequate at
-~±0.5% advancement probability), not on seed coupling.
+Cross-model comparability rests on `n_sims=10_000` being large enough that
+MC noise ≪ between-model differences (verified adequate at ~±0.5% advancement
+probability), not on seed coupling.
+
+**Granularity tradeoff:** cross-snapshot MC independence is now per-matchday
+rather than per-cycle. This is correct — intra-window reruns carry no new
+information, so one realization per window is the right granularity. The ~60
+matchday snapshots over the tournament still have independent MC noise for RQ2.
 
 **Why `hashlib`, not built-in `hash()`:** Python salts string hashing per
 process (`PYTHONHASHSEED`), making `hash()` non-reproducible across runs.
 SHA-256 mod 2³² is stable regardless of environment.
+
+**Replay:** the `simulation_seed` MLflow param is the authoritative replay key.
+The `inference_timestamp` param records the wall-clock time of each cycle for
+audit purposes but is no longer the seed source.
 
 **Scoreline sampling:** the same seed is also passed to `sample_scorelines()`
 (champion-only display artifact) for full cycle determinism, though this has

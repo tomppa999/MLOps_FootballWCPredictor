@@ -38,17 +38,20 @@ from src.models.mlflow_utils import _alias_for_mode, get_champion_metadata
 logger = logging.getLogger(__name__)
 
 
-def _seed_from_timestamp(ts_iso: str) -> int:
-    """Derive a deterministic 32-bit seed from an ISO timestamp string.
+def _seed_from_string(s: str) -> int:
+    """Derive a deterministic 32-bit seed from a string.
 
     Uses SHA-256 rather than built-in ``hash()`` because Python salts string
     hashing per process (``PYTHONHASHSEED``), making ``hash()`` non-reproducible
-    across runs.  The result is stable for the same ``ts_iso`` regardless of
-    environment, so a cycle can always be replayed given only its logged
-    ``inference_timestamp``.
+    across runs.  The result is stable for the same input regardless of
+    environment.
     """
-    digest = hashlib.sha256(ts_iso.encode()).hexdigest()
+    digest = hashlib.sha256(s.encode()).hexdigest()
     return int(digest, 16) % (2**32)
+
+
+# Keep legacy name for any external callers / tests.
+_seed_from_timestamp = _seed_from_string
 
 
 def _simulate_roster(
@@ -263,15 +266,7 @@ def run_inference_and_simulation(
     """
     logger.info("=== Inference and simulation ===")
 
-    # Capture cycle timestamp and derive a deterministic per-cycle seed.
-    # The seed is shared across all 4 roster model simulations so each cycle
-    # is individually reproducible from its logged inference_timestamp.
-    # A different seed per cycle keeps MC noise independent along the RQ2
-    # entropy trajectory (see docs/notes/decisions.md).
     cycle_ts = datetime.now(timezone.utc).isoformat()
-    if simulation_seed is None:
-        simulation_seed = _seed_from_timestamp(cycle_ts)
-    logger.info("Cycle timestamp: %s  simulation_seed: %d", cycle_ts, simulation_seed)
 
     # Load Gold history
     if gold_path is not None:
@@ -289,6 +284,18 @@ def run_inference_and_simulation(
         matches_completed_in_matchday = int(snapshot_meta["matches_completed_in_matchday"])
     if total_matches_completed is None:
         total_matches_completed = int(snapshot_meta["total_matches_completed"])
+
+    # Derive seed from matchday_label so all cycles within the same matchday
+    # window produce bit-identical simulations (no MC jitter when no new results
+    # have arrived). The seed changes at each matchday boundary, preserving
+    # cross-snapshot independence for the RQ2 entropy trajectory.
+    # An explicit seed passed by the caller (e.g. tests) always takes precedence.
+    # Both cadence modes derive the same value for the same matchday, so
+    # frozen vs per_round comparisons within a cycle are unaffected by MC noise.
+    if simulation_seed is None:
+        simulation_seed = _seed_from_string(matchday_label)
+    logger.info("Cycle timestamp: %s  matchday: %s  simulation_seed: %d",
+                cycle_ts, matchday_label, simulation_seed)
     locked_group = wc_results["group_results"] or None
     locked_ko = wc_results["ko_results"] or None
     logger.info(

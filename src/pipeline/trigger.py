@@ -20,7 +20,7 @@ import os
 import subprocess
 import sys
 import tempfile
-from datetime import date, datetime, timezone
+from datetime import date
 from pathlib import Path
 
 import requests
@@ -345,19 +345,17 @@ def _safe_monitoring_step() -> None:
 def _run_inference_for_all_modes() -> None:
     """Run inference + simulation once per cadence mode (B.2).
 
-    All modes in a single dispatch cycle share one Monte Carlo seed so their
-    simulations are bit-identical while the underlying model is unchanged
-    (e.g. between refits, pre-MD1). The seed varies across cycles, preserving
-    the RQ2 cross-snapshot independence requirement.
+    No explicit seed is passed; each call derives a seed from the matchday
+    label it resolves internally. Both modes see the same matchday and therefore
+    produce the same seed, keeping frozen vs per_round comparisons free of MC
+    noise within a cycle. The seed changes at each matchday boundary, preserving
+    cross-snapshot independence for the RQ2 entropy trajectory.
     """
-    from src.inference.run import _seed_from_timestamp, run_inference_and_simulation  # noqa: PLC0415
+    from src.inference.run import run_inference_and_simulation  # noqa: PLC0415
 
-    cycle_ts = datetime.now(timezone.utc).isoformat()
-    simulation_seed = _seed_from_timestamp(cycle_ts)
-    log.info("Dispatch cycle timestamp: %s  simulation_seed: %d", cycle_ts, simulation_seed)
     for mode in CADENCE_MODES:
         log.info("Running inference for cadence_mode=%s", mode)
-        run_inference_and_simulation(cadence_mode=mode, simulation_seed=simulation_seed)
+        run_inference_and_simulation(cadence_mode=mode)
 
 
 def _safe_shadow_refit(df) -> None:
