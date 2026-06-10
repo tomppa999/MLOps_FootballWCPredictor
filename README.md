@@ -4,7 +4,7 @@
 [![Streamlit App](https://img.shields.io/badge/streamlit-live-brightgreen)](https://wc2026-predictions.streamlit.app/)
 [![MLflow on DagsHub](https://img.shields.io/badge/mlflow-dagshub-orange)](https://dagshub.com/tomppa999/MLOps_FootballWCPredictor)
 
-An end-to-end MLOps pipeline for predicting FIFA World Cup 2026 match outcomes. The system ingests football national team match data hourly, rebuilds features, refits models, and simulates the full 48-team tournament bracket — all running automatically on GCP Cloud Run. Built alongside a thesis on the effect of regular retraining and uncertainty resolution in tournament prediction.
+An end-to-end MLOps pipeline for predicting FIFA World Cup 2026 match outcomes. The system ingests football national team match data every 2 hours, rebuilds features, refits models, and simulates the full 48-team tournament bracket — all running automatically on GCP Cloud Run. Built alongside a thesis on the effect of regular retraining and uncertainty resolution in tournament prediction.
 
 **Live dashboard:** [wc2026-predictions.streamlit.app](https://wc2026-predictions.streamlit.app/)
 
@@ -12,7 +12,7 @@ An end-to-end MLOps pipeline for predicting FIFA World Cup 2026 match outcomes. 
 
 ## What's running right now
 
-- **Automated pipeline** on GCP Cloud Run Jobs, scheduled daily pre-tournament and hourly during WC 2026 (June 11 – July 19)
+- **Automated pipeline** on GCP Cloud Run Jobs, scheduled daily pre-tournament and every 2 hours during WC 2026 (June 11 – July 19)
 - **Live data ingestion** from API-Football + Elo ratings; ~6,900 match rows in the Gold dataset
 - **4-model production roster:** `mean_rate_poisson` (baseline), `poisson_glm`, `bayesian_poisson`, `xgboost`
 - **Cadence experiment:** two champion variants run in parallel — a model frozen before the tournament starts vs. a model refitted after each completed round. The experiment measures whether per-round refits meaningfully resolve prediction uncertainty as the tournament progresses.
@@ -26,7 +26,7 @@ An end-to-end MLOps pipeline for predicting FIFA World Cup 2026 match outcomes. 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                   pipeline/trigger.py                    │
-│          (Cloud Run Job, hourly during WC 2026)          │
+│       (Cloud Run Job, every 2h during WC 2026)           │
 └──────┬──────────────────────────────────────┬───────────┘
        │                                      │
        ▼                                      ▼
@@ -50,7 +50,7 @@ API-Football + Elo TSVs                 predict → simulate
   DVC artifact versioning
 ```
 
-Data flows Bronze → Silver → Gold via `dvc repro`. The trigger orchestrates everything: freshness checks, DVC pipeline, champion/shadow training, inference, simulation, and monitoring in a single daily/hourly cycle.
+Data flows Bronze → Silver → Gold via `dvc repro`. The trigger orchestrates everything: freshness checks, DVC pipeline, champion/shadow training, inference, simulation, and monitoring in a single daily (pre-WC) / every-2h (WC) cycle.
 
 ---
 
@@ -108,7 +108,7 @@ src/
 ├── models/          training pipeline, 11 candidate models, MLflow utilities
 ├── inference/       champion/shadow prediction, Monte Carlo tournament simulation
 ├── monitoring/      live RPS/NLL scoring against settled WC 2026 matches
-├── pipeline/        daily/hourly orchestration trigger
+├── pipeline/        daily/every-2h orchestration trigger
 └── dashboard/       Streamlit app — predictions, group standings, knockout paths
 
 data/
@@ -188,5 +188,5 @@ Data (Bronze/Silver/Gold) and trained model artifacts are versioned with DVC. Th
 
 ## Current status
 
-- Pipeline deployed and running on GCP Cloud Run (daily pre-tournament, hourly from June 11)
+- Pipeline deployed and running on GCP Cloud Run (daily pre-tournament, every 2 hours from June 11)
 

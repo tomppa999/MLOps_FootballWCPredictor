@@ -553,7 +553,7 @@ Matchday-boundary detection fires refit for the per-round mode only.
 - [x] **Concurrency guard:** whole-run `fcntl` lockfile in `trigger.main()`
   prevents within-host overlap (skip tick if lock held). On Cloud Run Jobs there
   is no `--max-instances` flag — cross-execution overlap is prevented by
-  keeping task timeout (50 min) under the scheduler interval (60 min hourly),
+  keeping task timeout (50 min) under the scheduler interval (120 min / every-2h),
   plus `--tasks 1 --parallelism 1`. Each execution has a fresh container
   filesystem so the lockfile doesn't persist cross-execution. WC refits are
   spaced hours apart; the guards cover the edge case of a slow bayesian MCMC
@@ -635,9 +635,9 @@ Two schedules hit the same `wc-mlops-trigger` job; **both use `mode=auto`**
 
 - [x] **Pre-WC** (now – June 10): daily 04:00 UTC. Cron: `0 4 * * *`.
   Job: `daily-pipeline-trigger`. Created and enabled.
-- [ ] **WC** (June 11 – July 19): hourly. Cron: `0 * * * *`.
-  At kickoff (19:00 UTC Jun 11): pause `daily-pipeline-trigger`, enable hourly.
-  Keeps task timeout (50 min) safely under the 60-min interval.
+- [ ] **WC** (June 11 – July 19): every 2 hours. Cron: `0 */2 * * *`.
+  At kickoff (19:00 UTC Jun 11): pause `daily-pipeline-trigger`, enable every-2h.
+  Keeps task timeout (50 min) safely under the 120-min interval.
 - [ ] Post-WC: pause both
 
 ### C.7. DVC remote on GCS

@@ -389,9 +389,9 @@ def view_match_predictions(
                     "away_team": fix["away_team"],
                     "lambda_h": pred["lambda_h"] if pred else None,
                     "lambda_a": pred["lambda_a"] if pred else None,
-                    "p_home": round((pred["p_home"] if pred else 0.0) * 100, 1),
-                    "p_draw": round((pred["p_draw"] if pred else 0.0) * 100, 1),
-                    "p_away": round((pred["p_away"] if pred else 0.0) * 100, 1),
+                    "p_home": round(pred["p_home"] if pred else 0.0, 1),
+                    "p_draw": round(pred["p_draw"] if pred else 0.0, 1),
+                    "p_away": round(pred["p_away"] if pred else 0.0, 1),
                 })
             ko_df = pd.DataFrame(ko_records)
             ko_df.columns = ["Status", "Home", "Away", "xG Home", "xG Away",

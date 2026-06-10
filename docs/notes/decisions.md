@@ -327,13 +327,15 @@ full top-5. Source ranking: A.7 / post-A.6 refit holdout RPS (expanded holdout,
   comfortable margin for the 30-min cadence even before narrowing to the 4-model
   roster (A.9).
 
-### Per-cycle simulation seed (RQ2 reproducibility, 2026-06-07)
+### Per-cycle simulation seed (RQ2 reproducibility, 2026-06-07; updated 2026-06-10)
 
-Each inference cycle derives a single integer seed from a SHA-256 hash of its
-`inference_timestamp` and passes it to every `simulate_tournament()` call.
-All 4 roster models share the cycle's seed. The seed and timestamp are both
-logged as MLflow params (`simulation_seed`, `inference_timestamp`), so any
-cycle can be replayed exactly given only its logged metadata.
+`_run_inference_for_all_modes()` (in `trigger.py`) derives a single seed from a
+SHA-256 hash of a cycle timestamp and passes it to every
+`run_inference_and_simulation()` call within that dispatch cycle — i.e. **both**
+cadence modes (frozen and per_round) share the same seed. Each run still logs
+its own `inference_timestamp`, but the `simulation_seed` MLflow param is the
+authoritative replay key; the two may differ within a cycle. All 4 roster
+models within each mode call also share the seed.
 
 **Why per-cycle, not a fixed constant:** RQ2 analyses Shannon entropy
 *trajectories* over ~60 inference cycles. A single fixed seed would correlate
@@ -341,7 +343,13 @@ Monte Carlo noise across all snapshots, biasing the shape of the resolution
 curve. A per-cycle seed keeps MC noise independent across snapshots while
 preserving reproducibility within each cycle.
 
-**Why shared across the 4 models within a cycle:** most defensible
+**Why shared across both cadence modes:** before any per-round refit fires
+(e.g. pre-MD1 or between matchday boundaries), frozen and per_round use the
+same underlying model. Giving them the same seed makes their simulations
+bit-identical, so any probability difference in that period unambiguously
+indicates a model change, not MC noise.
+
+**Why shared across the 4 roster models within a mode call:** most defensible
 cross-model setup; all models start from an identical RNG state. This does
 *not* achieve true common-random-numbers (CRN) variance reduction —
 `rng.poisson(λ≈1.3)` uses Knuth's algorithm, which consumes a λ-dependent

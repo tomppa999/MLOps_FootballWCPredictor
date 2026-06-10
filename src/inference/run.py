@@ -255,6 +255,7 @@ def run_inference_and_simulation(
     matchday_label: str | None = None,
     matches_completed_in_matchday: int | None = None,
     total_matches_completed: int | None = None,
+    simulation_seed: int | None = None,
 ) -> str:
     """End-to-end inference: features → predict → simulate → log.
 
@@ -268,7 +269,8 @@ def run_inference_and_simulation(
     # A different seed per cycle keeps MC noise independent along the RQ2
     # entropy trajectory (see docs/notes/decisions.md).
     cycle_ts = datetime.now(timezone.utc).isoformat()
-    simulation_seed = _seed_from_timestamp(cycle_ts)
+    if simulation_seed is None:
+        simulation_seed = _seed_from_timestamp(cycle_ts)
     logger.info("Cycle timestamp: %s  simulation_seed: %d", cycle_ts, simulation_seed)
 
     # Load Gold history

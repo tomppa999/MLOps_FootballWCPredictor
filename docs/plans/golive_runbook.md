@@ -93,17 +93,16 @@ Do this first, before the hourly scheduler test. Publishing is quick and low-ris
 
 ---
 
-### Jun 10 — test the hourly cadence on live friendly data
-- [ ] Build + push new image (carries the timeout change + any other pending
+### Jun 10 — test the every-2h cadence on live friendly data
+- [x] Build + push new image (carries the timeout change + any other pending
   code changes); `docker build --platform linux/amd64 -t ...:20260610a .` →
-  `docker push` → `gcloud run jobs update --image ...:20260610a --memory 4Gi --cpu 2`
-  (resource downsize is unblocked — first successful run was ~35 min)
-- [ ] Temporarily switch `daily-pipeline-trigger` to hourly (`0 * * * *`) for a
+  `docker push` → `gcloud run jobs update --image ...:20260610a`
+  (keep 8 GiB / 4 vCPU for now — validate timing before downsizing)
+- [x] Temporarily switch `daily-pipeline-trigger` to every-2h (`0 */2 * * *`) for a
   short window (watch 1–2 ticks), then revert to daily. Validates the cadence
-  mechanics + the 50-min-under-60-min timing budget on real friendly data.
+  mechanics on real friendly data; comfortable timing margin (50-min run vs 120-min interval).
   - Caveats: pre-A.10 each tick may fire the legacy delta refit on every new
-    friendly (extra MLflow runs / compute — cosmetic); each cycle must stay
-    < 60 min (today's full run was ~35 min); do **not** kick off a manual job
+    friendly (extra MLflow runs / compute — cosmetic); do **not** kick off a manual job
     while a scheduled tick is running (Cloud Run Jobs have no cross-execution
     lock); remember to revert to daily afterwards.
 
@@ -122,7 +121,7 @@ Do this first, before the hourly scheduler test. Publishing is quick and low-ris
 - [ ] Make sure the Streamlit app takes the predictions from the frozen model and updates the predictions after each new inference run
 
 ### Jun 11 — kickoff (opening match 19:00 UTC)
-- [ ] **C.6** flip scheduler: pause pre-WC daily, enable hourly (`0 * * * *`)
+- [ ] **C.6** flip scheduler: pause pre-WC daily, enable every-2h (`0 */2 * * *`)
 - [ ] First live cycle verified; start logging in `wc_live.md`
 
 ---
@@ -136,8 +135,8 @@ Do this first, before the hourly scheduler test. Publishing is quick and low-ris
   in `trigger.main()` prevents a second local invocation from running while the
   first is still active (exit 0 / skip tick). On **Cloud Run Jobs** there is no
   `--max-instances` flag (that is a Services setting) — the cross-execution
-  guard is keeping task timeout (50 min) under the scheduler interval (60 min
-  hourly), plus `--tasks 1 --parallelism 1` (one container per execution). The
+  guard is keeping task timeout (50 min) under the scheduler interval (120 min
+  every-2h), plus `--tasks 1 --parallelism 1` (one container per execution). The
   lockfile covers local/manual overlap only. WC refits are spaced hours apart
   so real overlap is unlikely; the guards exist for the edge case of a slow
   bayesian MCMC refit approaching the interval limit.
@@ -148,7 +147,7 @@ Do this first, before the hourly scheduler test. Publishing is quick and low-ris
   unique timestamp (e.g. `20260608-1530`), not `:latest` alone; point the job
   at that tag. Rebuild **only on code changes** — data is ingested at runtime.
   Sprint redeploys: initial C.5 + Jun 9 (B.1–B.4). Details in thesis C.3–C.5.
-- **Scheduler mode (C.6):** both pre-WC daily and WC hourly schedules use
+- **Scheduler mode (C.6):** both pre-WC daily and WC every-2h schedules use
   `mode=auto` (default `PIPELINE_MODE` in `entrypoint.sh`). Do **not** use
   `inference_only` — it skips B.3 per-round refits. No `--args` on the job;
   mode is env-driven only.
