@@ -81,4 +81,9 @@ TAU template EN.pptx
 .pptx_deps2/
 docs/presentation/logs/
 logs/
-exports/
+
+# Betting feature: track code under betting/, ignore generated data/outputs
+betting/scorelines/
+betting/snapshots/
+betting/priced/
+betting/

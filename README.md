@@ -62,19 +62,24 @@ Eleven candidate models were evaluated (Poisson GLM, Negative Binomial GLM, XGBo
 
 Features are strictly time-aware and leakage-safe: all rolling stats, Elo ratings, and competition context use only information available before each match.
 
-### Results (WC 2022 holdout, 64 matches)
+### Results (expanded holdout, ~347 matches)
+
+Holdout covers WC 2022 + AFCON 2024 + Asian Cup 2024 + Gold Cup 2023 + Copa América 2024 + EURO 2024 + Gold Cup 2025 + AFCON 2025 (group stage). Models marked ★ are on the live production roster.
 
 | Model | Holdout RPS |
 |---|---|
-| xgboost | **0.2109** ← champion |
-| random_forest | 0.2121 |
-| ridge | 0.2141 |
-| poisson_glm | 0.2159 |
-| bayesian_poisson | 0.2166 |
-| negbin_glm | 0.2170 |
-| sarimax | 0.2183 |
-| lstm | 0.2207 |
-| cnn | 0.2248 |
+| xgboost ★ | **0.18289** ← champion |
+| bayesian_poisson ★ | 0.18316 |
+| negbin_glm | 0.18373 |
+| poisson_glm ★ | 0.18389 |
+| random_forest | 0.18392 |
+| sarimax | 0.18583 |
+| ridge | 0.18813 |
+| lstm | 0.19299 |
+| cnn | 0.20916 |
+| mean_rate_poisson ★ | 0.22872 ← baseline |
+
+`poisson_glm` is preferred over `negbin_glm` despite near-identical RPS (rankings swap depending on random seed); the independent bivariate Poisson formulation also has stronger footing in the football prediction literature (Karlis & Ntzoufras, 2004).
 
 For context: Poisson ranking models on national teams achieve RPS ~0.165; bookmakers on World Cup matches ~0.188–0.194 (Ley et al. 2019; Groll et al. 2019). Note these benchmarks use different training regimes and are not directly comparable — they provide ceiling context only.
 

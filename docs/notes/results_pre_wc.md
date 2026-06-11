@@ -245,3 +245,50 @@ uncertainty (RQ2 / RQ3) despite mild MCMC divergences.
 
 Frozen run_id (both modes start here): [fill after pre-tournament re-fit]
 MLflow aliases assigned: `champion_frozen` = [fill], `champion_per_round` = [fill]
+
+---
+
+## Feature importance — 3 champion models (2026-06-10)
+
+Permutation importance (Δ RPS, 5 repeats) computed from the post-A.6
+`best_<model>` experimental runs on DagsHub. Holdout: expanded set (~347 matches).
+Positive = shuffling the feature worsens RPS (feature is useful).
+Negative = shuffling *improves* RPS (feature adds noise on this holdout).
+
+Run IDs: xgboost `18a004d00ae7493ea1ac8ee877cbedd3`,
+poisson_glm `06989d848fd745a387d0d525e365cfcc`,
+bayesian_poisson `81c15e096b4e480897b9c41b39282b9b`.
+
+| Feature | XGBoost | Poisson GLM | Bayesian Poisson |
+|---|---|---|---|
+| **elo_diff** | **+0.07682** | **+0.07899** | **+0.08289** |
+| away_team_rolling_elo_change | +0.00059 | +0.00078 | +0.00086 |
+| home_team_rolling_goals_for | +0.00058 | +0.00075 | +0.00065 |
+| home_team_rolling_goals_against | −0.00014 | +0.00059 | +0.00055 |
+| home_days_since_last_match | −0.00008 | −0.00008 | +0.00009 |
+| away_days_since_last_match | +0.00006 | −0.00001 | −0.00009 |
+| rest_diff | +0.00007 | −0.00002 | −0.00015 |
+| is_neutral | −0.00005 | −0.00006 | −0.00010 |
+| elo_sum | +0.00011 | −0.00018 | −0.00018 |
+| competition_tier | +0.00006 | −0.00021 | −0.00027 |
+| home_team_rolling_elo_change | −0.00070 | −0.00054 | −0.00042 |
+| away_team_rolling_goals_against | −0.00114 | −0.00056 | −0.00060 |
+| away_team_rolling_goals_for | −0.00096 | −0.00062 | −0.00068 |
+| is_knockout | −0.00000 | −0.00078 | −0.00110 |
+
+Takeaways:
+- `elo_diff` is the only feature with material importance across all models
+  (0.077–0.083 Δ RPS, 80–200× the next feature). The model comparison is
+  essentially a comparison of how each family extrapolates from Elo.
+- `away_team_rolling_elo_change` is consistently #2 across all three models —
+  the A.2 addition contributes positively; away Elo trajectory is more
+  predictive than home Elo trajectory.
+- `home_team_rolling_elo_change` is consistently *negative* across all three
+  models — home Elo trajectory adds mild noise rather than signal on this
+  holdout. Reportable asymmetry.
+- `is_knockout` is harmful in both GLMs (−0.00078 / −0.00110) but effectively
+  neutral in XGBoost (−0.00000). GLMs cannot suppress it via tree structure.
+  Candidate for removal in a future feature-set revision.
+- More than half the 14-feature set has negative or near-zero importance. Given
+  the performance ceiling (~0.001 RPS spread across top 5 models), further
+  trimming is unlikely to move holdout RPS meaningfully.

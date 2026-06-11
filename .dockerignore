@@ -21,4 +21,4 @@ notebooks/
 .DS_Store
 *.pptx
 .env
-exports/
+betting/
