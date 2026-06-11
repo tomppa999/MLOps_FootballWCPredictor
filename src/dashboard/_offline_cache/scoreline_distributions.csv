@@ -1,0 +1,4758 @@
+match_idx,home_goals,away_goals,probability,home_team,away_team,stage,match_num
+0,0,0,0.0515,Mexico,South Africa,Group,
+0,0,1,0.0306,Mexico,South Africa,Group,
+0,0,2,0.0091,Mexico,South Africa,Group,
+0,0,3,0.0019,Mexico,South Africa,Group,
+0,0,4,0.0004,Mexico,South Africa,Group,
+0,0,5,0.0001,Mexico,South Africa,Group,
+0,1,0,0.1267,Mexico,South Africa,Group,
+0,1,1,0.0724,Mexico,South Africa,Group,
+0,1,2,0.023,Mexico,South Africa,Group,
+0,1,3,0.0038,Mexico,South Africa,Group,
+0,1,4,0.0006,Mexico,South Africa,Group,
+0,1,5,0.0001,Mexico,South Africa,Group,
+0,2,0,0.142,Mexico,South Africa,Group,
+0,2,1,0.0873,Mexico,South Africa,Group,
+0,2,2,0.0293,Mexico,South Africa,Group,
+0,2,3,0.005,Mexico,South Africa,Group,
+0,2,4,0.0009,Mexico,South Africa,Group,
+0,2,5,0.0001,Mexico,South Africa,Group,
+0,3,0,0.1113,Mexico,South Africa,Group,
+0,3,1,0.0695,Mexico,South Africa,Group,
+0,3,2,0.0208,Mexico,South Africa,Group,
+0,3,3,0.0052,Mexico,South Africa,Group,
+0,3,4,0.0011,Mexico,South Africa,Group,
+0,4,0,0.0642,Mexico,South Africa,Group,
+0,4,1,0.0367,Mexico,South Africa,Group,
+0,4,2,0.0118,Mexico,South Africa,Group,
+0,4,3,0.0024,Mexico,South Africa,Group,
+0,4,4,0.0003,Mexico,South Africa,Group,
+0,4,5,0.0001,Mexico,South Africa,Group,
+0,5,0,0.0323,Mexico,South Africa,Group,
+0,5,1,0.0175,Mexico,South Africa,Group,
+0,5,2,0.006,Mexico,South Africa,Group,
+0,5,3,0.0007,Mexico,South Africa,Group,
+0,5,4,0.0002,Mexico,South Africa,Group,
+0,5,6,0.0001,Mexico,South Africa,Group,
+0,6,0,0.0108,Mexico,South Africa,Group,
+0,6,1,0.0082,Mexico,South Africa,Group,
+0,6,2,0.0022,Mexico,South Africa,Group,
+0,6,3,0.0009,Mexico,South Africa,Group,
+0,6,4,0.0001,Mexico,South Africa,Group,
+0,7,0,0.0044,Mexico,South Africa,Group,
+0,7,1,0.004,Mexico,South Africa,Group,
+0,7,2,0.0011,Mexico,South Africa,Group,
+0,7,3,0.0001,Mexico,South Africa,Group,
+0,8,0,0.0011,Mexico,South Africa,Group,
+0,8,1,0.0005,Mexico,South Africa,Group,
+0,8,2,0.0003,Mexico,South Africa,Group,
+0,9,0,0.0005,Mexico,South Africa,Group,
+0,9,1,0.0003,Mexico,South Africa,Group,
+0,10,0,0.0001,Mexico,South Africa,Group,
+0,10,1,0.0001,Mexico,South Africa,Group,
+0,10,3,0.0001,Mexico,South Africa,Group,
+0,11,1,0.0002,Mexico,South Africa,Group,
+1,0,0,0.1028,South Korea,Czechia,Group,
+1,0,1,0.1163,South Korea,Czechia,Group,
+1,0,2,0.0683,South Korea,Czechia,Group,
+1,0,3,0.0232,South Korea,Czechia,Group,
+1,0,4,0.0084,South Korea,Czechia,Group,
+1,0,5,0.0016,South Korea,Czechia,Group,
+1,0,6,0.0001,South Korea,Czechia,Group,
+1,1,0,0.1171,South Korea,Czechia,Group,
+1,1,1,0.1377,South Korea,Czechia,Group,
+1,1,2,0.0742,South Korea,Czechia,Group,
+1,1,3,0.0248,South Korea,Czechia,Group,
+1,1,4,0.0076,South Korea,Czechia,Group,
+1,1,5,0.0025,South Korea,Czechia,Group,
+1,1,6,0.0002,South Korea,Czechia,Group,
+1,2,0,0.0691,South Korea,Czechia,Group,
+1,2,1,0.0726,South Korea,Czechia,Group,
+1,2,2,0.0458,South Korea,Czechia,Group,
+1,2,3,0.0177,South Korea,Czechia,Group,
+1,2,4,0.0045,South Korea,Czechia,Group,
+1,2,5,0.0018,South Korea,Czechia,Group,
+1,3,0,0.0216,South Korea,Czechia,Group,
+1,3,1,0.0253,South Korea,Czechia,Group,
+1,3,2,0.0196,South Korea,Czechia,Group,
+1,3,3,0.0065,South Korea,Czechia,Group,
+1,3,4,0.0013,South Korea,Czechia,Group,
+1,3,5,0.0003,South Korea,Czechia,Group,
+1,4,0,0.0074,South Korea,Czechia,Group,
+1,4,1,0.0077,South Korea,Czechia,Group,
+1,4,2,0.0048,South Korea,Czechia,Group,
+1,4,3,0.0016,South Korea,Czechia,Group,
+1,4,4,0.0006,South Korea,Czechia,Group,
+1,5,0,0.0019,South Korea,Czechia,Group,
+1,5,1,0.0023,South Korea,Czechia,Group,
+1,5,2,0.0011,South Korea,Czechia,Group,
+1,5,3,0.0004,South Korea,Czechia,Group,
+1,5,4,0.0001,South Korea,Czechia,Group,
+1,6,0,0.0005,South Korea,Czechia,Group,
+1,6,1,0.0003,South Korea,Czechia,Group,
+1,6,2,0.0001,South Korea,Czechia,Group,
+1,7,2,0.0001,South Korea,Czechia,Group,
+1,7,3,0.0001,South Korea,Czechia,Group,
+1,8,2,0.0001,South Korea,Czechia,Group,
+2,0,0,0.0806,Canada,Bosnia and Herzegovina,Group,
+2,0,1,0.0592,Canada,Bosnia and Herzegovina,Group,
+2,0,2,0.0224,Canada,Bosnia and Herzegovina,Group,
+2,0,3,0.0063,Canada,Bosnia and Herzegovina,Group,
+2,0,4,0.0012,Canada,Bosnia and Herzegovina,Group,
+2,0,5,0.0001,Canada,Bosnia and Herzegovina,Group,
+2,1,0,0.1446,Canada,Bosnia and Herzegovina,Group,
+2,1,1,0.112,Canada,Bosnia and Herzegovina,Group,
+2,1,2,0.0373,Canada,Bosnia and Herzegovina,Group,
+2,1,3,0.0102,Canada,Bosnia and Herzegovina,Group,
+2,1,4,0.0016,Canada,Bosnia and Herzegovina,Group,
+2,1,5,0.0006,Canada,Bosnia and Herzegovina,Group,
+2,2,0,0.1222,Canada,Bosnia and Herzegovina,Group,
+2,2,1,0.0964,Canada,Bosnia and Herzegovina,Group,
+2,2,2,0.0374,Canada,Bosnia and Herzegovina,Group,
+2,2,3,0.0084,Canada,Bosnia and Herzegovina,Group,
+2,2,4,0.002,Canada,Bosnia and Herzegovina,Group,
+2,2,5,0.0004,Canada,Bosnia and Herzegovina,Group,
+2,3,0,0.0713,Canada,Bosnia and Herzegovina,Group,
+2,3,1,0.0547,Canada,Bosnia and Herzegovina,Group,
+2,3,2,0.0211,Canada,Bosnia and Herzegovina,Group,
+2,3,3,0.0072,Canada,Bosnia and Herzegovina,Group,
+2,3,4,0.0015,Canada,Bosnia and Herzegovina,Group,
+2,3,5,0.0001,Canada,Bosnia and Herzegovina,Group,
+2,3,6,0.0001,Canada,Bosnia and Herzegovina,Group,
+2,4,0,0.0323,Canada,Bosnia and Herzegovina,Group,
+2,4,1,0.0215,Canada,Bosnia and Herzegovina,Group,
+2,4,2,0.0081,Canada,Bosnia and Herzegovina,Group,
+2,4,3,0.0029,Canada,Bosnia and Herzegovina,Group,
+2,4,4,0.0005,Canada,Bosnia and Herzegovina,Group,
+2,4,5,0.0002,Canada,Bosnia and Herzegovina,Group,
+2,5,0,0.0111,Canada,Bosnia and Herzegovina,Group,
+2,5,1,0.011,Canada,Bosnia and Herzegovina,Group,
+2,5,2,0.0031,Canada,Bosnia and Herzegovina,Group,
+2,5,3,0.0008,Canada,Bosnia and Herzegovina,Group,
+2,5,4,0.0001,Canada,Bosnia and Herzegovina,Group,
+2,6,0,0.0033,Canada,Bosnia and Herzegovina,Group,
+2,6,1,0.0033,Canada,Bosnia and Herzegovina,Group,
+2,6,2,0.0013,Canada,Bosnia and Herzegovina,Group,
+2,6,3,0.0002,Canada,Bosnia and Herzegovina,Group,
+2,7,0,0.0002,Canada,Bosnia and Herzegovina,Group,
+2,7,1,0.0008,Canada,Bosnia and Herzegovina,Group,
+2,7,2,0.0003,Canada,Bosnia and Herzegovina,Group,
+2,8,0,0.0001,Canada,Bosnia and Herzegovina,Group,
+3,0,0,0.0537,Qatar,Switzerland,Group,
+3,0,1,0.1336,Qatar,Switzerland,Group,
+3,0,2,0.1418,Qatar,Switzerland,Group,
+3,0,3,0.1227,Qatar,Switzerland,Group,
+3,0,4,0.0687,Qatar,Switzerland,Group,
+3,0,5,0.0314,Qatar,Switzerland,Group,
+3,0,6,0.0134,Qatar,Switzerland,Group,
+3,0,7,0.0035,Qatar,Switzerland,Group,
+3,0,8,0.0016,Qatar,Switzerland,Group,
+3,0,9,0.0002,Qatar,Switzerland,Group,
+3,1,0,0.0326,Qatar,Switzerland,Group,
+3,1,1,0.0736,Qatar,Switzerland,Group,
+3,1,2,0.0834,Qatar,Switzerland,Group,
+3,1,3,0.0697,Qatar,Switzerland,Group,
+3,1,4,0.0358,Qatar,Switzerland,Group,
+3,1,5,0.0146,Qatar,Switzerland,Group,
+3,1,6,0.0071,Qatar,Switzerland,Group,
+3,1,7,0.0024,Qatar,Switzerland,Group,
+3,1,8,0.0007,Qatar,Switzerland,Group,
+3,1,9,0.0002,Qatar,Switzerland,Group,
+3,1,10,0.0001,Qatar,Switzerland,Group,
+3,2,0,0.0099,Qatar,Switzerland,Group,
+3,2,1,0.0199,Qatar,Switzerland,Group,
+3,2,2,0.026,Qatar,Switzerland,Group,
+3,2,3,0.0158,Qatar,Switzerland,Group,
+3,2,4,0.0105,Qatar,Switzerland,Group,
+3,2,5,0.0056,Qatar,Switzerland,Group,
+3,2,6,0.0015,Qatar,Switzerland,Group,
+3,2,7,0.0009,Qatar,Switzerland,Group,
+3,2,9,0.0001,Qatar,Switzerland,Group,
+3,3,0,0.0013,Qatar,Switzerland,Group,
+3,3,1,0.0039,Qatar,Switzerland,Group,
+3,3,2,0.0038,Qatar,Switzerland,Group,
+3,3,3,0.0037,Qatar,Switzerland,Group,
+3,3,4,0.0022,Qatar,Switzerland,Group,
+3,3,5,0.0008,Qatar,Switzerland,Group,
+3,3,6,0.0001,Qatar,Switzerland,Group,
+3,4,0,0.0001,Qatar,Switzerland,Group,
+3,4,1,0.0008,Qatar,Switzerland,Group,
+3,4,2,0.0006,Qatar,Switzerland,Group,
+3,4,3,0.0007,Qatar,Switzerland,Group,
+3,4,4,0.0005,Qatar,Switzerland,Group,
+3,4,5,0.0002,Qatar,Switzerland,Group,
+3,5,0,0.0001,Qatar,Switzerland,Group,
+3,5,1,0.0001,Qatar,Switzerland,Group,
+3,7,3,0.0001,Qatar,Switzerland,Group,
+4,0,0,0.074,Brazil,Morocco,Group,
+4,0,1,0.0595,Brazil,Morocco,Group,
+4,0,2,0.0284,Brazil,Morocco,Group,
+4,0,3,0.01,Brazil,Morocco,Group,
+4,0,4,0.0018,Brazil,Morocco,Group,
+4,0,5,0.0003,Brazil,Morocco,Group,
+4,0,6,0.0001,Brazil,Morocco,Group,
+4,1,0,0.1217,Brazil,Morocco,Group,
+4,1,1,0.1148,Brazil,Morocco,Group,
+4,1,2,0.0495,Brazil,Morocco,Group,
+4,1,3,0.0141,Brazil,Morocco,Group,
+4,1,4,0.0033,Brazil,Morocco,Group,
+4,1,5,0.0007,Brazil,Morocco,Group,
+4,1,6,0.0002,Brazil,Morocco,Group,
+4,2,0,0.1071,Brazil,Morocco,Group,
+4,2,1,0.0941,Brazil,Morocco,Group,
+4,2,2,0.0476,Brazil,Morocco,Group,
+4,2,3,0.0132,Brazil,Morocco,Group,
+4,2,4,0.0033,Brazil,Morocco,Group,
+4,2,5,0.0008,Brazil,Morocco,Group,
+4,2,6,0.0001,Brazil,Morocco,Group,
+4,3,0,0.0634,Brazil,Morocco,Group,
+4,3,1,0.0558,Brazil,Morocco,Group,
+4,3,2,0.0255,Brazil,Morocco,Group,
+4,3,3,0.0068,Brazil,Morocco,Group,
+4,3,4,0.0018,Brazil,Morocco,Group,
+4,3,5,0.0003,Brazil,Morocco,Group,
+4,4,0,0.0267,Brazil,Morocco,Group,
+4,4,1,0.0234,Brazil,Morocco,Group,
+4,4,2,0.0134,Brazil,Morocco,Group,
+4,4,3,0.0039,Brazil,Morocco,Group,
+4,4,4,0.0004,Brazil,Morocco,Group,
+4,5,0,0.0082,Brazil,Morocco,Group,
+4,5,1,0.0096,Brazil,Morocco,Group,
+4,5,2,0.0041,Brazil,Morocco,Group,
+4,5,3,0.0016,Brazil,Morocco,Group,
+4,5,4,0.0003,Brazil,Morocco,Group,
+4,6,0,0.0029,Brazil,Morocco,Group,
+4,6,1,0.0032,Brazil,Morocco,Group,
+4,6,2,0.0006,Brazil,Morocco,Group,
+4,6,3,0.0006,Brazil,Morocco,Group,
+4,6,5,0.0001,Brazil,Morocco,Group,
+4,7,0,0.0008,Brazil,Morocco,Group,
+4,7,1,0.0007,Brazil,Morocco,Group,
+4,7,2,0.0005,Brazil,Morocco,Group,
+4,7,4,0.0001,Brazil,Morocco,Group,
+4,8,0,0.0002,Brazil,Morocco,Group,
+4,8,1,0.0003,Brazil,Morocco,Group,
+4,8,3,0.0001,Brazil,Morocco,Group,
+4,9,2,0.0001,Brazil,Morocco,Group,
+5,0,0,0.0801,Haiti,Scotland,Group,
+5,0,1,0.1388,Haiti,Scotland,Group,
+5,0,2,0.1052,Haiti,Scotland,Group,
+5,0,3,0.0583,Haiti,Scotland,Group,
+5,0,4,0.0245,Haiti,Scotland,Group,
+5,0,5,0.0066,Haiti,Scotland,Group,
+5,0,6,0.0022,Haiti,Scotland,Group,
+5,0,7,0.0004,Haiti,Scotland,Group,
+5,0,8,0.0003,Haiti,Scotland,Group,
+5,0,9,0.0001,Haiti,Scotland,Group,
+5,1,0,0.0739,Haiti,Scotland,Group,
+5,1,1,0.1129,Haiti,Scotland,Group,
+5,1,2,0.0965,Haiti,Scotland,Group,
+5,1,3,0.0488,Haiti,Scotland,Group,
+5,1,4,0.0188,Haiti,Scotland,Group,
+5,1,5,0.0064,Haiti,Scotland,Group,
+5,1,6,0.0016,Haiti,Scotland,Group,
+5,1,7,0.0001,Haiti,Scotland,Group,
+5,2,0,0.0288,Haiti,Scotland,Group,
+5,2,1,0.0518,Haiti,Scotland,Group,
+5,2,2,0.0457,Haiti,Scotland,Group,
+5,2,3,0.0243,Haiti,Scotland,Group,
+5,2,4,0.0092,Haiti,Scotland,Group,
+5,2,5,0.0026,Haiti,Scotland,Group,
+5,2,6,0.0008,Haiti,Scotland,Group,
+5,2,7,0.0001,Haiti,Scotland,Group,
+5,3,0,0.0092,Haiti,Scotland,Group,
+5,3,1,0.0172,Haiti,Scotland,Group,
+5,3,2,0.0127,Haiti,Scotland,Group,
+5,3,3,0.0064,Haiti,Scotland,Group,
+5,3,4,0.002,Haiti,Scotland,Group,
+5,3,5,0.0008,Haiti,Scotland,Group,
+5,3,6,0.0001,Haiti,Scotland,Group,
+5,3,7,0.0001,Haiti,Scotland,Group,
+5,4,0,0.0025,Haiti,Scotland,Group,
+5,4,1,0.0027,Haiti,Scotland,Group,
+5,4,2,0.0032,Haiti,Scotland,Group,
+5,4,3,0.0014,Haiti,Scotland,Group,
+5,4,4,0.001,Haiti,Scotland,Group,
+5,4,5,0.0004,Haiti,Scotland,Group,
+5,5,0,0.0001,Haiti,Scotland,Group,
+5,5,1,0.0005,Haiti,Scotland,Group,
+5,5,2,0.0002,Haiti,Scotland,Group,
+5,5,3,0.0001,Haiti,Scotland,Group,
+5,5,4,0.0001,Haiti,Scotland,Group,
+5,5,5,0.0001,Haiti,Scotland,Group,
+5,5,6,0.0001,Haiti,Scotland,Group,
+5,6,0,0.0002,Haiti,Scotland,Group,
+5,6,1,0.0001,Haiti,Scotland,Group,
+6,0,0,0.1027,United States,Paraguay,Group,
+6,0,1,0.1335,United States,Paraguay,Group,
+6,0,2,0.0862,United States,Paraguay,Group,
+6,0,3,0.0364,United States,Paraguay,Group,
+6,0,4,0.0119,United States,Paraguay,Group,
+6,0,5,0.0032,United States,Paraguay,Group,
+6,0,6,0.0004,United States,Paraguay,Group,
+6,0,7,0.0002,United States,Paraguay,Group,
+6,1,0,0.1048,United States,Paraguay,Group,
+6,1,1,0.1366,United States,Paraguay,Group,
+6,1,2,0.0787,United States,Paraguay,Group,
+6,1,3,0.0352,United States,Paraguay,Group,
+6,1,4,0.0113,United States,Paraguay,Group,
+6,1,5,0.0027,United States,Paraguay,Group,
+6,1,6,0.0006,United States,Paraguay,Group,
+6,2,0,0.049,United States,Paraguay,Group,
+6,2,1,0.0661,United States,Paraguay,Group,
+6,2,2,0.0362,United States,Paraguay,Group,
+6,2,3,0.0178,United States,Paraguay,Group,
+6,2,4,0.0058,United States,Paraguay,Group,
+6,2,5,0.0023,United States,Paraguay,Group,
+6,2,6,0.0005,United States,Paraguay,Group,
+6,2,9,0.0001,United States,Paraguay,Group,
+6,3,0,0.0168,United States,Paraguay,Group,
+6,3,1,0.0197,United States,Paraguay,Group,
+6,3,2,0.0145,United States,Paraguay,Group,
+6,3,3,0.0072,United States,Paraguay,Group,
+6,3,4,0.0017,United States,Paraguay,Group,
+6,3,5,0.0003,United States,Paraguay,Group,
+6,3,6,0.0002,United States,Paraguay,Group,
+6,4,0,0.0033,United States,Paraguay,Group,
+6,4,1,0.006,United States,Paraguay,Group,
+6,4,2,0.0036,United States,Paraguay,Group,
+6,4,3,0.0012,United States,Paraguay,Group,
+6,4,4,0.0005,United States,Paraguay,Group,
+6,4,5,0.0001,United States,Paraguay,Group,
+6,5,0,0.0006,United States,Paraguay,Group,
+6,5,1,0.0007,United States,Paraguay,Group,
+6,5,2,0.0007,United States,Paraguay,Group,
+6,5,3,0.0002,United States,Paraguay,Group,
+6,6,0,0.0002,United States,Paraguay,Group,
+6,6,2,0.0002,United States,Paraguay,Group,
+6,7,0,0.0001,United States,Paraguay,Group,
+7,0,0,0.114,Australia,Turkey,Group,
+7,0,1,0.1495,Australia,Turkey,Group,
+7,0,2,0.0968,Australia,Turkey,Group,
+7,0,3,0.0428,Australia,Turkey,Group,
+7,0,4,0.0116,Australia,Turkey,Group,
+7,0,5,0.0025,Australia,Turkey,Group,
+7,0,6,0.0008,Australia,Turkey,Group,
+7,0,7,0.0001,Australia,Turkey,Group,
+7,0,9,0.0001,Australia,Turkey,Group,
+7,1,0,0.1001,Australia,Turkey,Group,
+7,1,1,0.1298,Australia,Turkey,Group,
+7,1,2,0.0798,Australia,Turkey,Group,
+7,1,3,0.0362,Australia,Turkey,Group,
+7,1,4,0.0124,Australia,Turkey,Group,
+7,1,5,0.0038,Australia,Turkey,Group,
+7,1,6,0.0007,Australia,Turkey,Group,
+7,2,0,0.0436,Australia,Turkey,Group,
+7,2,1,0.0575,Australia,Turkey,Group,
+7,2,2,0.0353,Australia,Turkey,Group,
+7,2,3,0.0158,Australia,Turkey,Group,
+7,2,4,0.0067,Australia,Turkey,Group,
+7,2,5,0.001,Australia,Turkey,Group,
+7,2,6,0.0001,Australia,Turkey,Group,
+7,2,7,0.0001,Australia,Turkey,Group,
+7,2,8,0.0001,Australia,Turkey,Group,
+7,3,0,0.0142,Australia,Turkey,Group,
+7,3,1,0.0156,Australia,Turkey,Group,
+7,3,2,0.0093,Australia,Turkey,Group,
+7,3,3,0.0045,Australia,Turkey,Group,
+7,3,4,0.0013,Australia,Turkey,Group,
+7,3,5,0.0005,Australia,Turkey,Group,
+7,3,6,0.0002,Australia,Turkey,Group,
+7,4,0,0.0026,Australia,Turkey,Group,
+7,4,1,0.0049,Australia,Turkey,Group,
+7,4,2,0.0018,Australia,Turkey,Group,
+7,4,3,0.0012,Australia,Turkey,Group,
+7,4,4,0.0006,Australia,Turkey,Group,
+7,4,5,0.0001,Australia,Turkey,Group,
+7,5,0,0.0008,Australia,Turkey,Group,
+7,5,1,0.0004,Australia,Turkey,Group,
+7,5,2,0.0003,Australia,Turkey,Group,
+7,5,3,0.0002,Australia,Turkey,Group,
+7,6,1,0.0003,Australia,Turkey,Group,
+8,0,0,0.046,Germany,Curaçao,Group,
+8,0,1,0.0256,Germany,Curaçao,Group,
+8,0,2,0.0069,Germany,Curaçao,Group,
+8,0,3,0.0014,Germany,Curaçao,Group,
+8,0,4,0.0002,Germany,Curaçao,Group,
+8,0,5,0.0001,Germany,Curaçao,Group,
+8,1,0,0.1136,Germany,Curaçao,Group,
+8,1,1,0.0664,Germany,Curaçao,Group,
+8,1,2,0.0192,Germany,Curaçao,Group,
+8,1,3,0.0035,Germany,Curaçao,Group,
+8,1,4,0.0007,Germany,Curaçao,Group,
+8,2,0,0.1403,Germany,Curaçao,Group,
+8,2,1,0.0798,Germany,Curaçao,Group,
+8,2,2,0.0232,Germany,Curaçao,Group,
+8,2,3,0.0038,Germany,Curaçao,Group,
+8,2,4,0.0003,Germany,Curaçao,Group,
+8,2,5,0.0001,Germany,Curaçao,Group,
+8,3,0,0.1304,Germany,Curaçao,Group,
+8,3,1,0.0714,Germany,Curaçao,Group,
+8,3,2,0.0177,Germany,Curaçao,Group,
+8,3,3,0.0036,Germany,Curaçao,Group,
+8,3,4,0.0005,Germany,Curaçao,Group,
+8,4,0,0.0727,Germany,Curaçao,Group,
+8,4,1,0.041,Germany,Curaçao,Group,
+8,4,2,0.0122,Germany,Curaçao,Group,
+8,4,3,0.0021,Germany,Curaçao,Group,
+8,4,4,0.0002,Germany,Curaçao,Group,
+8,4,6,0.0001,Germany,Curaçao,Group,
+8,5,0,0.0452,Germany,Curaçao,Group,
+8,5,1,0.0198,Germany,Curaçao,Group,
+8,5,2,0.006,Germany,Curaçao,Group,
+8,5,3,0.001,Germany,Curaçao,Group,
+8,5,4,0.0001,Germany,Curaçao,Group,
+8,5,5,0.0001,Germany,Curaçao,Group,
+8,6,0,0.0197,Germany,Curaçao,Group,
+8,6,1,0.0085,Germany,Curaçao,Group,
+8,6,2,0.0026,Germany,Curaçao,Group,
+8,6,3,0.0004,Germany,Curaçao,Group,
+8,6,4,0.0001,Germany,Curaçao,Group,
+8,7,0,0.0051,Germany,Curaçao,Group,
+8,7,1,0.0026,Germany,Curaçao,Group,
+8,7,2,0.001,Germany,Curaçao,Group,
+8,7,3,0.0001,Germany,Curaçao,Group,
+8,7,4,0.0001,Germany,Curaçao,Group,
+8,8,0,0.0024,Germany,Curaçao,Group,
+8,8,1,0.0009,Germany,Curaçao,Group,
+8,8,2,0.0003,Germany,Curaçao,Group,
+8,9,0,0.0007,Germany,Curaçao,Group,
+8,9,1,0.0002,Germany,Curaçao,Group,
+8,10,2,0.0001,Germany,Curaçao,Group,
+9,0,0,0.0748,Ivory Coast,Ecuador,Group,
+9,0,1,0.1374,Ivory Coast,Ecuador,Group,
+9,0,2,0.1258,Ivory Coast,Ecuador,Group,
+9,0,3,0.0797,Ivory Coast,Ecuador,Group,
+9,0,4,0.038,Ivory Coast,Ecuador,Group,
+9,0,5,0.0129,Ivory Coast,Ecuador,Group,
+9,0,6,0.0042,Ivory Coast,Ecuador,Group,
+9,0,7,0.0008,Ivory Coast,Ecuador,Group,
+9,0,8,0.0002,Ivory Coast,Ecuador,Group,
+9,1,0,0.0555,Ivory Coast,Ecuador,Group,
+9,1,1,0.1008,Ivory Coast,Ecuador,Group,
+9,1,2,0.0972,Ivory Coast,Ecuador,Group,
+9,1,3,0.0616,Ivory Coast,Ecuador,Group,
+9,1,4,0.0274,Ivory Coast,Ecuador,Group,
+9,1,5,0.0091,Ivory Coast,Ecuador,Group,
+9,1,6,0.0028,Ivory Coast,Ecuador,Group,
+9,1,7,0.0015,Ivory Coast,Ecuador,Group,
+9,1,8,0.0001,Ivory Coast,Ecuador,Group,
+9,2,0,0.0212,Ivory Coast,Ecuador,Group,
+9,2,1,0.0385,Ivory Coast,Ecuador,Group,
+9,2,2,0.0356,Ivory Coast,Ecuador,Group,
+9,2,3,0.0225,Ivory Coast,Ecuador,Group,
+9,2,4,0.0106,Ivory Coast,Ecuador,Group,
+9,2,5,0.0031,Ivory Coast,Ecuador,Group,
+9,2,6,0.0011,Ivory Coast,Ecuador,Group,
+9,2,8,0.0001,Ivory Coast,Ecuador,Group,
+9,3,0,0.0042,Ivory Coast,Ecuador,Group,
+9,3,1,0.0105,Ivory Coast,Ecuador,Group,
+9,3,2,0.0088,Ivory Coast,Ecuador,Group,
+9,3,3,0.004,Ivory Coast,Ecuador,Group,
+9,3,4,0.0025,Ivory Coast,Ecuador,Group,
+9,3,5,0.0007,Ivory Coast,Ecuador,Group,
+9,3,6,0.0007,Ivory Coast,Ecuador,Group,
+9,4,0,0.0006,Ivory Coast,Ecuador,Group,
+9,4,1,0.0012,Ivory Coast,Ecuador,Group,
+9,4,2,0.0016,Ivory Coast,Ecuador,Group,
+9,4,3,0.0013,Ivory Coast,Ecuador,Group,
+9,4,4,0.0003,Ivory Coast,Ecuador,Group,
+9,4,5,0.0002,Ivory Coast,Ecuador,Group,
+9,5,1,0.0005,Ivory Coast,Ecuador,Group,
+9,5,2,0.0001,Ivory Coast,Ecuador,Group,
+9,5,3,0.0001,Ivory Coast,Ecuador,Group,
+9,5,4,0.0001,Ivory Coast,Ecuador,Group,
+9,6,2,0.0001,Ivory Coast,Ecuador,Group,
+10,0,0,0.0987,Netherlands,Japan,Group,
+10,0,1,0.113,Netherlands,Japan,Group,
+10,0,2,0.0654,Netherlands,Japan,Group,
+10,0,3,0.0252,Netherlands,Japan,Group,
+10,0,4,0.0077,Netherlands,Japan,Group,
+10,0,5,0.0018,Netherlands,Japan,Group,
+10,0,6,0.0004,Netherlands,Japan,Group,
+10,1,0,0.1116,Netherlands,Japan,Group,
+10,1,1,0.1372,Netherlands,Japan,Group,
+10,1,2,0.077,Netherlands,Japan,Group,
+10,1,3,0.0274,Netherlands,Japan,Group,
+10,1,4,0.0095,Netherlands,Japan,Group,
+10,1,5,0.0019,Netherlands,Japan,Group,
+10,1,6,0.0003,Netherlands,Japan,Group,
+10,2,0,0.0681,Netherlands,Japan,Group,
+10,2,1,0.0749,Netherlands,Japan,Group,
+10,2,2,0.0427,Netherlands,Japan,Group,
+10,2,3,0.0197,Netherlands,Japan,Group,
+10,2,4,0.0048,Netherlands,Japan,Group,
+10,2,5,0.001,Netherlands,Japan,Group,
+10,2,6,0.0001,Netherlands,Japan,Group,
+10,3,0,0.0269,Netherlands,Japan,Group,
+10,3,1,0.0262,Netherlands,Japan,Group,
+10,3,2,0.0163,Netherlands,Japan,Group,
+10,3,3,0.0059,Netherlands,Japan,Group,
+10,3,4,0.0025,Netherlands,Japan,Group,
+10,3,5,0.0007,Netherlands,Japan,Group,
+10,3,6,0.0001,Netherlands,Japan,Group,
+10,4,0,0.0083,Netherlands,Japan,Group,
+10,4,1,0.0083,Netherlands,Japan,Group,
+10,4,2,0.006,Netherlands,Japan,Group,
+10,4,3,0.0023,Netherlands,Japan,Group,
+10,4,4,0.0007,Netherlands,Japan,Group,
+10,4,5,0.0002,Netherlands,Japan,Group,
+10,5,0,0.0019,Netherlands,Japan,Group,
+10,5,1,0.0023,Netherlands,Japan,Group,
+10,5,2,0.0015,Netherlands,Japan,Group,
+10,5,3,0.0002,Netherlands,Japan,Group,
+10,5,4,0.0001,Netherlands,Japan,Group,
+10,5,6,0.0001,Netherlands,Japan,Group,
+10,6,0,0.0004,Netherlands,Japan,Group,
+10,6,1,0.0002,Netherlands,Japan,Group,
+10,6,2,0.0003,Netherlands,Japan,Group,
+10,6,3,0.0001,Netherlands,Japan,Group,
+10,7,0,0.0001,Netherlands,Japan,Group,
+11,0,0,0.0731,Sweden,Tunisia,Group,
+11,0,1,0.0646,Sweden,Tunisia,Group,
+11,0,2,0.0298,Sweden,Tunisia,Group,
+11,0,3,0.0093,Sweden,Tunisia,Group,
+11,0,4,0.0018,Sweden,Tunisia,Group,
+11,0,5,0.0008,Sweden,Tunisia,Group,
+11,0,6,0.0001,Sweden,Tunisia,Group,
+11,1,0,0.123,Sweden,Tunisia,Group,
+11,1,1,0.1144,Sweden,Tunisia,Group,
+11,1,2,0.0519,Sweden,Tunisia,Group,
+11,1,3,0.0167,Sweden,Tunisia,Group,
+11,1,4,0.0034,Sweden,Tunisia,Group,
+11,1,5,0.0009,Sweden,Tunisia,Group,
+11,1,6,0.0001,Sweden,Tunisia,Group,
+11,1,7,0.0001,Sweden,Tunisia,Group,
+11,2,0,0.1079,Sweden,Tunisia,Group,
+11,2,1,0.1006,Sweden,Tunisia,Group,
+11,2,2,0.0441,Sweden,Tunisia,Group,
+11,2,3,0.0125,Sweden,Tunisia,Group,
+11,2,4,0.0026,Sweden,Tunisia,Group,
+11,2,5,0.0007,Sweden,Tunisia,Group,
+11,2,6,0.0001,Sweden,Tunisia,Group,
+11,3,0,0.0578,Sweden,Tunisia,Group,
+11,3,1,0.0539,Sweden,Tunisia,Group,
+11,3,2,0.0273,Sweden,Tunisia,Group,
+11,3,3,0.0077,Sweden,Tunisia,Group,
+11,3,4,0.0024,Sweden,Tunisia,Group,
+11,3,5,0.0003,Sweden,Tunisia,Group,
+11,3,7,0.0001,Sweden,Tunisia,Group,
+11,4,0,0.0247,Sweden,Tunisia,Group,
+11,4,1,0.0225,Sweden,Tunisia,Group,
+11,4,2,0.0106,Sweden,Tunisia,Group,
+11,4,3,0.0033,Sweden,Tunisia,Group,
+11,4,4,0.0009,Sweden,Tunisia,Group,
+11,5,0,0.0085,Sweden,Tunisia,Group,
+11,5,1,0.0088,Sweden,Tunisia,Group,
+11,5,2,0.003,Sweden,Tunisia,Group,
+11,5,3,0.0012,Sweden,Tunisia,Group,
+11,5,4,0.0005,Sweden,Tunisia,Group,
+11,6,0,0.0027,Sweden,Tunisia,Group,
+11,6,1,0.0022,Sweden,Tunisia,Group,
+11,6,2,0.0009,Sweden,Tunisia,Group,
+11,6,3,0.0002,Sweden,Tunisia,Group,
+11,6,4,0.0002,Sweden,Tunisia,Group,
+11,7,0,0.0003,Sweden,Tunisia,Group,
+11,7,1,0.0008,Sweden,Tunisia,Group,
+11,7,3,0.0002,Sweden,Tunisia,Group,
+11,8,0,0.0001,Sweden,Tunisia,Group,
+11,8,1,0.0002,Sweden,Tunisia,Group,
+11,8,2,0.0001,Sweden,Tunisia,Group,
+11,9,0,0.0001,Sweden,Tunisia,Group,
+12,0,0,0.0735,Belgium,Egypt,Group,
+12,0,1,0.0596,Belgium,Egypt,Group,
+12,0,2,0.025,Belgium,Egypt,Group,
+12,0,3,0.0059,Belgium,Egypt,Group,
+12,0,4,0.0009,Belgium,Egypt,Group,
+12,0,5,0.0004,Belgium,Egypt,Group,
+12,1,0,0.1288,Belgium,Egypt,Group,
+12,1,1,0.1071,Belgium,Egypt,Group,
+12,1,2,0.0441,Belgium,Egypt,Group,
+12,1,3,0.0103,Belgium,Egypt,Group,
+12,1,4,0.002,Belgium,Egypt,Group,
+12,1,5,0.0002,Belgium,Egypt,Group,
+12,1,6,0.0001,Belgium,Egypt,Group,
+12,2,0,0.1219,Belgium,Egypt,Group,
+12,2,1,0.0924,Belgium,Egypt,Group,
+12,2,2,0.0378,Belgium,Egypt,Group,
+12,2,3,0.0115,Belgium,Egypt,Group,
+12,2,4,0.0027,Belgium,Egypt,Group,
+12,2,5,0.0004,Belgium,Egypt,Group,
+12,3,0,0.0715,Belgium,Egypt,Group,
+12,3,1,0.0603,Belgium,Egypt,Group,
+12,3,2,0.0232,Belgium,Egypt,Group,
+12,3,3,0.0049,Belgium,Egypt,Group,
+12,3,4,0.0012,Belgium,Egypt,Group,
+12,3,5,0.0002,Belgium,Egypt,Group,
+12,3,6,0.0001,Belgium,Egypt,Group,
+12,4,0,0.0343,Belgium,Egypt,Group,
+12,4,1,0.0264,Belgium,Egypt,Group,
+12,4,2,0.009,Belgium,Egypt,Group,
+12,4,3,0.0026,Belgium,Egypt,Group,
+12,4,4,0.0005,Belgium,Egypt,Group,
+12,4,5,0.0001,Belgium,Egypt,Group,
+12,5,0,0.013,Belgium,Egypt,Group,
+12,5,1,0.0108,Belgium,Egypt,Group,
+12,5,2,0.005,Belgium,Egypt,Group,
+12,5,3,0.0011,Belgium,Egypt,Group,
+12,5,5,0.0001,Belgium,Egypt,Group,
+12,6,0,0.003,Belgium,Egypt,Group,
+12,6,1,0.0032,Belgium,Egypt,Group,
+12,6,2,0.0009,Belgium,Egypt,Group,
+12,6,3,0.0004,Belgium,Egypt,Group,
+12,6,4,0.0001,Belgium,Egypt,Group,
+12,6,5,0.0001,Belgium,Egypt,Group,
+12,7,0,0.0015,Belgium,Egypt,Group,
+12,7,1,0.0007,Belgium,Egypt,Group,
+12,7,2,0.0004,Belgium,Egypt,Group,
+12,7,3,0.0001,Belgium,Egypt,Group,
+12,8,0,0.0003,Belgium,Egypt,Group,
+12,8,1,0.0001,Belgium,Egypt,Group,
+12,8,2,0.0001,Belgium,Egypt,Group,
+12,9,1,0.0002,Belgium,Egypt,Group,
+13,0,0,0.0857,Iran,New Zealand,Group,
+13,0,1,0.0652,Iran,New Zealand,Group,
+13,0,2,0.0251,Iran,New Zealand,Group,
+13,0,3,0.0043,Iran,New Zealand,Group,
+13,0,4,0.001,Iran,New Zealand,Group,
+13,0,5,0.0003,Iran,New Zealand,Group,
+13,1,0,0.1408,Iran,New Zealand,Group,
+13,1,1,0.1094,Iran,New Zealand,Group,
+13,1,2,0.0438,Iran,New Zealand,Group,
+13,1,3,0.0101,Iran,New Zealand,Group,
+13,1,4,0.0015,Iran,New Zealand,Group,
+13,1,5,0.0002,Iran,New Zealand,Group,
+13,1,6,0.0001,Iran,New Zealand,Group,
+13,2,0,0.1268,Iran,New Zealand,Group,
+13,2,1,0.0982,Iran,New Zealand,Group,
+13,2,2,0.0351,Iran,New Zealand,Group,
+13,2,3,0.0088,Iran,New Zealand,Group,
+13,2,4,0.0018,Iran,New Zealand,Group,
+13,2,5,0.0003,Iran,New Zealand,Group,
+13,2,6,0.0001,Iran,New Zealand,Group,
+13,3,0,0.0716,Iran,New Zealand,Group,
+13,3,1,0.0529,Iran,New Zealand,Group,
+13,3,2,0.0215,Iran,New Zealand,Group,
+13,3,3,0.005,Iran,New Zealand,Group,
+13,3,4,0.0013,Iran,New Zealand,Group,
+13,3,5,0.0001,Iran,New Zealand,Group,
+13,4,0,0.0312,Iran,New Zealand,Group,
+13,4,1,0.0197,Iran,New Zealand,Group,
+13,4,2,0.008,Iran,New Zealand,Group,
+13,4,3,0.0023,Iran,New Zealand,Group,
+13,4,4,0.0004,Iran,New Zealand,Group,
+13,5,0,0.0083,Iran,New Zealand,Group,
+13,5,1,0.008,Iran,New Zealand,Group,
+13,5,2,0.0025,Iran,New Zealand,Group,
+13,5,3,0.0008,Iran,New Zealand,Group,
+13,6,0,0.0027,Iran,New Zealand,Group,
+13,6,1,0.0021,Iran,New Zealand,Group,
+13,6,2,0.0012,Iran,New Zealand,Group,
+13,6,3,0.0003,Iran,New Zealand,Group,
+13,7,0,0.0008,Iran,New Zealand,Group,
+13,7,1,0.0001,Iran,New Zealand,Group,
+13,7,2,0.0001,Iran,New Zealand,Group,
+13,7,3,0.0001,Iran,New Zealand,Group,
+13,8,0,0.0002,Iran,New Zealand,Group,
+13,8,1,0.0001,Iran,New Zealand,Group,
+13,9,2,0.0001,Iran,New Zealand,Group,
+14,0,0,0.0349,Spain,Cape Verde,Group,
+14,0,1,0.0176,Spain,Cape Verde,Group,
+14,0,2,0.0041,Spain,Cape Verde,Group,
+14,0,3,0.0007,Spain,Cape Verde,Group,
+14,1,0,0.0996,Spain,Cape Verde,Group,
+14,1,1,0.0492,Spain,Cape Verde,Group,
+14,1,2,0.0115,Spain,Cape Verde,Group,
+14,1,3,0.0022,Spain,Cape Verde,Group,
+14,1,4,0.0002,Spain,Cape Verde,Group,
+14,2,0,0.1418,Spain,Cape Verde,Group,
+14,2,1,0.0732,Spain,Cape Verde,Group,
+14,2,2,0.0154,Spain,Cape Verde,Group,
+14,2,3,0.0025,Spain,Cape Verde,Group,
+14,2,4,0.0005,Spain,Cape Verde,Group,
+14,3,0,0.1367,Spain,Cape Verde,Group,
+14,3,1,0.0649,Spain,Cape Verde,Group,
+14,3,2,0.0177,Spain,Cape Verde,Group,
+14,3,3,0.0027,Spain,Cape Verde,Group,
+14,3,4,0.0006,Spain,Cape Verde,Group,
+14,4,0,0.0961,Spain,Cape Verde,Group,
+14,4,1,0.0511,Spain,Cape Verde,Group,
+14,4,2,0.0116,Spain,Cape Verde,Group,
+14,4,3,0.0018,Spain,Cape Verde,Group,
+14,4,4,0.0004,Spain,Cape Verde,Group,
+14,5,0,0.0568,Spain,Cape Verde,Group,
+14,5,1,0.0293,Spain,Cape Verde,Group,
+14,5,2,0.0056,Spain,Cape Verde,Group,
+14,5,3,0.0013,Spain,Cape Verde,Group,
+14,6,0,0.0264,Spain,Cape Verde,Group,
+14,6,1,0.0129,Spain,Cape Verde,Group,
+14,6,2,0.0037,Spain,Cape Verde,Group,
+14,6,3,0.0005,Spain,Cape Verde,Group,
+14,6,5,0.0001,Spain,Cape Verde,Group,
+14,7,0,0.0092,Spain,Cape Verde,Group,
+14,7,1,0.0072,Spain,Cape Verde,Group,
+14,7,2,0.001,Spain,Cape Verde,Group,
+14,8,0,0.0051,Spain,Cape Verde,Group,
+14,8,1,0.0011,Spain,Cape Verde,Group,
+14,8,2,0.0007,Spain,Cape Verde,Group,
+14,8,3,0.0001,Spain,Cape Verde,Group,
+14,9,0,0.0009,Spain,Cape Verde,Group,
+14,9,1,0.0004,Spain,Cape Verde,Group,
+14,9,2,0.0002,Spain,Cape Verde,Group,
+14,10,0,0.0004,Spain,Cape Verde,Group,
+14,11,1,0.0001,Spain,Cape Verde,Group,
+15,0,0,0.0857,Saudi Arabia,Uruguay,Group,
+15,0,1,0.1609,Saudi Arabia,Uruguay,Group,
+15,0,2,0.1387,Saudi Arabia,Uruguay,Group,
+15,0,3,0.0825,Saudi Arabia,Uruguay,Group,
+15,0,4,0.039,Saudi Arabia,Uruguay,Group,
+15,0,5,0.0133,Saudi Arabia,Uruguay,Group,
+15,0,6,0.0038,Saudi Arabia,Uruguay,Group,
+15,0,7,0.0013,Saudi Arabia,Uruguay,Group,
+15,0,8,0.0002,Saudi Arabia,Uruguay,Group,
+15,1,0,0.0611,Saudi Arabia,Uruguay,Group,
+15,1,1,0.1049,Saudi Arabia,Uruguay,Group,
+15,1,2,0.0868,Saudi Arabia,Uruguay,Group,
+15,1,3,0.0523,Saudi Arabia,Uruguay,Group,
+15,1,4,0.024,Saudi Arabia,Uruguay,Group,
+15,1,5,0.0091,Saudi Arabia,Uruguay,Group,
+15,1,6,0.0026,Saudi Arabia,Uruguay,Group,
+15,1,7,0.0006,Saudi Arabia,Uruguay,Group,
+15,1,8,0.0003,Saudi Arabia,Uruguay,Group,
+15,1,9,0.0001,Saudi Arabia,Uruguay,Group,
+15,2,0,0.0179,Saudi Arabia,Uruguay,Group,
+15,2,1,0.0331,Saudi Arabia,Uruguay,Group,
+15,2,2,0.0269,Saudi Arabia,Uruguay,Group,
+15,2,3,0.0148,Saudi Arabia,Uruguay,Group,
+15,2,4,0.0082,Saudi Arabia,Uruguay,Group,
+15,2,5,0.0018,Saudi Arabia,Uruguay,Group,
+15,2,6,0.0006,Saudi Arabia,Uruguay,Group,
+15,2,7,0.0003,Saudi Arabia,Uruguay,Group,
+15,3,0,0.0043,Saudi Arabia,Uruguay,Group,
+15,3,1,0.0069,Saudi Arabia,Uruguay,Group,
+15,3,2,0.0056,Saudi Arabia,Uruguay,Group,
+15,3,3,0.0046,Saudi Arabia,Uruguay,Group,
+15,3,4,0.0022,Saudi Arabia,Uruguay,Group,
+15,3,5,0.0007,Saudi Arabia,Uruguay,Group,
+15,3,7,0.0003,Saudi Arabia,Uruguay,Group,
+15,4,0,0.0009,Saudi Arabia,Uruguay,Group,
+15,4,1,0.0009,Saudi Arabia,Uruguay,Group,
+15,4,2,0.0012,Saudi Arabia,Uruguay,Group,
+15,4,3,0.0007,Saudi Arabia,Uruguay,Group,
+15,4,4,0.0004,Saudi Arabia,Uruguay,Group,
+15,4,5,0.0001,Saudi Arabia,Uruguay,Group,
+15,5,2,0.0001,Saudi Arabia,Uruguay,Group,
+15,5,3,0.0001,Saudi Arabia,Uruguay,Group,
+15,6,1,0.0001,Saudi Arabia,Uruguay,Group,
+15,6,4,0.0001,Saudi Arabia,Uruguay,Group,
+16,0,0,0.0691,France,Senegal,Group,
+16,0,1,0.0573,France,Senegal,Group,
+16,0,2,0.0242,France,Senegal,Group,
+16,0,3,0.0057,France,Senegal,Group,
+16,0,4,0.0008,France,Senegal,Group,
+16,0,5,0.0003,France,Senegal,Group,
+16,1,0,0.1255,France,Senegal,Group,
+16,1,1,0.1046,France,Senegal,Group,
+16,1,2,0.0424,France,Senegal,Group,
+16,1,3,0.0137,France,Senegal,Group,
+16,1,4,0.003,France,Senegal,Group,
+16,1,5,0.0004,France,Senegal,Group,
+16,2,0,0.122,France,Senegal,Group,
+16,2,1,0.0982,France,Senegal,Group,
+16,2,2,0.0398,France,Senegal,Group,
+16,2,3,0.0114,France,Senegal,Group,
+16,2,4,0.0023,France,Senegal,Group,
+16,2,5,0.0006,France,Senegal,Group,
+16,2,6,0.0001,France,Senegal,Group,
+16,3,0,0.0728,France,Senegal,Group,
+16,3,1,0.0581,France,Senegal,Group,
+16,3,2,0.0263,France,Senegal,Group,
+16,3,3,0.0069,France,Senegal,Group,
+16,3,4,0.0012,France,Senegal,Group,
+16,3,5,0.0003,France,Senegal,Group,
+16,4,0,0.0303,France,Senegal,Group,
+16,4,1,0.0292,France,Senegal,Group,
+16,4,2,0.0113,France,Senegal,Group,
+16,4,3,0.0027,France,Senegal,Group,
+16,4,4,0.001,France,Senegal,Group,
+16,5,0,0.0116,France,Senegal,Group,
+16,5,1,0.0094,France,Senegal,Group,
+16,5,2,0.0036,France,Senegal,Group,
+16,5,3,0.0013,France,Senegal,Group,
+16,5,4,0.0002,France,Senegal,Group,
+16,5,5,0.0002,France,Senegal,Group,
+16,6,0,0.0032,France,Senegal,Group,
+16,6,1,0.0035,France,Senegal,Group,
+16,6,2,0.0013,France,Senegal,Group,
+16,6,3,0.0004,France,Senegal,Group,
+16,6,4,0.0001,France,Senegal,Group,
+16,7,0,0.0012,France,Senegal,Group,
+16,7,1,0.001,France,Senegal,Group,
+16,7,2,0.0004,France,Senegal,Group,
+16,8,0,0.0004,France,Senegal,Group,
+16,8,1,0.0005,France,Senegal,Group,
+16,8,2,0.0002,France,Senegal,Group,
+17,0,0,0.0974,Iraq,Norway,Group,
+17,0,1,0.1644,Iraq,Norway,Group,
+17,0,2,0.1353,Iraq,Norway,Group,
+17,0,3,0.0763,Iraq,Norway,Group,
+17,0,4,0.0316,Iraq,Norway,Group,
+17,0,5,0.0128,Iraq,Norway,Group,
+17,0,6,0.0037,Iraq,Norway,Group,
+17,0,7,0.0006,Iraq,Norway,Group,
+17,0,8,0.0001,Iraq,Norway,Group,
+17,1,0,0.0602,Iraq,Norway,Group,
+17,1,1,0.1054,Iraq,Norway,Group,
+17,1,2,0.0926,Iraq,Norway,Group,
+17,1,3,0.0481,Iraq,Norway,Group,
+17,1,4,0.0201,Iraq,Norway,Group,
+17,1,5,0.0059,Iraq,Norway,Group,
+17,1,6,0.0015,Iraq,Norway,Group,
+17,1,7,0.0004,Iraq,Norway,Group,
+17,1,8,0.0002,Iraq,Norway,Group,
+17,2,0,0.0218,Iraq,Norway,Group,
+17,2,1,0.0348,Iraq,Norway,Group,
+17,2,2,0.0317,Iraq,Norway,Group,
+17,2,3,0.0185,Iraq,Norway,Group,
+17,2,4,0.0063,Iraq,Norway,Group,
+17,2,5,0.0026,Iraq,Norway,Group,
+17,2,6,0.0008,Iraq,Norway,Group,
+17,2,7,0.0002,Iraq,Norway,Group,
+17,3,0,0.0048,Iraq,Norway,Group,
+17,3,1,0.0062,Iraq,Norway,Group,
+17,3,2,0.0063,Iraq,Norway,Group,
+17,3,3,0.0021,Iraq,Norway,Group,
+17,3,4,0.0018,Iraq,Norway,Group,
+17,3,5,0.0005,Iraq,Norway,Group,
+17,3,6,0.0002,Iraq,Norway,Group,
+17,4,0,0.0008,Iraq,Norway,Group,
+17,4,1,0.0017,Iraq,Norway,Group,
+17,4,2,0.0009,Iraq,Norway,Group,
+17,4,3,0.0005,Iraq,Norway,Group,
+17,4,4,0.0001,Iraq,Norway,Group,
+17,4,5,0.0001,Iraq,Norway,Group,
+17,5,1,0.0002,Iraq,Norway,Group,
+17,5,2,0.0002,Iraq,Norway,Group,
+17,5,3,0.0001,Iraq,Norway,Group,
+17,5,4,0.0001,Iraq,Norway,Group,
+17,6,2,0.0001,Iraq,Norway,Group,
+18,0,0,0.0787,Argentina,Algeria,Group,
+18,0,1,0.0472,Argentina,Algeria,Group,
+18,0,2,0.0122,Argentina,Algeria,Group,
+18,0,3,0.0025,Argentina,Algeria,Group,
+18,0,4,0.0003,Argentina,Algeria,Group,
+18,1,0,0.1587,Argentina,Algeria,Group,
+18,1,1,0.0874,Argentina,Algeria,Group,
+18,1,2,0.0258,Argentina,Algeria,Group,
+18,1,3,0.0051,Argentina,Algeria,Group,
+18,1,4,0.0009,Argentina,Algeria,Group,
+18,2,0,0.1569,Argentina,Algeria,Group,
+18,2,1,0.0888,Argentina,Algeria,Group,
+18,2,2,0.0259,Argentina,Algeria,Group,
+18,2,3,0.0043,Argentina,Algeria,Group,
+18,2,4,0.0011,Argentina,Algeria,Group,
+18,3,0,0.0944,Argentina,Algeria,Group,
+18,3,1,0.0574,Argentina,Algeria,Group,
+18,3,2,0.0168,Argentina,Algeria,Group,
+18,3,3,0.0037,Argentina,Algeria,Group,
+18,3,4,0.0003,Argentina,Algeria,Group,
+18,4,0,0.0486,Argentina,Algeria,Group,
+18,4,1,0.0279,Argentina,Algeria,Group,
+18,4,2,0.0088,Argentina,Algeria,Group,
+18,4,3,0.0014,Argentina,Algeria,Group,
+18,4,4,0.0003,Argentina,Algeria,Group,
+18,4,5,0.0001,Argentina,Algeria,Group,
+18,5,0,0.0167,Argentina,Algeria,Group,
+18,5,1,0.0116,Argentina,Algeria,Group,
+18,5,2,0.0026,Argentina,Algeria,Group,
+18,5,3,0.0008,Argentina,Algeria,Group,
+18,5,4,0.0003,Argentina,Algeria,Group,
+18,6,0,0.0047,Argentina,Algeria,Group,
+18,6,1,0.0033,Argentina,Algeria,Group,
+18,6,2,0.0012,Argentina,Algeria,Group,
+18,6,3,0.0002,Argentina,Algeria,Group,
+18,7,0,0.0012,Argentina,Algeria,Group,
+18,7,1,0.0006,Argentina,Algeria,Group,
+18,7,2,0.0004,Argentina,Algeria,Group,
+18,8,0,0.0003,Argentina,Algeria,Group,
+18,8,1,0.0004,Argentina,Algeria,Group,
+18,9,0,0.0001,Argentina,Algeria,Group,
+18,9,1,0.0001,Argentina,Algeria,Group,
+19,0,0,0.0871,Austria,Jordan,Group,
+19,0,1,0.0682,Austria,Jordan,Group,
+19,0,2,0.0298,Austria,Jordan,Group,
+19,0,3,0.0094,Austria,Jordan,Group,
+19,0,4,0.0018,Austria,Jordan,Group,
+19,0,5,0.0002,Austria,Jordan,Group,
+19,1,0,0.1294,Austria,Jordan,Group,
+19,1,1,0.113,Austria,Jordan,Group,
+19,1,2,0.0531,Austria,Jordan,Group,
+19,1,3,0.014,Austria,Jordan,Group,
+19,1,4,0.004,Austria,Jordan,Group,
+19,1,5,0.0004,Austria,Jordan,Group,
+19,2,0,0.1105,Austria,Jordan,Group,
+19,2,1,0.0948,Austria,Jordan,Group,
+19,2,2,0.0439,Austria,Jordan,Group,
+19,2,3,0.0144,Austria,Jordan,Group,
+19,2,4,0.0032,Austria,Jordan,Group,
+19,2,5,0.001,Austria,Jordan,Group,
+19,3,0,0.0576,Austria,Jordan,Group,
+19,3,1,0.0488,Austria,Jordan,Group,
+19,3,2,0.0216,Austria,Jordan,Group,
+19,3,3,0.0058,Austria,Jordan,Group,
+19,3,4,0.0015,Austria,Jordan,Group,
+19,3,5,0.0003,Austria,Jordan,Group,
+19,4,0,0.0243,Austria,Jordan,Group,
+19,4,1,0.0216,Austria,Jordan,Group,
+19,4,2,0.0089,Austria,Jordan,Group,
+19,4,3,0.0036,Austria,Jordan,Group,
+19,4,4,0.0009,Austria,Jordan,Group,
+19,4,5,0.0001,Austria,Jordan,Group,
+19,5,0,0.0073,Austria,Jordan,Group,
+19,5,1,0.0071,Austria,Jordan,Group,
+19,5,2,0.003,Austria,Jordan,Group,
+19,5,3,0.0013,Austria,Jordan,Group,
+19,5,4,0.0002,Austria,Jordan,Group,
+19,5,5,0.0001,Austria,Jordan,Group,
+19,6,0,0.0018,Austria,Jordan,Group,
+19,6,1,0.0026,Austria,Jordan,Group,
+19,6,2,0.0012,Austria,Jordan,Group,
+19,6,3,0.0005,Austria,Jordan,Group,
+19,6,4,0.0001,Austria,Jordan,Group,
+19,7,0,0.0005,Austria,Jordan,Group,
+19,7,1,0.0002,Austria,Jordan,Group,
+19,7,2,0.0002,Austria,Jordan,Group,
+19,7,3,0.0001,Austria,Jordan,Group,
+19,8,0,0.0001,Austria,Jordan,Group,
+19,8,1,0.0001,Austria,Jordan,Group,
+19,8,2,0.0001,Austria,Jordan,Group,
+19,8,3,0.0001,Austria,Jordan,Group,
+19,9,0,0.0002,Austria,Jordan,Group,
+20,0,0,0.1008,Portugal,DR Congo,Group,
+20,0,1,0.0632,Portugal,DR Congo,Group,
+20,0,2,0.018,Portugal,DR Congo,Group,
+20,0,3,0.0047,Portugal,DR Congo,Group,
+20,0,4,0.0005,Portugal,DR Congo,Group,
+20,1,0,0.171,Portugal,DR Congo,Group,
+20,1,1,0.1058,Portugal,DR Congo,Group,
+20,1,2,0.0296,Portugal,DR Congo,Group,
+20,1,3,0.008,Portugal,DR Congo,Group,
+20,1,4,0.001,Portugal,DR Congo,Group,
+20,1,5,0.0001,Portugal,DR Congo,Group,
+20,2,0,0.1379,Portugal,DR Congo,Group,
+20,2,1,0.0885,Portugal,DR Congo,Group,
+20,2,2,0.0287,Portugal,DR Congo,Group,
+20,2,3,0.006,Portugal,DR Congo,Group,
+20,2,4,0.0006,Portugal,DR Congo,Group,
+20,2,7,0.0001,Portugal,DR Congo,Group,
+20,3,0,0.0811,Portugal,DR Congo,Group,
+20,3,1,0.0475,Portugal,DR Congo,Group,
+20,3,2,0.015,Portugal,DR Congo,Group,
+20,3,3,0.0036,Portugal,DR Congo,Group,
+20,3,4,0.0009,Portugal,DR Congo,Group,
+20,3,5,0.0001,Portugal,DR Congo,Group,
+20,4,0,0.0321,Portugal,DR Congo,Group,
+20,4,1,0.0207,Portugal,DR Congo,Group,
+20,4,2,0.0072,Portugal,DR Congo,Group,
+20,4,3,0.0012,Portugal,DR Congo,Group,
+20,4,4,0.0003,Portugal,DR Congo,Group,
+20,4,5,0.0001,Portugal,DR Congo,Group,
+20,5,0,0.011,Portugal,DR Congo,Group,
+20,5,1,0.0061,Portugal,DR Congo,Group,
+20,5,2,0.0016,Portugal,DR Congo,Group,
+20,5,3,0.0004,Portugal,DR Congo,Group,
+20,5,4,0.0001,Portugal,DR Congo,Group,
+20,6,0,0.0028,Portugal,DR Congo,Group,
+20,6,1,0.0015,Portugal,DR Congo,Group,
+20,6,2,0.0007,Portugal,DR Congo,Group,
+20,6,3,0.0001,Portugal,DR Congo,Group,
+20,7,0,0.0007,Portugal,DR Congo,Group,
+20,7,1,0.0002,Portugal,DR Congo,Group,
+20,8,0,0.0003,Portugal,DR Congo,Group,
+20,8,1,0.0001,Portugal,DR Congo,Group,
+20,9,0,0.0001,Portugal,DR Congo,Group,
+21,0,0,0.0625,Uzbekistan,Colombia,Group,
+21,0,1,0.1249,Uzbekistan,Colombia,Group,
+21,0,2,0.1263,Uzbekistan,Colombia,Group,
+21,0,3,0.0877,Uzbekistan,Colombia,Group,
+21,0,4,0.0401,Uzbekistan,Colombia,Group,
+21,0,5,0.0157,Uzbekistan,Colombia,Group,
+21,0,6,0.0052,Uzbekistan,Colombia,Group,
+21,0,7,0.0012,Uzbekistan,Colombia,Group,
+21,0,8,0.0001,Uzbekistan,Colombia,Group,
+21,1,0,0.0506,Uzbekistan,Colombia,Group,
+21,1,1,0.0994,Uzbekistan,Colombia,Group,
+21,1,2,0.0879,Uzbekistan,Colombia,Group,
+21,1,3,0.0653,Uzbekistan,Colombia,Group,
+21,1,4,0.031,Uzbekistan,Colombia,Group,
+21,1,5,0.0125,Uzbekistan,Colombia,Group,
+21,1,6,0.0029,Uzbekistan,Colombia,Group,
+21,1,7,0.0011,Uzbekistan,Colombia,Group,
+21,1,8,0.0003,Uzbekistan,Colombia,Group,
+21,1,10,0.0001,Uzbekistan,Colombia,Group,
+21,2,0,0.0202,Uzbekistan,Colombia,Group,
+21,2,1,0.0396,Uzbekistan,Colombia,Group,
+21,2,2,0.0387,Uzbekistan,Colombia,Group,
+21,2,3,0.0255,Uzbekistan,Colombia,Group,
+21,2,4,0.01,Uzbekistan,Colombia,Group,
+21,2,5,0.0065,Uzbekistan,Colombia,Group,
+21,2,6,0.0015,Uzbekistan,Colombia,Group,
+21,2,7,0.0006,Uzbekistan,Colombia,Group,
+21,2,8,0.0001,Uzbekistan,Colombia,Group,
+21,3,0,0.0051,Uzbekistan,Colombia,Group,
+21,3,1,0.0089,Uzbekistan,Colombia,Group,
+21,3,2,0.009,Uzbekistan,Colombia,Group,
+21,3,3,0.008,Uzbekistan,Colombia,Group,
+21,3,4,0.0026,Uzbekistan,Colombia,Group,
+21,3,5,0.001,Uzbekistan,Colombia,Group,
+21,3,6,0.0004,Uzbekistan,Colombia,Group,
+21,3,8,0.0001,Uzbekistan,Colombia,Group,
+21,4,0,0.0015,Uzbekistan,Colombia,Group,
+21,4,1,0.0016,Uzbekistan,Colombia,Group,
+21,4,2,0.0018,Uzbekistan,Colombia,Group,
+21,4,3,0.0004,Uzbekistan,Colombia,Group,
+21,4,4,0.0006,Uzbekistan,Colombia,Group,
+21,4,5,0.0001,Uzbekistan,Colombia,Group,
+21,5,0,0.0002,Uzbekistan,Colombia,Group,
+21,5,1,0.0003,Uzbekistan,Colombia,Group,
+21,5,2,0.0003,Uzbekistan,Colombia,Group,
+21,5,3,0.0002,Uzbekistan,Colombia,Group,
+21,5,4,0.0001,Uzbekistan,Colombia,Group,
+21,6,1,0.0002,Uzbekistan,Colombia,Group,
+21,6,4,0.0001,Uzbekistan,Colombia,Group,
+22,0,0,0.0982,England,Croatia,Group,
+22,0,1,0.0955,England,Croatia,Group,
+22,0,2,0.0402,England,Croatia,Group,
+22,0,3,0.0125,England,Croatia,Group,
+22,0,4,0.0034,England,Croatia,Group,
+22,0,5,0.0002,England,Croatia,Group,
+22,0,6,0.0002,England,Croatia,Group,
+22,0,7,0.0001,England,Croatia,Group,
+22,1,0,0.1368,England,Croatia,Group,
+22,1,1,0.1274,England,Croatia,Group,
+22,1,2,0.0607,England,Croatia,Group,
+22,1,3,0.0192,England,Croatia,Group,
+22,1,4,0.0044,England,Croatia,Group,
+22,1,5,0.0006,England,Croatia,Group,
+22,1,6,0.0001,England,Croatia,Group,
+22,2,0,0.0985,England,Croatia,Group,
+22,2,1,0.0871,England,Croatia,Group,
+22,2,2,0.0441,England,Croatia,Group,
+22,2,3,0.0112,England,Croatia,Group,
+22,2,4,0.0032,England,Croatia,Group,
+22,2,5,0.0009,England,Croatia,Group,
+22,3,0,0.0413,England,Croatia,Group,
+22,3,1,0.0382,England,Croatia,Group,
+22,3,2,0.0188,England,Croatia,Group,
+22,3,3,0.005,England,Croatia,Group,
+22,3,4,0.0015,England,Croatia,Group,
+22,3,5,0.0004,England,Croatia,Group,
+22,4,0,0.0135,England,Croatia,Group,
+22,4,1,0.0144,England,Croatia,Group,
+22,4,2,0.0063,England,Croatia,Group,
+22,4,3,0.0027,England,Croatia,Group,
+22,4,4,0.0012,England,Croatia,Group,
+22,4,5,0.0001,England,Croatia,Group,
+22,5,0,0.003,England,Croatia,Group,
+22,5,1,0.003,England,Croatia,Group,
+22,5,2,0.0014,England,Croatia,Group,
+22,5,3,0.0005,England,Croatia,Group,
+22,5,4,0.0002,England,Croatia,Group,
+22,6,0,0.0017,England,Croatia,Group,
+22,6,1,0.0008,England,Croatia,Group,
+22,6,2,0.0007,England,Croatia,Group,
+22,6,3,0.0002,England,Croatia,Group,
+22,7,0,0.0003,England,Croatia,Group,
+22,7,1,0.0003,England,Croatia,Group,
+23,0,0,0.0778,Ghana,Panama,Group,
+23,0,1,0.1305,Ghana,Panama,Group,
+23,0,2,0.1144,Ghana,Panama,Group,
+23,0,3,0.0709,Ghana,Panama,Group,
+23,0,4,0.0296,Ghana,Panama,Group,
+23,0,5,0.0101,Ghana,Panama,Group,
+23,0,6,0.0032,Ghana,Panama,Group,
+23,0,7,0.0008,Ghana,Panama,Group,
+23,0,8,0.0002,Ghana,Panama,Group,
+23,0,9,0.0003,Ghana,Panama,Group,
+23,1,0,0.0577,Ghana,Panama,Group,
+23,1,1,0.114,Ghana,Panama,Group,
+23,1,2,0.0917,Ghana,Panama,Group,
+23,1,3,0.059,Ghana,Panama,Group,
+23,1,4,0.0251,Ghana,Panama,Group,
+23,1,5,0.0094,Ghana,Panama,Group,
+23,1,6,0.0019,Ghana,Panama,Group,
+23,1,7,0.0015,Ghana,Panama,Group,
+23,1,8,0.0004,Ghana,Panama,Group,
+23,1,9,0.0001,Ghana,Panama,Group,
+23,2,0,0.0248,Ghana,Panama,Group,
+23,2,1,0.0437,Ghana,Panama,Group,
+23,2,2,0.0424,Ghana,Panama,Group,
+23,2,3,0.0236,Ghana,Panama,Group,
+23,2,4,0.0109,Ghana,Panama,Group,
+23,2,5,0.004,Ghana,Panama,Group,
+23,2,6,0.0011,Ghana,Panama,Group,
+23,2,7,0.0003,Ghana,Panama,Group,
+23,3,0,0.006,Ghana,Panama,Group,
+23,3,1,0.0125,Ghana,Panama,Group,
+23,3,2,0.0099,Ghana,Panama,Group,
+23,3,3,0.007,Ghana,Panama,Group,
+23,3,4,0.003,Ghana,Panama,Group,
+23,3,5,0.0016,Ghana,Panama,Group,
+23,3,6,0.0001,Ghana,Panama,Group,
+23,4,0,0.0017,Ghana,Panama,Group,
+23,4,1,0.0022,Ghana,Panama,Group,
+23,4,2,0.0031,Ghana,Panama,Group,
+23,4,3,0.0009,Ghana,Panama,Group,
+23,4,4,0.0007,Ghana,Panama,Group,
+23,4,5,0.0004,Ghana,Panama,Group,
+23,5,0,0.0003,Ghana,Panama,Group,
+23,5,1,0.0002,Ghana,Panama,Group,
+23,5,2,0.0006,Ghana,Panama,Group,
+23,5,3,0.0002,Ghana,Panama,Group,
+23,5,4,0.0001,Ghana,Panama,Group,
+23,7,1,0.0001,Ghana,Panama,Group,
+24,0,0,0.0965,Mexico,South Korea,Group,
+24,0,1,0.0809,Mexico,South Korea,Group,
+24,0,2,0.0344,Mexico,South Korea,Group,
+24,0,3,0.0115,Mexico,South Korea,Group,
+24,0,4,0.003,Mexico,South Korea,Group,
+24,0,5,0.0006,Mexico,South Korea,Group,
+24,1,0,0.1433,Mexico,South Korea,Group,
+24,1,1,0.1198,Mexico,South Korea,Group,
+24,1,2,0.0524,Mexico,South Korea,Group,
+24,1,3,0.0169,Mexico,South Korea,Group,
+24,1,4,0.003,Mexico,South Korea,Group,
+24,1,5,0.0009,Mexico,South Korea,Group,
+24,2,0,0.1049,Mexico,South Korea,Group,
+24,2,1,0.0882,Mexico,South Korea,Group,
+24,2,2,0.0373,Mexico,South Korea,Group,
+24,2,3,0.0117,Mexico,South Korea,Group,
+24,2,4,0.0015,Mexico,South Korea,Group,
+24,2,5,0.0004,Mexico,South Korea,Group,
+24,2,6,0.0002,Mexico,South Korea,Group,
+24,3,0,0.0562,Mexico,South Korea,Group,
+24,3,1,0.0419,Mexico,South Korea,Group,
+24,3,2,0.0193,Mexico,South Korea,Group,
+24,3,3,0.0055,Mexico,South Korea,Group,
+24,3,4,0.0012,Mexico,South Korea,Group,
+24,3,5,0.0002,Mexico,South Korea,Group,
+24,3,7,0.0001,Mexico,South Korea,Group,
+24,4,0,0.0194,Mexico,South Korea,Group,
+24,4,1,0.0191,Mexico,South Korea,Group,
+24,4,2,0.0083,Mexico,South Korea,Group,
+24,4,3,0.0023,Mexico,South Korea,Group,
+24,4,4,0.0001,Mexico,South Korea,Group,
+24,4,5,0.0001,Mexico,South Korea,Group,
+24,5,0,0.0068,Mexico,South Korea,Group,
+24,5,1,0.0046,Mexico,South Korea,Group,
+24,5,2,0.0024,Mexico,South Korea,Group,
+24,5,3,0.0012,Mexico,South Korea,Group,
+24,6,0,0.0015,Mexico,South Korea,Group,
+24,6,1,0.0013,Mexico,South Korea,Group,
+24,6,2,0.0002,Mexico,South Korea,Group,
+24,7,0,0.0002,Mexico,South Korea,Group,
+24,7,1,0.0003,Mexico,South Korea,Group,
+24,7,2,0.0002,Mexico,South Korea,Group,
+24,8,1,0.0001,Mexico,South Korea,Group,
+24,8,2,0.0001,Mexico,South Korea,Group,
+25,0,0,0.0734,Czechia,South Africa,Group,
+25,0,1,0.0583,Czechia,South Africa,Group,
+25,0,2,0.022,Czechia,South Africa,Group,
+25,0,3,0.0059,Czechia,South Africa,Group,
+25,0,4,0.0008,Czechia,South Africa,Group,
+25,0,5,0.0004,Czechia,South Africa,Group,
+25,1,0,0.1355,Czechia,South Africa,Group,
+25,1,1,0.1007,Czechia,South Africa,Group,
+25,1,2,0.0405,Czechia,South Africa,Group,
+25,1,3,0.0108,Czechia,South Africa,Group,
+25,1,4,0.0018,Czechia,South Africa,Group,
+25,1,5,0.0003,Czechia,South Africa,Group,
+25,1,6,0.0001,Czechia,South Africa,Group,
+25,2,0,0.128,Czechia,South Africa,Group,
+25,2,1,0.0934,Czechia,South Africa,Group,
+25,2,2,0.0369,Czechia,South Africa,Group,
+25,2,3,0.0106,Czechia,South Africa,Group,
+25,2,4,0.003,Czechia,South Africa,Group,
+25,2,5,0.0001,Czechia,South Africa,Group,
+25,3,0,0.0761,Czechia,South Africa,Group,
+25,3,1,0.0549,Czechia,South Africa,Group,
+25,3,2,0.0221,Czechia,South Africa,Group,
+25,3,3,0.0054,Czechia,South Africa,Group,
+25,3,4,0.0009,Czechia,South Africa,Group,
+25,3,5,0.0003,Czechia,South Africa,Group,
+25,4,0,0.0378,Czechia,South Africa,Group,
+25,4,1,0.0271,Czechia,South Africa,Group,
+25,4,2,0.0122,Czechia,South Africa,Group,
+25,4,3,0.003,Czechia,South Africa,Group,
+25,4,4,0.0005,Czechia,South Africa,Group,
+25,4,5,0.0003,Czechia,South Africa,Group,
+25,4,6,0.0001,Czechia,South Africa,Group,
+25,5,0,0.0128,Czechia,South Africa,Group,
+25,5,1,0.0082,Czechia,South Africa,Group,
+25,5,2,0.0034,Czechia,South Africa,Group,
+25,5,3,0.0003,Czechia,South Africa,Group,
+25,5,4,0.0002,Czechia,South Africa,Group,
+25,6,0,0.0049,Czechia,South Africa,Group,
+25,6,1,0.0026,Czechia,South Africa,Group,
+25,6,2,0.0016,Czechia,South Africa,Group,
+25,6,3,0.0001,Czechia,South Africa,Group,
+25,6,4,0.0002,Czechia,South Africa,Group,
+25,7,0,0.0013,Czechia,South Africa,Group,
+25,7,1,0.0005,Czechia,South Africa,Group,
+25,7,2,0.0001,Czechia,South Africa,Group,
+25,8,0,0.0003,Czechia,South Africa,Group,
+25,8,1,0.0001,Czechia,South Africa,Group,
+25,9,1,0.0001,Czechia,South Africa,Group,
+25,11,0,0.0001,Czechia,South Africa,Group,
+26,0,0,0.0535,Canada,Qatar,Group,
+26,0,1,0.0327,Canada,Qatar,Group,
+26,0,2,0.0096,Canada,Qatar,Group,
+26,0,3,0.0021,Canada,Qatar,Group,
+26,0,4,0.0005,Canada,Qatar,Group,
+26,1,0,0.1272,Canada,Qatar,Group,
+26,1,1,0.0744,Canada,Qatar,Group,
+26,1,2,0.0222,Canada,Qatar,Group,
+26,1,3,0.005,Canada,Qatar,Group,
+26,1,4,0.0005,Canada,Qatar,Group,
+26,1,5,0.0002,Canada,Qatar,Group,
+26,1,6,0.0001,Canada,Qatar,Group,
+26,2,0,0.1462,Canada,Qatar,Group,
+26,2,1,0.092,Canada,Qatar,Group,
+26,2,2,0.0257,Canada,Qatar,Group,
+26,2,3,0.0054,Canada,Qatar,Group,
+26,2,4,0.0005,Canada,Qatar,Group,
+26,3,0,0.1143,Canada,Qatar,Group,
+26,3,1,0.0672,Canada,Qatar,Group,
+26,3,2,0.022,Canada,Qatar,Group,
+26,3,3,0.0045,Canada,Qatar,Group,
+26,3,4,0.0005,Canada,Qatar,Group,
+26,3,5,0.0001,Canada,Qatar,Group,
+26,4,0,0.061,Canada,Qatar,Group,
+26,4,1,0.0386,Canada,Qatar,Group,
+26,4,2,0.0099,Canada,Qatar,Group,
+26,4,3,0.0023,Canada,Qatar,Group,
+26,5,0,0.0291,Canada,Qatar,Group,
+26,5,1,0.0168,Canada,Qatar,Group,
+26,5,2,0.0064,Canada,Qatar,Group,
+26,5,3,0.0015,Canada,Qatar,Group,
+26,5,4,0.0002,Canada,Qatar,Group,
+26,6,0,0.0091,Canada,Qatar,Group,
+26,6,1,0.0061,Canada,Qatar,Group,
+26,6,2,0.0028,Canada,Qatar,Group,
+26,6,3,0.0004,Canada,Qatar,Group,
+26,7,0,0.004,Canada,Qatar,Group,
+26,7,1,0.0023,Canada,Qatar,Group,
+26,7,2,0.001,Canada,Qatar,Group,
+26,7,3,0.0002,Canada,Qatar,Group,
+26,8,0,0.0005,Canada,Qatar,Group,
+26,8,1,0.0008,Canada,Qatar,Group,
+26,8,2,0.0001,Canada,Qatar,Group,
+26,9,0,0.0003,Canada,Qatar,Group,
+26,9,2,0.0001,Canada,Qatar,Group,
+26,10,1,0.0001,Canada,Qatar,Group,
+27,0,0,0.0793,Switzerland,Bosnia and Herzegovina,Group,
+27,0,1,0.0538,Switzerland,Bosnia and Herzegovina,Group,
+27,0,2,0.0176,Switzerland,Bosnia and Herzegovina,Group,
+27,0,3,0.005,Switzerland,Bosnia and Herzegovina,Group,
+27,0,4,0.0009,Switzerland,Bosnia and Herzegovina,Group,
+27,1,0,0.1496,Switzerland,Bosnia and Herzegovina,Group,
+27,1,1,0.0981,Switzerland,Bosnia and Herzegovina,Group,
+27,1,2,0.0335,Switzerland,Bosnia and Herzegovina,Group,
+27,1,3,0.0074,Switzerland,Bosnia and Herzegovina,Group,
+27,1,4,0.0005,Switzerland,Bosnia and Herzegovina,Group,
+27,1,5,0.0001,Switzerland,Bosnia and Herzegovina,Group,
+27,1,7,0.0001,Switzerland,Bosnia and Herzegovina,Group,
+27,2,0,0.1403,Switzerland,Bosnia and Herzegovina,Group,
+27,2,1,0.0919,Switzerland,Bosnia and Herzegovina,Group,
+27,2,2,0.0292,Switzerland,Bosnia and Herzegovina,Group,
+27,2,3,0.0067,Switzerland,Bosnia and Herzegovina,Group,
+27,2,4,0.0009,Switzerland,Bosnia and Herzegovina,Group,
+27,2,5,0.0001,Switzerland,Bosnia and Herzegovina,Group,
+27,3,0,0.0823,Switzerland,Bosnia and Herzegovina,Group,
+27,3,1,0.0602,Switzerland,Bosnia and Herzegovina,Group,
+27,3,2,0.0192,Switzerland,Bosnia and Herzegovina,Group,
+27,3,3,0.0038,Switzerland,Bosnia and Herzegovina,Group,
+27,3,4,0.0009,Switzerland,Bosnia and Herzegovina,Group,
+27,3,5,0.0001,Switzerland,Bosnia and Herzegovina,Group,
+27,4,0,0.04,Switzerland,Bosnia and Herzegovina,Group,
+27,4,1,0.0278,Switzerland,Bosnia and Herzegovina,Group,
+27,4,2,0.0085,Switzerland,Bosnia and Herzegovina,Group,
+27,4,3,0.0021,Switzerland,Bosnia and Herzegovina,Group,
+27,4,4,0.0004,Switzerland,Bosnia and Herzegovina,Group,
+27,5,0,0.0145,Switzerland,Bosnia and Herzegovina,Group,
+27,5,1,0.0083,Switzerland,Bosnia and Herzegovina,Group,
+27,5,2,0.0026,Switzerland,Bosnia and Herzegovina,Group,
+27,5,3,0.0007,Switzerland,Bosnia and Herzegovina,Group,
+27,5,5,0.0001,Switzerland,Bosnia and Herzegovina,Group,
+27,6,0,0.0064,Switzerland,Bosnia and Herzegovina,Group,
+27,6,1,0.0026,Switzerland,Bosnia and Herzegovina,Group,
+27,6,2,0.0005,Switzerland,Bosnia and Herzegovina,Group,
+27,6,3,0.0002,Switzerland,Bosnia and Herzegovina,Group,
+27,7,0,0.0013,Switzerland,Bosnia and Herzegovina,Group,
+27,7,1,0.0013,Switzerland,Bosnia and Herzegovina,Group,
+27,7,2,0.0004,Switzerland,Bosnia and Herzegovina,Group,
+27,8,0,0.0003,Switzerland,Bosnia and Herzegovina,Group,
+27,8,1,0.0003,Switzerland,Bosnia and Herzegovina,Group,
+27,8,2,0.0001,Switzerland,Bosnia and Herzegovina,Group,
+27,9,0,0.0001,Switzerland,Bosnia and Herzegovina,Group,
+28,0,0,0.0363,Brazil,Haiti,Group,
+28,0,1,0.0186,Brazil,Haiti,Group,
+28,0,2,0.0074,Brazil,Haiti,Group,
+28,0,3,0.0008,Brazil,Haiti,Group,
+28,1,0,0.0986,Brazil,Haiti,Group,
+28,1,1,0.0558,Brazil,Haiti,Group,
+28,1,2,0.0163,Brazil,Haiti,Group,
+28,1,3,0.0037,Brazil,Haiti,Group,
+28,1,4,0.0007,Brazil,Haiti,Group,
+28,1,5,0.0001,Brazil,Haiti,Group,
+28,2,0,0.1297,Brazil,Haiti,Group,
+28,2,1,0.0797,Brazil,Haiti,Group,
+28,2,2,0.0233,Brazil,Haiti,Group,
+28,2,3,0.0042,Brazil,Haiti,Group,
+28,2,4,0.0007,Brazil,Haiti,Group,
+28,2,5,0.0002,Brazil,Haiti,Group,
+28,3,0,0.1156,Brazil,Haiti,Group,
+28,3,1,0.0747,Brazil,Haiti,Group,
+28,3,2,0.0216,Brazil,Haiti,Group,
+28,3,3,0.0043,Brazil,Haiti,Group,
+28,3,4,0.0004,Brazil,Haiti,Group,
+28,4,0,0.0851,Brazil,Haiti,Group,
+28,4,1,0.0487,Brazil,Haiti,Group,
+28,4,2,0.0179,Brazil,Haiti,Group,
+28,4,3,0.0026,Brazil,Haiti,Group,
+28,4,4,0.0003,Brazil,Haiti,Group,
+28,4,5,0.0001,Brazil,Haiti,Group,
+28,5,0,0.0474,Brazil,Haiti,Group,
+28,5,1,0.0272,Brazil,Haiti,Group,
+28,5,2,0.0096,Brazil,Haiti,Group,
+28,5,3,0.0025,Brazil,Haiti,Group,
+28,5,4,0.0003,Brazil,Haiti,Group,
+28,6,0,0.021,Brazil,Haiti,Group,
+28,6,1,0.0139,Brazil,Haiti,Group,
+28,6,2,0.0043,Brazil,Haiti,Group,
+28,6,3,0.0005,Brazil,Haiti,Group,
+28,7,0,0.0091,Brazil,Haiti,Group,
+28,7,1,0.0056,Brazil,Haiti,Group,
+28,7,2,0.0024,Brazil,Haiti,Group,
+28,7,3,0.0001,Brazil,Haiti,Group,
+28,8,0,0.0029,Brazil,Haiti,Group,
+28,8,1,0.002,Brazil,Haiti,Group,
+28,8,2,0.0006,Brazil,Haiti,Group,
+28,8,3,0.0002,Brazil,Haiti,Group,
+28,9,0,0.0012,Brazil,Haiti,Group,
+28,9,1,0.0009,Brazil,Haiti,Group,
+28,9,2,0.0001,Brazil,Haiti,Group,
+28,9,3,0.0001,Brazil,Haiti,Group,
+28,10,0,0.0003,Brazil,Haiti,Group,
+28,10,1,0.0002,Brazil,Haiti,Group,
+28,10,2,0.0001,Brazil,Haiti,Group,
+28,10,3,0.0001,Brazil,Haiti,Group,
+29,0,0,0.0989,Scotland,Morocco,Group,
+29,0,1,0.1391,Scotland,Morocco,Group,
+29,0,2,0.0986,Scotland,Morocco,Group,
+29,0,3,0.0466,Scotland,Morocco,Group,
+29,0,4,0.0156,Scotland,Morocco,Group,
+29,0,5,0.0038,Scotland,Morocco,Group,
+29,0,6,0.001,Scotland,Morocco,Group,
+29,0,7,0.0003,Scotland,Morocco,Group,
+29,0,8,0.0001,Scotland,Morocco,Group,
+29,1,0,0.0918,Scotland,Morocco,Group,
+29,1,1,0.1233,Scotland,Morocco,Group,
+29,1,2,0.0933,Scotland,Morocco,Group,
+29,1,3,0.0395,Scotland,Morocco,Group,
+29,1,4,0.0149,Scotland,Morocco,Group,
+29,1,5,0.0049,Scotland,Morocco,Group,
+29,1,6,0.0011,Scotland,Morocco,Group,
+29,1,7,0.0001,Scotland,Morocco,Group,
+29,2,0,0.0402,Scotland,Morocco,Group,
+29,2,1,0.056,Scotland,Morocco,Group,
+29,2,2,0.0368,Scotland,Morocco,Group,
+29,2,3,0.0201,Scotland,Morocco,Group,
+29,2,4,0.0067,Scotland,Morocco,Group,
+29,2,5,0.0015,Scotland,Morocco,Group,
+29,2,6,0.0004,Scotland,Morocco,Group,
+29,2,7,0.0001,Scotland,Morocco,Group,
+29,3,0,0.0125,Scotland,Morocco,Group,
+29,3,1,0.0196,Scotland,Morocco,Group,
+29,3,2,0.0116,Scotland,Morocco,Group,
+29,3,3,0.0065,Scotland,Morocco,Group,
+29,3,4,0.0022,Scotland,Morocco,Group,
+29,3,5,0.0005,Scotland,Morocco,Group,
+29,4,0,0.0026,Scotland,Morocco,Group,
+29,4,1,0.0043,Scotland,Morocco,Group,
+29,4,2,0.0022,Scotland,Morocco,Group,
+29,4,3,0.0013,Scotland,Morocco,Group,
+29,4,4,0.0002,Scotland,Morocco,Group,
+29,5,0,0.0004,Scotland,Morocco,Group,
+29,5,1,0.0003,Scotland,Morocco,Group,
+29,5,2,0.0006,Scotland,Morocco,Group,
+29,5,3,0.0001,Scotland,Morocco,Group,
+29,6,1,0.0003,Scotland,Morocco,Group,
+29,6,2,0.0001,Scotland,Morocco,Group,
+30,0,0,0.095,United States,Australia,Group,
+30,0,1,0.1069,United States,Australia,Group,
+30,0,2,0.067,United States,Australia,Group,
+30,0,3,0.026,United States,Australia,Group,
+30,0,4,0.0081,United States,Australia,Group,
+30,0,5,0.0017,United States,Australia,Group,
+30,0,6,0.0008,United States,Australia,Group,
+30,0,7,0.0003,United States,Australia,Group,
+30,1,0,0.1118,United States,Australia,Group,
+30,1,1,0.1262,United States,Australia,Group,
+30,1,2,0.0814,United States,Australia,Group,
+30,1,3,0.032,United States,Australia,Group,
+30,1,4,0.011,United States,Australia,Group,
+30,1,5,0.0024,United States,Australia,Group,
+30,1,6,0.0003,United States,Australia,Group,
+30,1,7,0.0001,United States,Australia,Group,
+30,2,0,0.0652,United States,Australia,Group,
+30,2,1,0.0734,United States,Australia,Group,
+30,2,2,0.045,United States,Australia,Group,
+30,2,3,0.0173,United States,Australia,Group,
+30,2,4,0.0065,United States,Australia,Group,
+30,2,5,0.0013,United States,Australia,Group,
+30,2,6,0.0002,United States,Australia,Group,
+30,3,0,0.0268,United States,Australia,Group,
+30,3,1,0.0322,United States,Australia,Group,
+30,3,2,0.0198,United States,Australia,Group,
+30,3,3,0.0067,United States,Australia,Group,
+30,3,4,0.0019,United States,Australia,Group,
+30,3,5,0.0004,United States,Australia,Group,
+30,3,6,0.0003,United States,Australia,Group,
+30,4,0,0.0056,United States,Australia,Group,
+30,4,1,0.0094,United States,Australia,Group,
+30,4,2,0.0052,United States,Australia,Group,
+30,4,3,0.0024,United States,Australia,Group,
+30,4,4,0.0006,United States,Australia,Group,
+30,4,5,0.0001,United States,Australia,Group,
+30,4,8,0.0001,United States,Australia,Group,
+30,5,0,0.0024,United States,Australia,Group,
+30,5,1,0.0025,United States,Australia,Group,
+30,5,2,0.0013,United States,Australia,Group,
+30,5,3,0.0006,United States,Australia,Group,
+30,5,4,0.0002,United States,Australia,Group,
+30,5,6,0.0001,United States,Australia,Group,
+30,6,0,0.0005,United States,Australia,Group,
+30,6,1,0.0006,United States,Australia,Group,
+30,6,3,0.0001,United States,Australia,Group,
+30,7,0,0.0001,United States,Australia,Group,
+30,7,1,0.0001,United States,Australia,Group,
+30,7,2,0.0001,United States,Australia,Group,
+31,0,0,0.1071,Turkey,Paraguay,Group,
+31,0,1,0.1147,Turkey,Paraguay,Group,
+31,0,2,0.0583,Turkey,Paraguay,Group,
+31,0,3,0.0224,Turkey,Paraguay,Group,
+31,0,4,0.0064,Turkey,Paraguay,Group,
+31,0,5,0.0008,Turkey,Paraguay,Group,
+31,0,6,0.0002,Turkey,Paraguay,Group,
+31,1,0,0.1253,Turkey,Paraguay,Group,
+31,1,1,0.1325,Turkey,Paraguay,Group,
+31,1,2,0.0744,Turkey,Paraguay,Group,
+31,1,3,0.0252,Turkey,Paraguay,Group,
+31,1,4,0.0076,Turkey,Paraguay,Group,
+31,1,5,0.001,Turkey,Paraguay,Group,
+31,1,6,0.0003,Turkey,Paraguay,Group,
+31,2,0,0.075,Turkey,Paraguay,Group,
+31,2,1,0.0779,Turkey,Paraguay,Group,
+31,2,2,0.043,Turkey,Paraguay,Group,
+31,2,3,0.0141,Turkey,Paraguay,Group,
+31,2,4,0.0051,Turkey,Paraguay,Group,
+31,2,5,0.0002,Turkey,Paraguay,Group,
+31,2,6,0.0002,Turkey,Paraguay,Group,
+31,3,0,0.0271,Turkey,Paraguay,Group,
+31,3,1,0.0307,Turkey,Paraguay,Group,
+31,3,2,0.0137,Turkey,Paraguay,Group,
+31,3,3,0.0058,Turkey,Paraguay,Group,
+31,3,4,0.0017,Turkey,Paraguay,Group,
+31,3,5,0.0003,Turkey,Paraguay,Group,
+31,4,0,0.0074,Turkey,Paraguay,Group,
+31,4,1,0.0087,Turkey,Paraguay,Group,
+31,4,2,0.0046,Turkey,Paraguay,Group,
+31,4,3,0.001,Turkey,Paraguay,Group,
+31,4,4,0.0003,Turkey,Paraguay,Group,
+31,4,5,0.0001,Turkey,Paraguay,Group,
+31,5,0,0.0016,Turkey,Paraguay,Group,
+31,5,1,0.0019,Turkey,Paraguay,Group,
+31,5,2,0.0012,Turkey,Paraguay,Group,
+31,5,3,0.0007,Turkey,Paraguay,Group,
+31,5,5,0.0001,Turkey,Paraguay,Group,
+31,6,0,0.0002,Turkey,Paraguay,Group,
+31,6,1,0.0007,Turkey,Paraguay,Group,
+31,6,2,0.0002,Turkey,Paraguay,Group,
+31,6,3,0.0002,Turkey,Paraguay,Group,
+31,7,0,0.0001,Turkey,Paraguay,Group,
+32,0,0,0.0647,Germany,Ivory Coast,Group,
+32,0,1,0.0498,Germany,Ivory Coast,Group,
+32,0,2,0.0205,Germany,Ivory Coast,Group,
+32,0,3,0.0047,Germany,Ivory Coast,Group,
+32,0,4,0.0012,Germany,Ivory Coast,Group,
+32,0,5,0.0003,Germany,Ivory Coast,Group,
+32,1,0,0.1204,Germany,Ivory Coast,Group,
+32,1,1,0.0944,Germany,Ivory Coast,Group,
+32,1,2,0.0381,Germany,Ivory Coast,Group,
+32,1,3,0.0096,Germany,Ivory Coast,Group,
+32,1,4,0.0017,Germany,Ivory Coast,Group,
+32,1,5,0.0004,Germany,Ivory Coast,Group,
+32,2,0,0.1279,Germany,Ivory Coast,Group,
+32,2,1,0.0983,Germany,Ivory Coast,Group,
+32,2,2,0.0386,Germany,Ivory Coast,Group,
+32,2,3,0.0098,Germany,Ivory Coast,Group,
+32,2,4,0.0027,Germany,Ivory Coast,Group,
+32,2,5,0.0001,Germany,Ivory Coast,Group,
+32,3,0,0.0806,Germany,Ivory Coast,Group,
+32,3,1,0.0674,Germany,Ivory Coast,Group,
+32,3,2,0.0258,Germany,Ivory Coast,Group,
+32,3,3,0.0069,Germany,Ivory Coast,Group,
+32,3,4,0.0011,Germany,Ivory Coast,Group,
+32,3,5,0.0003,Germany,Ivory Coast,Group,
+32,4,0,0.0416,Germany,Ivory Coast,Group,
+32,4,1,0.0295,Germany,Ivory Coast,Group,
+32,4,2,0.0114,Germany,Ivory Coast,Group,
+32,4,3,0.0027,Germany,Ivory Coast,Group,
+32,4,4,0.0001,Germany,Ivory Coast,Group,
+32,5,0,0.0157,Germany,Ivory Coast,Group,
+32,5,1,0.011,Germany,Ivory Coast,Group,
+32,5,2,0.0053,Germany,Ivory Coast,Group,
+32,5,3,0.0011,Germany,Ivory Coast,Group,
+32,5,4,0.0002,Germany,Ivory Coast,Group,
+32,5,5,0.0001,Germany,Ivory Coast,Group,
+32,6,0,0.0045,Germany,Ivory Coast,Group,
+32,6,1,0.0042,Germany,Ivory Coast,Group,
+32,6,2,0.0016,Germany,Ivory Coast,Group,
+32,6,3,0.0006,Germany,Ivory Coast,Group,
+32,7,0,0.001,Germany,Ivory Coast,Group,
+32,7,1,0.0019,Germany,Ivory Coast,Group,
+32,7,2,0.0007,Germany,Ivory Coast,Group,
+32,7,3,0.0002,Germany,Ivory Coast,Group,
+32,8,0,0.0005,Germany,Ivory Coast,Group,
+32,8,1,0.0006,Germany,Ivory Coast,Group,
+32,8,2,0.0001,Germany,Ivory Coast,Group,
+32,8,3,0.0001,Germany,Ivory Coast,Group,
+33,0,0,0.0343,Ecuador,Curaçao,Group,
+33,0,1,0.0185,Ecuador,Curaçao,Group,
+33,0,2,0.0055,Ecuador,Curaçao,Group,
+33,0,3,0.0007,Ecuador,Curaçao,Group,
+33,0,4,0.0002,Ecuador,Curaçao,Group,
+33,1,0,0.0967,Ecuador,Curaçao,Group,
+33,1,1,0.0506,Ecuador,Curaçao,Group,
+33,1,2,0.0126,Ecuador,Curaçao,Group,
+33,1,3,0.0035,Ecuador,Curaçao,Group,
+33,1,4,0.0002,Ecuador,Curaçao,Group,
+33,2,0,0.1375,Ecuador,Curaçao,Group,
+33,2,1,0.0725,Ecuador,Curaçao,Group,
+33,2,2,0.0212,Ecuador,Curaçao,Group,
+33,2,3,0.0037,Ecuador,Curaçao,Group,
+33,2,4,0.0005,Ecuador,Curaçao,Group,
+33,3,0,0.1345,Ecuador,Curaçao,Group,
+33,3,1,0.0707,Ecuador,Curaçao,Group,
+33,3,2,0.0204,Ecuador,Curaçao,Group,
+33,3,3,0.0031,Ecuador,Curaçao,Group,
+33,3,4,0.0004,Ecuador,Curaçao,Group,
+33,3,5,0.0001,Ecuador,Curaçao,Group,
+33,4,0,0.0905,Ecuador,Curaçao,Group,
+33,4,1,0.0472,Ecuador,Curaçao,Group,
+33,4,2,0.0134,Ecuador,Curaçao,Group,
+33,4,3,0.0022,Ecuador,Curaçao,Group,
+33,4,4,0.0005,Ecuador,Curaçao,Group,
+33,5,0,0.0527,Ecuador,Curaçao,Group,
+33,5,1,0.0315,Ecuador,Curaçao,Group,
+33,5,2,0.0082,Ecuador,Curaçao,Group,
+33,5,3,0.0011,Ecuador,Curaçao,Group,
+33,6,0,0.0238,Ecuador,Curaçao,Group,
+33,6,1,0.0132,Ecuador,Curaçao,Group,
+33,6,2,0.003,Ecuador,Curaçao,Group,
+33,6,3,0.0006,Ecuador,Curaçao,Group,
+33,6,4,0.0001,Ecuador,Curaçao,Group,
+33,7,0,0.0107,Ecuador,Curaçao,Group,
+33,7,1,0.0044,Ecuador,Curaçao,Group,
+33,7,2,0.0015,Ecuador,Curaçao,Group,
+33,7,3,0.0003,Ecuador,Curaçao,Group,
+33,8,0,0.0033,Ecuador,Curaçao,Group,
+33,8,1,0.0012,Ecuador,Curaçao,Group,
+33,8,2,0.0005,Ecuador,Curaçao,Group,
+33,8,3,0.0001,Ecuador,Curaçao,Group,
+33,8,4,0.0002,Ecuador,Curaçao,Group,
+33,9,0,0.0012,Ecuador,Curaçao,Group,
+33,9,1,0.0004,Ecuador,Curaçao,Group,
+33,9,2,0.0002,Ecuador,Curaçao,Group,
+33,9,3,0.0001,Ecuador,Curaçao,Group,
+33,10,0,0.0001,Ecuador,Curaçao,Group,
+33,10,1,0.0002,Ecuador,Curaçao,Group,
+33,11,0,0.0001,Ecuador,Curaçao,Group,
+33,11,1,0.0001,Ecuador,Curaçao,Group,
+34,0,0,0.0575,Netherlands,Sweden,Group,
+34,0,1,0.0537,Netherlands,Sweden,Group,
+34,0,2,0.0263,Netherlands,Sweden,Group,
+34,0,3,0.009,Netherlands,Sweden,Group,
+34,0,4,0.0012,Netherlands,Sweden,Group,
+34,0,5,0.0006,Netherlands,Sweden,Group,
+34,0,6,0.0002,Netherlands,Sweden,Group,
+34,0,7,0.0001,Netherlands,Sweden,Group,
+34,1,0,0.1125,Netherlands,Sweden,Group,
+34,1,1,0.106,Netherlands,Sweden,Group,
+34,1,2,0.051,Netherlands,Sweden,Group,
+34,1,3,0.015,Netherlands,Sweden,Group,
+34,1,4,0.004,Netherlands,Sweden,Group,
+34,1,5,0.0005,Netherlands,Sweden,Group,
+34,1,7,0.0001,Netherlands,Sweden,Group,
+34,2,0,0.1099,Netherlands,Sweden,Group,
+34,2,1,0.0975,Netherlands,Sweden,Group,
+34,2,2,0.0459,Netherlands,Sweden,Group,
+34,2,3,0.0142,Netherlands,Sweden,Group,
+34,2,4,0.0022,Netherlands,Sweden,Group,
+34,2,5,0.0009,Netherlands,Sweden,Group,
+34,3,0,0.0673,Netherlands,Sweden,Group,
+34,3,1,0.0615,Netherlands,Sweden,Group,
+34,3,2,0.0266,Netherlands,Sweden,Group,
+34,3,3,0.0087,Netherlands,Sweden,Group,
+34,3,4,0.0023,Netherlands,Sweden,Group,
+34,3,5,0.0003,Netherlands,Sweden,Group,
+34,4,0,0.032,Netherlands,Sweden,Group,
+34,4,1,0.0318,Netherlands,Sweden,Group,
+34,4,2,0.0119,Netherlands,Sweden,Group,
+34,4,3,0.005,Netherlands,Sweden,Group,
+34,4,4,0.001,Netherlands,Sweden,Group,
+34,4,5,0.0002,Netherlands,Sweden,Group,
+34,5,0,0.0114,Netherlands,Sweden,Group,
+34,5,1,0.0114,Netherlands,Sweden,Group,
+34,5,2,0.0065,Netherlands,Sweden,Group,
+34,5,3,0.0011,Netherlands,Sweden,Group,
+34,5,4,0.0003,Netherlands,Sweden,Group,
+34,5,5,0.0001,Netherlands,Sweden,Group,
+34,6,0,0.0034,Netherlands,Sweden,Group,
+34,6,1,0.0041,Netherlands,Sweden,Group,
+34,6,2,0.0015,Netherlands,Sweden,Group,
+34,6,3,0.0005,Netherlands,Sweden,Group,
+34,7,0,0.0009,Netherlands,Sweden,Group,
+34,7,1,0.001,Netherlands,Sweden,Group,
+34,7,2,0.0002,Netherlands,Sweden,Group,
+34,7,3,0.0002,Netherlands,Sweden,Group,
+34,7,4,0.0001,Netherlands,Sweden,Group,
+34,8,0,0.0002,Netherlands,Sweden,Group,
+34,8,1,0.0001,Netherlands,Sweden,Group,
+34,8,2,0.0001,Netherlands,Sweden,Group,
+35,0,0,0.0688,Tunisia,Japan,Group,
+35,0,1,0.1301,Tunisia,Japan,Group,
+35,0,2,0.1285,Tunisia,Japan,Group,
+35,0,3,0.0867,Tunisia,Japan,Group,
+35,0,4,0.0393,Tunisia,Japan,Group,
+35,0,5,0.0143,Tunisia,Japan,Group,
+35,0,6,0.0053,Tunisia,Japan,Group,
+35,0,7,0.0023,Tunisia,Japan,Group,
+35,0,8,0.0005,Tunisia,Japan,Group,
+35,0,9,0.0001,Tunisia,Japan,Group,
+35,1,0,0.0489,Tunisia,Japan,Group,
+35,1,1,0.0968,Tunisia,Japan,Group,
+35,1,2,0.098,Tunisia,Japan,Group,
+35,1,3,0.0581,Tunisia,Japan,Group,
+35,1,4,0.0317,Tunisia,Japan,Group,
+35,1,5,0.0138,Tunisia,Japan,Group,
+35,1,6,0.0039,Tunisia,Japan,Group,
+35,1,7,0.0009,Tunisia,Japan,Group,
+35,1,8,0.0005,Tunisia,Japan,Group,
+35,2,0,0.018,Tunisia,Japan,Group,
+35,2,1,0.0358,Tunisia,Japan,Group,
+35,2,2,0.0395,Tunisia,Japan,Group,
+35,2,3,0.0215,Tunisia,Japan,Group,
+35,2,4,0.0112,Tunisia,Japan,Group,
+35,2,5,0.0045,Tunisia,Japan,Group,
+35,2,6,0.002,Tunisia,Japan,Group,
+35,2,7,0.0003,Tunisia,Japan,Group,
+35,3,0,0.0044,Tunisia,Japan,Group,
+35,3,1,0.0085,Tunisia,Japan,Group,
+35,3,2,0.008,Tunisia,Japan,Group,
+35,3,3,0.0065,Tunisia,Japan,Group,
+35,3,4,0.0025,Tunisia,Japan,Group,
+35,3,5,0.001,Tunisia,Japan,Group,
+35,3,6,0.0006,Tunisia,Japan,Group,
+35,4,0,0.0008,Tunisia,Japan,Group,
+35,4,1,0.0015,Tunisia,Japan,Group,
+35,4,2,0.0015,Tunisia,Japan,Group,
+35,4,3,0.0018,Tunisia,Japan,Group,
+35,4,4,0.0004,Tunisia,Japan,Group,
+35,4,5,0.0001,Tunisia,Japan,Group,
+35,5,1,0.0005,Tunisia,Japan,Group,
+35,5,2,0.0002,Tunisia,Japan,Group,
+35,5,3,0.0001,Tunisia,Japan,Group,
+35,5,6,0.0001,Tunisia,Japan,Group,
+35,6,3,0.0001,Tunisia,Japan,Group,
+35,6,4,0.0001,Tunisia,Japan,Group,
+36,0,0,0.0857,Belgium,Iran,Group,
+36,0,1,0.0701,Belgium,Iran,Group,
+36,0,2,0.0349,Belgium,Iran,Group,
+36,0,3,0.0097,Belgium,Iran,Group,
+36,0,4,0.0023,Belgium,Iran,Group,
+36,0,5,0.0003,Belgium,Iran,Group,
+36,1,0,0.1301,Belgium,Iran,Group,
+36,1,1,0.1173,Belgium,Iran,Group,
+36,1,2,0.0573,Belgium,Iran,Group,
+36,1,3,0.0164,Belgium,Iran,Group,
+36,1,4,0.0038,Belgium,Iran,Group,
+36,1,5,0.0009,Belgium,Iran,Group,
+36,1,6,0.0002,Belgium,Iran,Group,
+36,2,0,0.1039,Belgium,Iran,Group,
+36,2,1,0.0984,Belgium,Iran,Group,
+36,2,2,0.0407,Belgium,Iran,Group,
+36,2,3,0.013,Belgium,Iran,Group,
+36,2,4,0.0036,Belgium,Iran,Group,
+36,2,5,0.0004,Belgium,Iran,Group,
+36,3,0,0.057,Belgium,Iran,Group,
+36,3,1,0.0479,Belgium,Iran,Group,
+36,3,2,0.0226,Belgium,Iran,Group,
+36,3,3,0.0059,Belgium,Iran,Group,
+36,3,4,0.0017,Belgium,Iran,Group,
+36,3,5,0.0001,Belgium,Iran,Group,
+36,3,6,0.0001,Belgium,Iran,Group,
+36,4,0,0.0233,Belgium,Iran,Group,
+36,4,1,0.0182,Belgium,Iran,Group,
+36,4,2,0.0086,Belgium,Iran,Group,
+36,4,3,0.0025,Belgium,Iran,Group,
+36,4,4,0.0005,Belgium,Iran,Group,
+36,4,5,0.0001,Belgium,Iran,Group,
+36,5,0,0.0053,Belgium,Iran,Group,
+36,5,1,0.0071,Belgium,Iran,Group,
+36,5,2,0.0028,Belgium,Iran,Group,
+36,5,3,0.0006,Belgium,Iran,Group,
+36,5,4,0.0001,Belgium,Iran,Group,
+36,6,0,0.0026,Belgium,Iran,Group,
+36,6,1,0.0015,Belgium,Iran,Group,
+36,6,2,0.0004,Belgium,Iran,Group,
+36,6,3,0.0003,Belgium,Iran,Group,
+36,6,4,0.0001,Belgium,Iran,Group,
+36,7,0,0.0007,Belgium,Iran,Group,
+36,7,1,0.0002,Belgium,Iran,Group,
+36,7,2,0.0003,Belgium,Iran,Group,
+36,7,3,0.0001,Belgium,Iran,Group,
+36,8,0,0.0001,Belgium,Iran,Group,
+36,8,1,0.0001,Belgium,Iran,Group,
+36,8,2,0.0001,Belgium,Iran,Group,
+36,9,2,0.0001,Belgium,Iran,Group,
+37,0,0,0.102,New Zealand,Egypt,Group,
+37,0,1,0.1512,New Zealand,Egypt,Group,
+37,0,2,0.1064,New Zealand,Egypt,Group,
+37,0,3,0.0497,New Zealand,Egypt,Group,
+37,0,4,0.0174,New Zealand,Egypt,Group,
+37,0,5,0.0058,New Zealand,Egypt,Group,
+37,0,6,0.0011,New Zealand,Egypt,Group,
+37,0,7,0.0003,New Zealand,Egypt,Group,
+37,1,0,0.0843,New Zealand,Egypt,Group,
+37,1,1,0.1221,New Zealand,Egypt,Group,
+37,1,2,0.0889,New Zealand,Egypt,Group,
+37,1,3,0.0452,New Zealand,Egypt,Group,
+37,1,4,0.0164,New Zealand,Egypt,Group,
+37,1,5,0.0034,New Zealand,Egypt,Group,
+37,1,6,0.0007,New Zealand,Egypt,Group,
+37,1,7,0.0002,New Zealand,Egypt,Group,
+37,1,8,0.0001,New Zealand,Egypt,Group,
+37,2,0,0.0338,New Zealand,Egypt,Group,
+37,2,1,0.0511,New Zealand,Egypt,Group,
+37,2,2,0.0387,New Zealand,Egypt,Group,
+37,2,3,0.0193,New Zealand,Egypt,Group,
+37,2,4,0.0057,New Zealand,Egypt,Group,
+37,2,5,0.001,New Zealand,Egypt,Group,
+37,2,6,0.0006,New Zealand,Egypt,Group,
+37,2,7,0.0003,New Zealand,Egypt,Group,
+37,3,0,0.012,New Zealand,Egypt,Group,
+37,3,1,0.0141,New Zealand,Egypt,Group,
+37,3,2,0.0104,New Zealand,Egypt,Group,
+37,3,3,0.005,New Zealand,Egypt,Group,
+37,3,4,0.0016,New Zealand,Egypt,Group,
+37,3,5,0.0003,New Zealand,Egypt,Group,
+37,4,0,0.0019,New Zealand,Egypt,Group,
+37,4,1,0.0024,New Zealand,Egypt,Group,
+37,4,2,0.0026,New Zealand,Egypt,Group,
+37,4,3,0.002,New Zealand,Egypt,Group,
+37,4,4,0.0002,New Zealand,Egypt,Group,
+37,5,0,0.0004,New Zealand,Egypt,Group,
+37,5,1,0.0003,New Zealand,Egypt,Group,
+37,5,2,0.0005,New Zealand,Egypt,Group,
+37,5,3,0.0001,New Zealand,Egypt,Group,
+37,5,6,0.0001,New Zealand,Egypt,Group,
+37,6,0,0.0001,New Zealand,Egypt,Group,
+37,6,1,0.0002,New Zealand,Egypt,Group,
+37,6,3,0.0001,New Zealand,Egypt,Group,
+38,0,0,0.0401,Spain,Saudi Arabia,Group,
+38,0,1,0.0161,Spain,Saudi Arabia,Group,
+38,0,2,0.0056,Spain,Saudi Arabia,Group,
+38,0,3,0.0008,Spain,Saudi Arabia,Group,
+38,0,4,0.0001,Spain,Saudi Arabia,Group,
+38,1,0,0.1009,Spain,Saudi Arabia,Group,
+38,1,1,0.0575,Spain,Saudi Arabia,Group,
+38,1,2,0.0138,Spain,Saudi Arabia,Group,
+38,1,3,0.0016,Spain,Saudi Arabia,Group,
+38,1,4,0.0004,Spain,Saudi Arabia,Group,
+38,2,0,0.1519,Spain,Saudi Arabia,Group,
+38,2,1,0.0727,Spain,Saudi Arabia,Group,
+38,2,2,0.0162,Spain,Saudi Arabia,Group,
+38,2,3,0.0027,Spain,Saudi Arabia,Group,
+38,2,4,0.0003,Spain,Saudi Arabia,Group,
+38,2,5,0.0001,Spain,Saudi Arabia,Group,
+38,3,0,0.1276,Spain,Saudi Arabia,Group,
+38,3,1,0.0678,Spain,Saudi Arabia,Group,
+38,3,2,0.0157,Spain,Saudi Arabia,Group,
+38,3,3,0.0025,Spain,Saudi Arabia,Group,
+38,3,4,0.0005,Spain,Saudi Arabia,Group,
+38,3,5,0.0001,Spain,Saudi Arabia,Group,
+38,4,0,0.095,Spain,Saudi Arabia,Group,
+38,4,1,0.0442,Spain,Saudi Arabia,Group,
+38,4,2,0.0114,Spain,Saudi Arabia,Group,
+38,4,3,0.0029,Spain,Saudi Arabia,Group,
+38,4,4,0.0006,Spain,Saudi Arabia,Group,
+38,5,0,0.0484,Spain,Saudi Arabia,Group,
+38,5,1,0.0271,Spain,Saudi Arabia,Group,
+38,5,2,0.0066,Spain,Saudi Arabia,Group,
+38,5,3,0.0009,Spain,Saudi Arabia,Group,
+38,6,0,0.0273,Spain,Saudi Arabia,Group,
+38,6,1,0.0126,Spain,Saudi Arabia,Group,
+38,6,2,0.0041,Spain,Saudi Arabia,Group,
+38,6,3,0.0005,Spain,Saudi Arabia,Group,
+38,6,4,0.0001,Spain,Saudi Arabia,Group,
+38,7,0,0.0092,Spain,Saudi Arabia,Group,
+38,7,1,0.0058,Spain,Saudi Arabia,Group,
+38,7,2,0.0012,Spain,Saudi Arabia,Group,
+38,7,3,0.0002,Spain,Saudi Arabia,Group,
+38,8,0,0.0036,Spain,Saudi Arabia,Group,
+38,8,1,0.0012,Spain,Saudi Arabia,Group,
+38,8,2,0.0003,Spain,Saudi Arabia,Group,
+38,9,0,0.0007,Spain,Saudi Arabia,Group,
+38,9,1,0.0004,Spain,Saudi Arabia,Group,
+38,9,2,0.0003,Spain,Saudi Arabia,Group,
+38,10,0,0.0003,Spain,Saudi Arabia,Group,
+38,10,1,0.0001,Spain,Saudi Arabia,Group,
+39,0,0,0.0944,Uruguay,Cape Verde,Group,
+39,0,1,0.056,Uruguay,Cape Verde,Group,
+39,0,2,0.0194,Uruguay,Cape Verde,Group,
+39,0,3,0.0055,Uruguay,Cape Verde,Group,
+39,0,4,0.0006,Uruguay,Cape Verde,Group,
+39,0,5,0.0002,Uruguay,Cape Verde,Group,
+39,1,0,0.1561,Uruguay,Cape Verde,Group,
+39,1,1,0.1102,Uruguay,Cape Verde,Group,
+39,1,2,0.0382,Uruguay,Cape Verde,Group,
+39,1,3,0.007,Uruguay,Cape Verde,Group,
+39,1,4,0.0011,Uruguay,Cape Verde,Group,
+39,1,5,0.0002,Uruguay,Cape Verde,Group,
+39,1,6,0.0001,Uruguay,Cape Verde,Group,
+39,2,0,0.1391,Uruguay,Cape Verde,Group,
+39,2,1,0.0886,Uruguay,Cape Verde,Group,
+39,2,2,0.0332,Uruguay,Cape Verde,Group,
+39,2,3,0.0076,Uruguay,Cape Verde,Group,
+39,2,4,0.0006,Uruguay,Cape Verde,Group,
+39,2,5,0.0001,Uruguay,Cape Verde,Group,
+39,3,0,0.0761,Uruguay,Cape Verde,Group,
+39,3,1,0.0512,Uruguay,Cape Verde,Group,
+39,3,2,0.018,Uruguay,Cape Verde,Group,
+39,3,3,0.0034,Uruguay,Cape Verde,Group,
+39,3,4,0.0005,Uruguay,Cape Verde,Group,
+39,3,5,0.0001,Uruguay,Cape Verde,Group,
+39,4,0,0.0349,Uruguay,Cape Verde,Group,
+39,4,1,0.0238,Uruguay,Cape Verde,Group,
+39,4,2,0.0066,Uruguay,Cape Verde,Group,
+39,4,3,0.0011,Uruguay,Cape Verde,Group,
+39,5,0,0.0097,Uruguay,Cape Verde,Group,
+39,5,1,0.0063,Uruguay,Cape Verde,Group,
+39,5,2,0.0024,Uruguay,Cape Verde,Group,
+39,5,3,0.0002,Uruguay,Cape Verde,Group,
+39,5,4,0.0001,Uruguay,Cape Verde,Group,
+39,6,0,0.0027,Uruguay,Cape Verde,Group,
+39,6,1,0.0018,Uruguay,Cape Verde,Group,
+39,6,2,0.0009,Uruguay,Cape Verde,Group,
+39,6,3,0.0001,Uruguay,Cape Verde,Group,
+39,6,4,0.0001,Uruguay,Cape Verde,Group,
+39,7,0,0.0008,Uruguay,Cape Verde,Group,
+39,7,1,0.0004,Uruguay,Cape Verde,Group,
+39,7,2,0.0002,Uruguay,Cape Verde,Group,
+39,7,3,0.0001,Uruguay,Cape Verde,Group,
+39,8,0,0.0002,Uruguay,Cape Verde,Group,
+39,8,1,0.0001,Uruguay,Cape Verde,Group,
+40,0,0,0.0348,France,Iraq,Group,
+40,0,1,0.019,France,Iraq,Group,
+40,0,2,0.0056,France,Iraq,Group,
+40,0,3,0.0011,France,Iraq,Group,
+40,1,0,0.1061,France,Iraq,Group,
+40,1,1,0.0536,France,Iraq,Group,
+40,1,2,0.0164,France,Iraq,Group,
+40,1,3,0.0032,France,Iraq,Group,
+40,1,4,0.0003,France,Iraq,Group,
+40,2,0,0.1366,France,Iraq,Group,
+40,2,1,0.0761,France,Iraq,Group,
+40,2,2,0.0201,France,Iraq,Group,
+40,2,3,0.0038,France,Iraq,Group,
+40,2,4,0.0003,France,Iraq,Group,
+40,3,0,0.13,France,Iraq,Group,
+40,3,1,0.0677,France,Iraq,Group,
+40,3,2,0.0188,France,Iraq,Group,
+40,3,3,0.0031,France,Iraq,Group,
+40,3,4,0.0003,France,Iraq,Group,
+40,3,6,0.0001,France,Iraq,Group,
+40,4,0,0.0879,France,Iraq,Group,
+40,4,1,0.0489,France,Iraq,Group,
+40,4,2,0.0158,France,Iraq,Group,
+40,4,3,0.0022,France,Iraq,Group,
+40,4,4,0.0006,France,Iraq,Group,
+40,5,0,0.0511,France,Iraq,Group,
+40,5,1,0.0272,France,Iraq,Group,
+40,5,2,0.007,France,Iraq,Group,
+40,5,3,0.0008,France,Iraq,Group,
+40,5,4,0.0001,France,Iraq,Group,
+40,6,0,0.0221,France,Iraq,Group,
+40,6,1,0.0132,France,Iraq,Group,
+40,6,2,0.003,France,Iraq,Group,
+40,6,3,0.0007,France,Iraq,Group,
+40,7,0,0.0087,France,Iraq,Group,
+40,7,1,0.0051,France,Iraq,Group,
+40,7,2,0.0013,France,Iraq,Group,
+40,7,3,0.0003,France,Iraq,Group,
+40,8,0,0.0028,France,Iraq,Group,
+40,8,1,0.0016,France,Iraq,Group,
+40,8,2,0.0002,France,Iraq,Group,
+40,8,3,0.0002,France,Iraq,Group,
+40,9,0,0.0011,France,Iraq,Group,
+40,9,1,0.0004,France,Iraq,Group,
+40,9,3,0.0001,France,Iraq,Group,
+40,10,0,0.0003,France,Iraq,Group,
+40,10,1,0.0003,France,Iraq,Group,
+41,0,0,0.0828,Norway,Senegal,Group,
+41,0,1,0.083,Norway,Senegal,Group,
+41,0,2,0.0379,Norway,Senegal,Group,
+41,0,3,0.0105,Norway,Senegal,Group,
+41,0,4,0.003,Norway,Senegal,Group,
+41,0,5,0.0005,Norway,Senegal,Group,
+41,0,6,0.0001,Norway,Senegal,Group,
+41,1,0,0.1302,Norway,Senegal,Group,
+41,1,1,0.1226,Norway,Senegal,Group,
+41,1,2,0.0552,Norway,Senegal,Group,
+41,1,3,0.0192,Norway,Senegal,Group,
+41,1,4,0.0029,Norway,Senegal,Group,
+41,1,5,0.0006,Norway,Senegal,Group,
+41,1,7,0.0001,Norway,Senegal,Group,
+41,2,0,0.1062,Norway,Senegal,Group,
+41,2,1,0.0927,Norway,Senegal,Group,
+41,2,2,0.0396,Norway,Senegal,Group,
+41,2,3,0.0145,Norway,Senegal,Group,
+41,2,4,0.0028,Norway,Senegal,Group,
+41,2,5,0.0005,Norway,Senegal,Group,
+41,2,6,0.0001,Norway,Senegal,Group,
+41,3,0,0.0551,Norway,Senegal,Group,
+41,3,1,0.046,Norway,Senegal,Group,
+41,3,2,0.0216,Norway,Senegal,Group,
+41,3,3,0.0057,Norway,Senegal,Group,
+41,3,4,0.0025,Norway,Senegal,Group,
+41,3,5,0.0004,Norway,Senegal,Group,
+41,4,0,0.0208,Norway,Senegal,Group,
+41,4,1,0.0142,Norway,Senegal,Group,
+41,4,2,0.0076,Norway,Senegal,Group,
+41,4,3,0.0022,Norway,Senegal,Group,
+41,4,4,0.0005,Norway,Senegal,Group,
+41,4,5,0.0002,Norway,Senegal,Group,
+41,5,0,0.006,Norway,Senegal,Group,
+41,5,1,0.0048,Norway,Senegal,Group,
+41,5,2,0.002,Norway,Senegal,Group,
+41,5,3,0.001,Norway,Senegal,Group,
+41,5,4,0.0004,Norway,Senegal,Group,
+41,6,0,0.0015,Norway,Senegal,Group,
+41,6,1,0.0012,Norway,Senegal,Group,
+41,6,2,0.0004,Norway,Senegal,Group,
+41,6,3,0.0001,Norway,Senegal,Group,
+41,7,0,0.0001,Norway,Senegal,Group,
+41,7,1,0.0005,Norway,Senegal,Group,
+41,7,2,0.0001,Norway,Senegal,Group,
+41,8,0,0.0001,Norway,Senegal,Group,
+42,0,0,0.0613,Argentina,Austria,Group,
+42,0,1,0.044,Argentina,Austria,Group,
+42,0,2,0.0161,Argentina,Austria,Group,
+42,0,3,0.005,Argentina,Austria,Group,
+42,0,4,0.0005,Argentina,Austria,Group,
+42,0,5,0.0001,Argentina,Austria,Group,
+42,1,0,0.1346,Argentina,Austria,Group,
+42,1,1,0.0896,Argentina,Austria,Group,
+42,1,2,0.0302,Argentina,Austria,Group,
+42,1,3,0.0077,Argentina,Austria,Group,
+42,1,4,0.0017,Argentina,Austria,Group,
+42,1,5,0.0003,Argentina,Austria,Group,
+42,1,7,0.0001,Argentina,Austria,Group,
+42,2,0,0.133,Argentina,Austria,Group,
+42,2,1,0.0923,Argentina,Austria,Group,
+42,2,2,0.0338,Argentina,Austria,Group,
+42,2,3,0.0076,Argentina,Austria,Group,
+42,2,4,0.0018,Argentina,Austria,Group,
+42,2,5,0.0004,Argentina,Austria,Group,
+42,3,0,0.0946,Argentina,Austria,Group,
+42,3,1,0.0689,Argentina,Austria,Group,
+42,3,2,0.023,Argentina,Austria,Group,
+42,3,3,0.0057,Argentina,Austria,Group,
+42,3,4,0.0006,Argentina,Austria,Group,
+42,3,5,0.0002,Argentina,Austria,Group,
+42,3,6,0.0001,Argentina,Austria,Group,
+42,4,0,0.0441,Argentina,Austria,Group,
+42,4,1,0.0339,Argentina,Austria,Group,
+42,4,2,0.0135,Argentina,Austria,Group,
+42,4,3,0.0021,Argentina,Austria,Group,
+42,4,4,0.0004,Argentina,Austria,Group,
+42,4,5,0.0002,Argentina,Austria,Group,
+42,5,0,0.0172,Argentina,Austria,Group,
+42,5,1,0.0117,Argentina,Austria,Group,
+42,5,2,0.0046,Argentina,Austria,Group,
+42,5,3,0.0003,Argentina,Austria,Group,
+42,5,4,0.0002,Argentina,Austria,Group,
+42,6,0,0.0053,Argentina,Austria,Group,
+42,6,1,0.0048,Argentina,Austria,Group,
+42,6,2,0.0018,Argentina,Austria,Group,
+42,6,3,0.0002,Argentina,Austria,Group,
+42,6,4,0.0002,Argentina,Austria,Group,
+42,7,0,0.0025,Argentina,Austria,Group,
+42,7,1,0.0016,Argentina,Austria,Group,
+42,7,2,0.0007,Argentina,Austria,Group,
+42,7,3,0.0002,Argentina,Austria,Group,
+42,8,0,0.0005,Argentina,Austria,Group,
+42,8,1,0.0004,Argentina,Austria,Group,
+42,9,0,0.0002,Argentina,Austria,Group,
+42,10,1,0.0001,Argentina,Austria,Group,
+42,10,2,0.0001,Argentina,Austria,Group,
+43,0,0,0.0916,Jordan,Algeria,Group,
+43,0,1,0.1347,Jordan,Algeria,Group,
+43,0,2,0.1052,Jordan,Algeria,Group,
+43,0,3,0.0541,Jordan,Algeria,Group,
+43,0,4,0.0194,Jordan,Algeria,Group,
+43,0,5,0.0049,Jordan,Algeria,Group,
+43,0,6,0.0019,Jordan,Algeria,Group,
+43,0,7,0.0005,Jordan,Algeria,Group,
+43,0,8,0.0001,Jordan,Algeria,Group,
+43,0,9,0.0001,Jordan,Algeria,Group,
+43,1,0,0.0833,Jordan,Algeria,Group,
+43,1,1,0.1223,Jordan,Algeria,Group,
+43,1,2,0.0939,Jordan,Algeria,Group,
+43,1,3,0.0424,Jordan,Algeria,Group,
+43,1,4,0.0161,Jordan,Algeria,Group,
+43,1,5,0.0058,Jordan,Algeria,Group,
+43,1,6,0.0014,Jordan,Algeria,Group,
+43,2,0,0.0371,Jordan,Algeria,Group,
+43,2,1,0.0542,Jordan,Algeria,Group,
+43,2,2,0.0392,Jordan,Algeria,Group,
+43,2,3,0.0216,Jordan,Algeria,Group,
+43,2,4,0.0074,Jordan,Algeria,Group,
+43,2,5,0.0026,Jordan,Algeria,Group,
+43,2,6,0.0005,Jordan,Algeria,Group,
+43,2,7,0.0002,Jordan,Algeria,Group,
+43,2,8,0.0001,Jordan,Algeria,Group,
+43,3,0,0.011,Jordan,Algeria,Group,
+43,3,1,0.0151,Jordan,Algeria,Group,
+43,3,2,0.0119,Jordan,Algeria,Group,
+43,3,3,0.0055,Jordan,Algeria,Group,
+43,3,4,0.0024,Jordan,Algeria,Group,
+43,3,5,0.0006,Jordan,Algeria,Group,
+43,3,6,0.0002,Jordan,Algeria,Group,
+43,3,7,0.0001,Jordan,Algeria,Group,
+43,3,8,0.0001,Jordan,Algeria,Group,
+43,4,0,0.0019,Jordan,Algeria,Group,
+43,4,1,0.0031,Jordan,Algeria,Group,
+43,4,2,0.0033,Jordan,Algeria,Group,
+43,4,3,0.0017,Jordan,Algeria,Group,
+43,4,4,0.0005,Jordan,Algeria,Group,
+43,4,6,0.0001,Jordan,Algeria,Group,
+43,4,7,0.0001,Jordan,Algeria,Group,
+43,5,0,0.0003,Jordan,Algeria,Group,
+43,5,1,0.0005,Jordan,Algeria,Group,
+43,5,2,0.0003,Jordan,Algeria,Group,
+43,5,3,0.0002,Jordan,Algeria,Group,
+43,5,4,0.0001,Jordan,Algeria,Group,
+43,6,0,0.0001,Jordan,Algeria,Group,
+43,6,2,0.0001,Jordan,Algeria,Group,
+43,6,4,0.0001,Jordan,Algeria,Group,
+43,7,2,0.0001,Jordan,Algeria,Group,
+44,0,0,0.0634,Portugal,Uzbekistan,Group,
+44,0,1,0.0456,Portugal,Uzbekistan,Group,
+44,0,2,0.0168,Portugal,Uzbekistan,Group,
+44,0,3,0.0047,Portugal,Uzbekistan,Group,
+44,0,4,0.001,Portugal,Uzbekistan,Group,
+44,1,0,0.131,Portugal,Uzbekistan,Group,
+44,1,1,0.0976,Portugal,Uzbekistan,Group,
+44,1,2,0.0342,Portugal,Uzbekistan,Group,
+44,1,3,0.0093,Portugal,Uzbekistan,Group,
+44,1,4,0.0011,Portugal,Uzbekistan,Group,
+44,1,5,0.0002,Portugal,Uzbekistan,Group,
+44,2,0,0.1301,Portugal,Uzbekistan,Group,
+44,2,1,0.0953,Portugal,Uzbekistan,Group,
+44,2,2,0.0362,Portugal,Uzbekistan,Group,
+44,2,3,0.0086,Portugal,Uzbekistan,Group,
+44,2,4,0.0013,Portugal,Uzbekistan,Group,
+44,2,5,0.0003,Portugal,Uzbekistan,Group,
+44,3,0,0.0837,Portugal,Uzbekistan,Group,
+44,3,1,0.0649,Portugal,Uzbekistan,Group,
+44,3,2,0.0234,Portugal,Uzbekistan,Group,
+44,3,3,0.0055,Portugal,Uzbekistan,Group,
+44,3,4,0.0012,Portugal,Uzbekistan,Group,
+44,3,5,0.0002,Portugal,Uzbekistan,Group,
+44,4,0,0.0449,Portugal,Uzbekistan,Group,
+44,4,1,0.0296,Portugal,Uzbekistan,Group,
+44,4,2,0.0119,Portugal,Uzbekistan,Group,
+44,4,3,0.003,Portugal,Uzbekistan,Group,
+44,4,4,0.0007,Portugal,Uzbekistan,Group,
+44,4,5,0.0001,Portugal,Uzbekistan,Group,
+44,5,0,0.0147,Portugal,Uzbekistan,Group,
+44,5,1,0.0129,Portugal,Uzbekistan,Group,
+44,5,2,0.006,Portugal,Uzbekistan,Group,
+44,5,3,0.0022,Portugal,Uzbekistan,Group,
+44,5,4,0.0004,Portugal,Uzbekistan,Group,
+44,6,0,0.0061,Portugal,Uzbekistan,Group,
+44,6,1,0.0047,Portugal,Uzbekistan,Group,
+44,6,2,0.0016,Portugal,Uzbekistan,Group,
+44,6,3,0.0004,Portugal,Uzbekistan,Group,
+44,6,4,0.0002,Portugal,Uzbekistan,Group,
+44,6,5,0.0001,Portugal,Uzbekistan,Group,
+44,7,0,0.0019,Portugal,Uzbekistan,Group,
+44,7,1,0.0015,Portugal,Uzbekistan,Group,
+44,7,2,0.0008,Portugal,Uzbekistan,Group,
+44,7,3,0.0001,Portugal,Uzbekistan,Group,
+44,8,0,0.0004,Portugal,Uzbekistan,Group,
+44,8,1,0.0001,Portugal,Uzbekistan,Group,
+44,9,0,0.0001,Portugal,Uzbekistan,Group,
+45,0,0,0.0574,Colombia,DR Congo,Group,
+45,0,1,0.0371,Colombia,DR Congo,Group,
+45,0,2,0.0122,Colombia,DR Congo,Group,
+45,0,3,0.0027,Colombia,DR Congo,Group,
+45,0,4,0.0004,Colombia,DR Congo,Group,
+45,0,5,0.0001,Colombia,DR Congo,Group,
+45,1,0,0.1205,Colombia,DR Congo,Group,
+45,1,1,0.0747,Colombia,DR Congo,Group,
+45,1,2,0.0248,Colombia,DR Congo,Group,
+45,1,3,0.0058,Colombia,DR Congo,Group,
+45,1,4,0.001,Colombia,DR Congo,Group,
+45,1,5,0.0002,Colombia,DR Congo,Group,
+45,2,0,0.1358,Colombia,DR Congo,Group,
+45,2,1,0.0924,Colombia,DR Congo,Group,
+45,2,2,0.03,Colombia,DR Congo,Group,
+45,2,3,0.0064,Colombia,DR Congo,Group,
+45,2,4,0.0013,Colombia,DR Congo,Group,
+45,3,0,0.1037,Colombia,DR Congo,Group,
+45,3,1,0.0712,Colombia,DR Congo,Group,
+45,3,2,0.0235,Colombia,DR Congo,Group,
+45,3,3,0.0042,Colombia,DR Congo,Group,
+45,3,4,0.0006,Colombia,DR Congo,Group,
+45,3,5,0.0002,Colombia,DR Congo,Group,
+45,4,0,0.0612,Colombia,DR Congo,Group,
+45,4,1,0.0392,Colombia,DR Congo,Group,
+45,4,2,0.0142,Colombia,DR Congo,Group,
+45,4,3,0.0028,Colombia,DR Congo,Group,
+45,4,4,0.0004,Colombia,DR Congo,Group,
+45,5,0,0.0251,Colombia,DR Congo,Group,
+45,5,1,0.0183,Colombia,DR Congo,Group,
+45,5,2,0.0059,Colombia,DR Congo,Group,
+45,5,3,0.0017,Colombia,DR Congo,Group,
+45,5,4,0.0003,Colombia,DR Congo,Group,
+45,6,0,0.0089,Colombia,DR Congo,Group,
+45,6,1,0.0061,Colombia,DR Congo,Group,
+45,6,2,0.0021,Colombia,DR Congo,Group,
+45,6,3,0.0006,Colombia,DR Congo,Group,
+45,6,4,0.0001,Colombia,DR Congo,Group,
+45,7,0,0.0029,Colombia,DR Congo,Group,
+45,7,1,0.0017,Colombia,DR Congo,Group,
+45,7,2,0.0007,Colombia,DR Congo,Group,
+45,7,3,0.0002,Colombia,DR Congo,Group,
+45,8,0,0.0008,Colombia,DR Congo,Group,
+45,8,1,0.0001,Colombia,DR Congo,Group,
+45,8,2,0.0003,Colombia,DR Congo,Group,
+45,9,1,0.0001,Colombia,DR Congo,Group,
+45,9,2,0.0001,Colombia,DR Congo,Group,
+46,0,0,0.0256,England,Ghana,Group,
+46,0,1,0.0141,England,Ghana,Group,
+46,0,2,0.0048,England,Ghana,Group,
+46,0,3,0.0006,England,Ghana,Group,
+46,0,4,0.0002,England,Ghana,Group,
+46,1,0,0.0841,England,Ghana,Group,
+46,1,1,0.0469,England,Ghana,Group,
+46,1,2,0.0118,England,Ghana,Group,
+46,1,3,0.0023,England,Ghana,Group,
+46,1,4,0.0002,England,Ghana,Group,
+46,1,5,0.0001,England,Ghana,Group,
+46,2,0,0.131,England,Ghana,Group,
+46,2,1,0.0703,England,Ghana,Group,
+46,2,2,0.0196,England,Ghana,Group,
+46,2,3,0.0031,England,Ghana,Group,
+46,2,4,0.0005,England,Ghana,Group,
+46,2,5,0.0002,England,Ghana,Group,
+46,3,0,0.1302,England,Ghana,Group,
+46,3,1,0.0717,England,Ghana,Group,
+46,3,2,0.0197,England,Ghana,Group,
+46,3,3,0.0019,England,Ghana,Group,
+46,3,4,0.0006,England,Ghana,Group,
+46,4,0,0.0979,England,Ghana,Group,
+46,4,1,0.0555,England,Ghana,Group,
+46,4,2,0.0162,England,Ghana,Group,
+46,4,3,0.0025,England,Ghana,Group,
+46,4,4,0.0007,England,Ghana,Group,
+46,5,0,0.0585,England,Ghana,Group,
+46,5,1,0.0289,England,Ghana,Group,
+46,5,2,0.0101,England,Ghana,Group,
+46,5,3,0.0016,England,Ghana,Group,
+46,5,4,0.0002,England,Ghana,Group,
+46,6,0,0.0333,England,Ghana,Group,
+46,6,1,0.0165,England,Ghana,Group,
+46,6,2,0.0051,England,Ghana,Group,
+46,6,3,0.0007,England,Ghana,Group,
+46,7,0,0.0113,England,Ghana,Group,
+46,7,1,0.0072,England,Ghana,Group,
+46,7,2,0.0019,England,Ghana,Group,
+46,7,3,0.0007,England,Ghana,Group,
+46,8,0,0.0047,England,Ghana,Group,
+46,8,1,0.0018,England,Ghana,Group,
+46,8,2,0.0004,England,Ghana,Group,
+46,9,0,0.002,England,Ghana,Group,
+46,9,1,0.0011,England,Ghana,Group,
+46,9,2,0.0002,England,Ghana,Group,
+46,10,0,0.0006,England,Ghana,Group,
+46,10,1,0.0002,England,Ghana,Group,
+46,10,2,0.0003,England,Ghana,Group,
+46,11,0,0.0001,England,Ghana,Group,
+46,11,1,0.0002,England,Ghana,Group,
+46,11,2,0.0001,England,Ghana,Group,
+47,0,0,0.0676,Panama,Croatia,Group,
+47,0,1,0.1291,Panama,Croatia,Group,
+47,0,2,0.1171,Panama,Croatia,Group,
+47,0,3,0.0652,Panama,Croatia,Group,
+47,0,4,0.0304,Panama,Croatia,Group,
+47,0,5,0.0114,Panama,Croatia,Group,
+47,0,6,0.0026,Panama,Croatia,Group,
+47,0,7,0.0009,Panama,Croatia,Group,
+47,0,8,0.0001,Panama,Croatia,Group,
+47,1,0,0.0643,Panama,Croatia,Group,
+47,1,1,0.1032,Panama,Croatia,Group,
+47,1,2,0.0949,Panama,Croatia,Group,
+47,1,3,0.0587,Panama,Croatia,Group,
+47,1,4,0.0249,Panama,Croatia,Group,
+47,1,5,0.0089,Panama,Croatia,Group,
+47,1,6,0.0024,Panama,Croatia,Group,
+47,1,7,0.0009,Panama,Croatia,Group,
+47,1,8,0.0001,Panama,Croatia,Group,
+47,2,0,0.0273,Panama,Croatia,Group,
+47,2,1,0.047,Panama,Croatia,Group,
+47,2,2,0.0435,Panama,Croatia,Group,
+47,2,3,0.025,Panama,Croatia,Group,
+47,2,4,0.0126,Panama,Croatia,Group,
+47,2,5,0.0046,Panama,Croatia,Group,
+47,2,6,0.0014,Panama,Croatia,Group,
+47,2,7,0.0006,Panama,Croatia,Group,
+47,2,8,0.0002,Panama,Croatia,Group,
+47,3,0,0.0071,Panama,Croatia,Group,
+47,3,1,0.0129,Panama,Croatia,Group,
+47,3,2,0.0117,Panama,Croatia,Group,
+47,3,3,0.0081,Panama,Croatia,Group,
+47,3,4,0.0028,Panama,Croatia,Group,
+47,3,5,0.0017,Panama,Croatia,Group,
+47,3,6,0.0007,Panama,Croatia,Group,
+47,3,7,0.0001,Panama,Croatia,Group,
+47,4,0,0.0017,Panama,Croatia,Group,
+47,4,1,0.0028,Panama,Croatia,Group,
+47,4,2,0.0028,Panama,Croatia,Group,
+47,4,3,0.0011,Panama,Croatia,Group,
+47,4,4,0.0009,Panama,Croatia,Group,
+47,4,6,0.0002,Panama,Croatia,Group,
+47,5,0,0.0003,Panama,Croatia,Group,
+47,5,1,0.0002,Panama,Croatia,Group,
+48,0,0,0.0958,Czechia,Mexico,Group,
+48,0,1,0.1426,Czechia,Mexico,Group,
+48,0,2,0.1012,Czechia,Mexico,Group,
+48,0,3,0.0554,Czechia,Mexico,Group,
+48,0,4,0.0185,Czechia,Mexico,Group,
+48,0,5,0.0056,Czechia,Mexico,Group,
+48,0,6,0.0015,Czechia,Mexico,Group,
+48,0,7,0.0003,Czechia,Mexico,Group,
+48,1,0,0.0839,Czechia,Mexico,Group,
+48,1,1,0.1268,Czechia,Mexico,Group,
+48,1,2,0.0893,Czechia,Mexico,Group,
+48,1,3,0.0437,Czechia,Mexico,Group,
+48,1,4,0.0175,Czechia,Mexico,Group,
+48,1,5,0.0035,Czechia,Mexico,Group,
+48,1,6,0.0011,Czechia,Mexico,Group,
+48,1,7,0.0002,Czechia,Mexico,Group,
+48,1,8,0.0001,Czechia,Mexico,Group,
+48,2,0,0.0347,Czechia,Mexico,Group,
+48,2,1,0.0566,Czechia,Mexico,Group,
+48,2,2,0.038,Czechia,Mexico,Group,
+48,2,3,0.0172,Czechia,Mexico,Group,
+48,2,4,0.0067,Czechia,Mexico,Group,
+48,2,5,0.0021,Czechia,Mexico,Group,
+48,2,6,0.0004,Czechia,Mexico,Group,
+48,3,0,0.0113,Czechia,Mexico,Group,
+48,3,1,0.0145,Czechia,Mexico,Group,
+48,3,2,0.0095,Czechia,Mexico,Group,
+48,3,3,0.0065,Czechia,Mexico,Group,
+48,3,4,0.0028,Czechia,Mexico,Group,
+48,3,5,0.0006,Czechia,Mexico,Group,
+48,3,6,0.0002,Czechia,Mexico,Group,
+48,4,0,0.0026,Czechia,Mexico,Group,
+48,4,1,0.0026,Czechia,Mexico,Group,
+48,4,2,0.0032,Czechia,Mexico,Group,
+48,4,3,0.001,Czechia,Mexico,Group,
+48,4,4,0.0003,Czechia,Mexico,Group,
+48,5,0,0.0006,Czechia,Mexico,Group,
+48,5,1,0.0008,Czechia,Mexico,Group,
+48,5,2,0.0002,Czechia,Mexico,Group,
+48,5,3,0.0002,Czechia,Mexico,Group,
+48,5,5,0.0001,Czechia,Mexico,Group,
+48,6,1,0.0001,Czechia,Mexico,Group,
+48,6,2,0.0001,Czechia,Mexico,Group,
+48,7,1,0.0001,Czechia,Mexico,Group,
+49,0,0,0.084,South Africa,South Korea,Group,
+49,0,1,0.1314,South Africa,South Korea,Group,
+49,0,2,0.113,South Africa,South Korea,Group,
+49,0,3,0.06,South Africa,South Korea,Group,
+49,0,4,0.0254,South Africa,South Korea,Group,
+49,0,5,0.0072,South Africa,South Korea,Group,
+49,0,6,0.0018,South Africa,South Korea,Group,
+49,0,7,0.0006,South Africa,South Korea,Group,
+49,1,0,0.0677,South Africa,South Korea,Group,
+49,1,1,0.1202,South Africa,South Korea,Group,
+49,1,2,0.0947,South Africa,South Korea,Group,
+49,1,3,0.0535,South Africa,South Korea,Group,
+49,1,4,0.0183,South Africa,South Korea,Group,
+49,1,5,0.0069,South Africa,South Korea,Group,
+49,1,6,0.0021,South Africa,South Korea,Group,
+49,1,7,0.0006,South Africa,South Korea,Group,
+49,2,0,0.0301,South Africa,South Korea,Group,
+49,2,1,0.0483,South Africa,South Korea,Group,
+49,2,2,0.0394,South Africa,South Korea,Group,
+49,2,3,0.0213,South Africa,South Korea,Group,
+49,2,4,0.0093,South Africa,South Korea,Group,
+49,2,5,0.0034,South Africa,South Korea,Group,
+49,2,6,0.0005,South Africa,South Korea,Group,
+49,2,7,0.0001,South Africa,South Korea,Group,
+49,3,0,0.0091,South Africa,South Korea,Group,
+49,3,1,0.0145,South Africa,South Korea,Group,
+49,3,2,0.0125,South Africa,South Korea,Group,
+49,3,3,0.0069,South Africa,South Korea,Group,
+49,3,4,0.0028,South Africa,South Korea,Group,
+49,3,5,0.001,South Africa,South Korea,Group,
+49,3,6,0.0003,South Africa,South Korea,Group,
+49,3,7,0.0003,South Africa,South Korea,Group,
+49,4,0,0.0019,South Africa,South Korea,Group,
+49,4,1,0.0027,South Africa,South Korea,Group,
+49,4,2,0.003,South Africa,South Korea,Group,
+49,4,3,0.0017,South Africa,South Korea,Group,
+49,4,4,0.0003,South Africa,South Korea,Group,
+49,4,5,0.0001,South Africa,South Korea,Group,
+49,4,6,0.0001,South Africa,South Korea,Group,
+49,5,0,0.0005,South Africa,South Korea,Group,
+49,5,1,0.0008,South Africa,South Korea,Group,
+49,5,2,0.0008,South Africa,South Korea,Group,
+49,5,3,0.0004,South Africa,South Korea,Group,
+49,5,4,0.0002,South Africa,South Korea,Group,
+49,6,1,0.0001,South Africa,South Korea,Group,
+49,6,2,0.0001,South Africa,South Korea,Group,
+49,7,1,0.0001,South Africa,South Korea,Group,
+50,0,0,0.1292,Switzerland,Canada,Group,
+50,0,1,0.1068,Switzerland,Canada,Group,
+50,0,2,0.0455,Switzerland,Canada,Group,
+50,0,3,0.0127,Switzerland,Canada,Group,
+50,0,4,0.0025,Switzerland,Canada,Group,
+50,1,0,0.1556,Switzerland,Canada,Group,
+50,1,1,0.1293,Switzerland,Canada,Group,
+50,1,2,0.056,Switzerland,Canada,Group,
+50,1,3,0.0165,Switzerland,Canada,Group,
+50,1,4,0.0032,Switzerland,Canada,Group,
+50,1,5,0.0007,Switzerland,Canada,Group,
+50,1,6,0.0001,Switzerland,Canada,Group,
+50,2,0,0.096,Switzerland,Canada,Group,
+50,2,1,0.0832,Switzerland,Canada,Group,
+50,2,2,0.0351,Switzerland,Canada,Group,
+50,2,3,0.0086,Switzerland,Canada,Group,
+50,2,4,0.0014,Switzerland,Canada,Group,
+50,2,5,0.0006,Switzerland,Canada,Group,
+50,2,7,0.0001,Switzerland,Canada,Group,
+50,3,0,0.0333,Switzerland,Canada,Group,
+50,3,1,0.0317,Switzerland,Canada,Group,
+50,3,2,0.0148,Switzerland,Canada,Group,
+50,3,3,0.0039,Switzerland,Canada,Group,
+50,3,4,0.0009,Switzerland,Canada,Group,
+50,3,5,0.0001,Switzerland,Canada,Group,
+50,4,0,0.0103,Switzerland,Canada,Group,
+50,4,1,0.0103,Switzerland,Canada,Group,
+50,4,2,0.0027,Switzerland,Canada,Group,
+50,4,3,0.0009,Switzerland,Canada,Group,
+50,4,4,0.0003,Switzerland,Canada,Group,
+50,5,0,0.0025,Switzerland,Canada,Group,
+50,5,1,0.0015,Switzerland,Canada,Group,
+50,5,2,0.0009,Switzerland,Canada,Group,
+50,5,3,0.0003,Switzerland,Canada,Group,
+50,5,4,0.0001,Switzerland,Canada,Group,
+50,6,0,0.0012,Switzerland,Canada,Group,
+50,6,1,0.0003,Switzerland,Canada,Group,
+50,6,2,0.0003,Switzerland,Canada,Group,
+50,6,3,0.0001,Switzerland,Canada,Group,
+50,7,1,0.0001,Switzerland,Canada,Group,
+50,7,2,0.0002,Switzerland,Canada,Group,
+50,8,1,0.0002,Switzerland,Canada,Group,
+51,0,0,0.0942,Bosnia and Herzegovina,Qatar,Group,
+51,0,1,0.0753,Bosnia and Herzegovina,Qatar,Group,
+51,0,2,0.0305,Bosnia and Herzegovina,Qatar,Group,
+51,0,3,0.0098,Bosnia and Herzegovina,Qatar,Group,
+51,0,4,0.0024,Bosnia and Herzegovina,Qatar,Group,
+51,0,5,0.0004,Bosnia and Herzegovina,Qatar,Group,
+51,1,0,0.1507,Bosnia and Herzegovina,Qatar,Group,
+51,1,1,0.1205,Bosnia and Herzegovina,Qatar,Group,
+51,1,2,0.0483,Bosnia and Herzegovina,Qatar,Group,
+51,1,3,0.0114,Bosnia and Herzegovina,Qatar,Group,
+51,1,4,0.0017,Bosnia and Herzegovina,Qatar,Group,
+51,1,5,0.0003,Bosnia and Herzegovina,Qatar,Group,
+51,2,0,0.1099,Bosnia and Herzegovina,Qatar,Group,
+51,2,1,0.0945,Bosnia and Herzegovina,Qatar,Group,
+51,2,2,0.035,Bosnia and Herzegovina,Qatar,Group,
+51,2,3,0.0094,Bosnia and Herzegovina,Qatar,Group,
+51,2,4,0.0018,Bosnia and Herzegovina,Qatar,Group,
+51,2,5,0.0007,Bosnia and Herzegovina,Qatar,Group,
+51,3,0,0.0596,Bosnia and Herzegovina,Qatar,Group,
+51,3,1,0.049,Bosnia and Herzegovina,Qatar,Group,
+51,3,2,0.0179,Bosnia and Herzegovina,Qatar,Group,
+51,3,3,0.0046,Bosnia and Herzegovina,Qatar,Group,
+51,3,4,0.0017,Bosnia and Herzegovina,Qatar,Group,
+51,3,5,0.0003,Bosnia and Herzegovina,Qatar,Group,
+51,4,0,0.0223,Bosnia and Herzegovina,Qatar,Group,
+51,4,1,0.0167,Bosnia and Herzegovina,Qatar,Group,
+51,4,2,0.0083,Bosnia and Herzegovina,Qatar,Group,
+51,4,3,0.0023,Bosnia and Herzegovina,Qatar,Group,
+51,4,4,0.0004,Bosnia and Herzegovina,Qatar,Group,
+51,4,5,0.0001,Bosnia and Herzegovina,Qatar,Group,
+51,5,0,0.0062,Bosnia and Herzegovina,Qatar,Group,
+51,5,1,0.0044,Bosnia and Herzegovina,Qatar,Group,
+51,5,2,0.0022,Bosnia and Herzegovina,Qatar,Group,
+51,5,3,0.0007,Bosnia and Herzegovina,Qatar,Group,
+51,6,0,0.0017,Bosnia and Herzegovina,Qatar,Group,
+51,6,1,0.0028,Bosnia and Herzegovina,Qatar,Group,
+51,6,2,0.0005,Bosnia and Herzegovina,Qatar,Group,
+51,6,3,0.0005,Bosnia and Herzegovina,Qatar,Group,
+51,7,0,0.0006,Bosnia and Herzegovina,Qatar,Group,
+51,7,1,0.0003,Bosnia and Herzegovina,Qatar,Group,
+51,8,0,0.0001,Bosnia and Herzegovina,Qatar,Group,
+52,0,0,0.0636,Scotland,Brazil,Group,
+52,0,1,0.1348,Scotland,Brazil,Group,
+52,0,2,0.1211,Scotland,Brazil,Group,
+52,0,3,0.0733,Scotland,Brazil,Group,
+52,0,4,0.0359,Scotland,Brazil,Group,
+52,0,5,0.0142,Scotland,Brazil,Group,
+52,0,6,0.0035,Scotland,Brazil,Group,
+52,0,7,0.0012,Scotland,Brazil,Group,
+52,1,0,0.0575,Scotland,Brazil,Group,
+52,1,1,0.0982,Scotland,Brazil,Group,
+52,1,2,0.0941,Scotland,Brazil,Group,
+52,1,3,0.0622,Scotland,Brazil,Group,
+52,1,4,0.0259,Scotland,Brazil,Group,
+52,1,5,0.0092,Scotland,Brazil,Group,
+52,1,6,0.0033,Scotland,Brazil,Group,
+52,1,7,0.0008,Scotland,Brazil,Group,
+52,1,8,0.0001,Scotland,Brazil,Group,
+52,1,9,0.0001,Scotland,Brazil,Group,
+52,2,0,0.0257,Scotland,Brazil,Group,
+52,2,1,0.0418,Scotland,Brazil,Group,
+52,2,2,0.0399,Scotland,Brazil,Group,
+52,2,3,0.0228,Scotland,Brazil,Group,
+52,2,4,0.0109,Scotland,Brazil,Group,
+52,2,5,0.0046,Scotland,Brazil,Group,
+52,2,6,0.0014,Scotland,Brazil,Group,
+52,2,7,0.0001,Scotland,Brazil,Group,
+52,3,0,0.0081,Scotland,Brazil,Group,
+52,3,1,0.0137,Scotland,Brazil,Group,
+52,3,2,0.0103,Scotland,Brazil,Group,
+52,3,3,0.007,Scotland,Brazil,Group,
+52,3,4,0.0038,Scotland,Brazil,Group,
+52,3,5,0.0007,Scotland,Brazil,Group,
+52,3,6,0.0002,Scotland,Brazil,Group,
+52,3,7,0.0003,Scotland,Brazil,Group,
+52,4,0,0.0017,Scotland,Brazil,Group,
+52,4,1,0.0023,Scotland,Brazil,Group,
+52,4,2,0.0027,Scotland,Brazil,Group,
+52,4,3,0.0011,Scotland,Brazil,Group,
+52,4,4,0.0007,Scotland,Brazil,Group,
+52,4,5,0.0002,Scotland,Brazil,Group,
+52,5,0,0.0001,Scotland,Brazil,Group,
+52,5,1,0.0003,Scotland,Brazil,Group,
+52,5,2,0.0002,Scotland,Brazil,Group,
+52,5,3,0.0003,Scotland,Brazil,Group,
+52,5,4,0.0001,Scotland,Brazil,Group,
+53,0,0,0.0811,Morocco,Haiti,Group,
+53,0,1,0.0714,Morocco,Haiti,Group,
+53,0,2,0.0288,Morocco,Haiti,Group,
+53,0,3,0.0082,Morocco,Haiti,Group,
+53,0,4,0.0016,Morocco,Haiti,Group,
+53,0,5,0.0003,Morocco,Haiti,Group,
+53,1,0,0.1312,Morocco,Haiti,Group,
+53,1,1,0.1161,Morocco,Haiti,Group,
+53,1,2,0.0522,Morocco,Haiti,Group,
+53,1,3,0.0141,Morocco,Haiti,Group,
+53,1,4,0.0031,Morocco,Haiti,Group,
+53,1,5,0.0002,Morocco,Haiti,Group,
+53,2,0,0.1107,Morocco,Haiti,Group,
+53,2,1,0.0953,Morocco,Haiti,Group,
+53,2,2,0.0435,Morocco,Haiti,Group,
+53,2,3,0.0111,Morocco,Haiti,Group,
+53,2,4,0.0027,Morocco,Haiti,Group,
+53,2,5,0.0006,Morocco,Haiti,Group,
+53,3,0,0.0618,Morocco,Haiti,Group,
+53,3,1,0.0531,Morocco,Haiti,Group,
+53,3,2,0.0237,Morocco,Haiti,Group,
+53,3,3,0.0072,Morocco,Haiti,Group,
+53,3,4,0.0015,Morocco,Haiti,Group,
+53,4,0,0.0225,Morocco,Haiti,Group,
+53,4,1,0.0196,Morocco,Haiti,Group,
+53,4,2,0.0095,Morocco,Haiti,Group,
+53,4,3,0.0027,Morocco,Haiti,Group,
+53,4,4,0.0003,Morocco,Haiti,Group,
+53,4,5,0.0001,Morocco,Haiti,Group,
+53,4,6,0.0001,Morocco,Haiti,Group,
+53,5,0,0.0081,Morocco,Haiti,Group,
+53,5,1,0.0066,Morocco,Haiti,Group,
+53,5,2,0.0027,Morocco,Haiti,Group,
+53,5,3,0.0009,Morocco,Haiti,Group,
+53,5,4,0.0002,Morocco,Haiti,Group,
+53,6,0,0.0026,Morocco,Haiti,Group,
+53,6,1,0.0025,Morocco,Haiti,Group,
+53,6,2,0.0004,Morocco,Haiti,Group,
+53,6,5,0.0001,Morocco,Haiti,Group,
+53,7,0,0.0005,Morocco,Haiti,Group,
+53,7,1,0.0005,Morocco,Haiti,Group,
+53,7,2,0.0003,Morocco,Haiti,Group,
+53,7,3,0.0001,Morocco,Haiti,Group,
+53,8,0,0.0001,Morocco,Haiti,Group,
+53,8,1,0.0001,Morocco,Haiti,Group,
+54,0,0,0.0736,Turkey,United States,Group,
+54,0,1,0.0656,Turkey,United States,Group,
+54,0,2,0.0327,Turkey,United States,Group,
+54,0,3,0.0105,Turkey,United States,Group,
+54,0,4,0.0015,Turkey,United States,Group,
+54,0,5,0.0004,Turkey,United States,Group,
+54,0,6,0.0001,Turkey,United States,Group,
+54,1,0,0.1256,Turkey,United States,Group,
+54,1,1,0.1084,Turkey,United States,Group,
+54,1,2,0.055,Turkey,United States,Group,
+54,1,3,0.0147,Turkey,United States,Group,
+54,1,4,0.0034,Turkey,United States,Group,
+54,1,5,0.0006,Turkey,United States,Group,
+54,1,6,0.0002,Turkey,United States,Group,
+54,2,0,0.1053,Turkey,United States,Group,
+54,2,1,0.0937,Turkey,United States,Group,
+54,2,2,0.0466,Turkey,United States,Group,
+54,2,3,0.0149,Turkey,United States,Group,
+54,2,4,0.0029,Turkey,United States,Group,
+54,2,5,0.0004,Turkey,United States,Group,
+54,2,6,0.0002,Turkey,United States,Group,
+54,3,0,0.0599,Turkey,United States,Group,
+54,3,1,0.0558,Turkey,United States,Group,
+54,3,2,0.025,Turkey,United States,Group,
+54,3,3,0.0075,Turkey,United States,Group,
+54,3,4,0.0018,Turkey,United States,Group,
+54,3,5,0.0002,Turkey,United States,Group,
+54,4,0,0.0258,Turkey,United States,Group,
+54,4,1,0.0243,Turkey,United States,Group,
+54,4,2,0.0106,Turkey,United States,Group,
+54,4,3,0.0027,Turkey,United States,Group,
+54,4,4,0.0008,Turkey,United States,Group,
+54,4,5,0.0001,Turkey,United States,Group,
+54,5,0,0.0098,Turkey,United States,Group,
+54,5,1,0.0077,Turkey,United States,Group,
+54,5,2,0.0024,Turkey,United States,Group,
+54,5,3,0.0012,Turkey,United States,Group,
+54,5,4,0.0002,Turkey,United States,Group,
+54,6,0,0.0022,Turkey,United States,Group,
+54,6,1,0.0022,Turkey,United States,Group,
+54,6,2,0.0014,Turkey,United States,Group,
+54,6,3,0.0002,Turkey,United States,Group,
+54,6,4,0.0001,Turkey,United States,Group,
+54,7,0,0.0003,Turkey,United States,Group,
+54,7,1,0.0004,Turkey,United States,Group,
+54,7,2,0.0004,Turkey,United States,Group,
+54,7,3,0.0001,Turkey,United States,Group,
+54,7,4,0.0001,Turkey,United States,Group,
+54,8,1,0.0002,Turkey,United States,Group,
+54,8,2,0.0001,Turkey,United States,Group,
+54,9,1,0.0002,Turkey,United States,Group,
+55,0,0,0.1102,Paraguay,Australia,Group,
+55,0,1,0.1227,Paraguay,Australia,Group,
+55,0,2,0.0609,Paraguay,Australia,Group,
+55,0,3,0.0213,Paraguay,Australia,Group,
+55,0,4,0.0062,Paraguay,Australia,Group,
+55,0,5,0.002,Paraguay,Australia,Group,
+55,0,6,0.0002,Paraguay,Australia,Group,
+55,1,0,0.1249,Paraguay,Australia,Group,
+55,1,1,0.135,Paraguay,Australia,Group,
+55,1,2,0.0714,Paraguay,Australia,Group,
+55,1,3,0.0239,Paraguay,Australia,Group,
+55,1,4,0.0064,Paraguay,Australia,Group,
+55,1,5,0.0012,Paraguay,Australia,Group,
+55,1,6,0.0003,Paraguay,Australia,Group,
+55,1,7,0.0001,Paraguay,Australia,Group,
+55,2,0,0.0704,Paraguay,Australia,Group,
+55,2,1,0.0754,Paraguay,Australia,Group,
+55,2,2,0.0421,Paraguay,Australia,Group,
+55,2,3,0.0154,Paraguay,Australia,Group,
+55,2,4,0.0033,Paraguay,Australia,Group,
+55,2,5,0.0011,Paraguay,Australia,Group,
+55,2,6,0.0001,Paraguay,Australia,Group,
+55,2,7,0.0001,Paraguay,Australia,Group,
+55,3,0,0.0265,Paraguay,Australia,Group,
+55,3,1,0.0283,Paraguay,Australia,Group,
+55,3,2,0.0155,Paraguay,Australia,Group,
+55,3,3,0.006,Paraguay,Australia,Group,
+55,3,4,0.0015,Paraguay,Australia,Group,
+55,3,5,0.0002,Paraguay,Australia,Group,
+55,3,6,0.0001,Paraguay,Australia,Group,
+55,3,7,0.0001,Paraguay,Australia,Group,
+55,4,0,0.007,Paraguay,Australia,Group,
+55,4,1,0.0083,Paraguay,Australia,Group,
+55,4,2,0.0049,Paraguay,Australia,Group,
+55,4,3,0.001,Paraguay,Australia,Group,
+55,4,4,0.0007,Paraguay,Australia,Group,
+55,4,5,0.0002,Paraguay,Australia,Group,
+55,5,0,0.0016,Paraguay,Australia,Group,
+55,5,1,0.0017,Paraguay,Australia,Group,
+55,5,2,0.0008,Paraguay,Australia,Group,
+55,5,3,0.0002,Paraguay,Australia,Group,
+55,6,0,0.0003,Paraguay,Australia,Group,
+55,6,1,0.0003,Paraguay,Australia,Group,
+55,7,0,0.0001,Paraguay,Australia,Group,
+55,7,1,0.0001,Paraguay,Australia,Group,
+56,0,0,0.1156,Ecuador,Germany,Group,
+56,0,1,0.1144,Ecuador,Germany,Group,
+56,0,2,0.058,Ecuador,Germany,Group,
+56,0,3,0.0219,Ecuador,Germany,Group,
+56,0,4,0.0053,Ecuador,Germany,Group,
+56,0,5,0.0007,Ecuador,Germany,Group,
+56,0,6,0.0004,Ecuador,Germany,Group,
+56,0,7,0.0001,Ecuador,Germany,Group,
+56,1,0,0.13,Ecuador,Germany,Group,
+56,1,1,0.1292,Ecuador,Germany,Group,
+56,1,2,0.0712,Ecuador,Germany,Group,
+56,1,3,0.0244,Ecuador,Germany,Group,
+56,1,4,0.0062,Ecuador,Germany,Group,
+56,1,5,0.0015,Ecuador,Germany,Group,
+56,1,6,0.0003,Ecuador,Germany,Group,
+56,2,0,0.0738,Ecuador,Germany,Group,
+56,2,1,0.0794,Ecuador,Germany,Group,
+56,2,2,0.0396,Ecuador,Germany,Group,
+56,2,3,0.0146,Ecuador,Germany,Group,
+56,2,4,0.0027,Ecuador,Germany,Group,
+56,2,5,0.0008,Ecuador,Germany,Group,
+56,2,6,0.0003,Ecuador,Germany,Group,
+56,3,0,0.0287,Ecuador,Germany,Group,
+56,3,1,0.0304,Ecuador,Germany,Group,
+56,3,2,0.0155,Ecuador,Germany,Group,
+56,3,3,0.0049,Ecuador,Germany,Group,
+56,3,4,0.0012,Ecuador,Germany,Group,
+56,3,5,0.0002,Ecuador,Germany,Group,
+56,4,0,0.0089,Ecuador,Germany,Group,
+56,4,1,0.0079,Ecuador,Germany,Group,
+56,4,2,0.0042,Ecuador,Germany,Group,
+56,4,3,0.0018,Ecuador,Germany,Group,
+56,4,4,0.0004,Ecuador,Germany,Group,
+56,4,5,0.0002,Ecuador,Germany,Group,
+56,4,8,0.0001,Ecuador,Germany,Group,
+56,5,0,0.0013,Ecuador,Germany,Group,
+56,5,1,0.0025,Ecuador,Germany,Group,
+56,5,2,0.0007,Ecuador,Germany,Group,
+56,5,3,0.0001,Ecuador,Germany,Group,
+56,6,0,0.0002,Ecuador,Germany,Group,
+56,6,2,0.0004,Ecuador,Germany,Group,
+57,0,0,0.0792,Curaçao,Ivory Coast,Group,
+57,0,1,0.1351,Curaçao,Ivory Coast,Group,
+57,0,2,0.1162,Curaçao,Ivory Coast,Group,
+57,0,3,0.061,Curaçao,Ivory Coast,Group,
+57,0,4,0.0265,Curaçao,Ivory Coast,Group,
+57,0,5,0.0082,Curaçao,Ivory Coast,Group,
+57,0,6,0.0025,Curaçao,Ivory Coast,Group,
+57,0,7,0.0003,Curaçao,Ivory Coast,Group,
+57,0,8,0.0001,Curaçao,Ivory Coast,Group,
+57,1,0,0.0699,Curaçao,Ivory Coast,Group,
+57,1,1,0.1162,Curaçao,Ivory Coast,Group,
+57,1,2,0.0948,Curaçao,Ivory Coast,Group,
+57,1,3,0.0521,Curaçao,Ivory Coast,Group,
+57,1,4,0.0234,Curaçao,Ivory Coast,Group,
+57,1,5,0.0071,Curaçao,Ivory Coast,Group,
+57,1,6,0.0016,Curaçao,Ivory Coast,Group,
+57,1,7,0.0005,Curaçao,Ivory Coast,Group,
+57,2,0,0.0293,Curaçao,Ivory Coast,Group,
+57,2,1,0.0495,Curaçao,Ivory Coast,Group,
+57,2,2,0.0384,Curaçao,Ivory Coast,Group,
+57,2,3,0.0213,Curaçao,Ivory Coast,Group,
+57,2,4,0.0086,Curaçao,Ivory Coast,Group,
+57,2,5,0.0024,Curaçao,Ivory Coast,Group,
+57,2,6,0.0004,Curaçao,Ivory Coast,Group,
+57,2,7,0.0003,Curaçao,Ivory Coast,Group,
+57,3,0,0.0077,Curaçao,Ivory Coast,Group,
+57,3,1,0.0126,Curaçao,Ivory Coast,Group,
+57,3,2,0.0122,Curaçao,Ivory Coast,Group,
+57,3,3,0.0073,Curaçao,Ivory Coast,Group,
+57,3,4,0.0025,Curaçao,Ivory Coast,Group,
+57,3,5,0.0011,Curaçao,Ivory Coast,Group,
+57,3,6,0.0002,Curaçao,Ivory Coast,Group,
+57,3,7,0.0001,Curaçao,Ivory Coast,Group,
+57,4,0,0.0013,Curaçao,Ivory Coast,Group,
+57,4,1,0.0034,Curaçao,Ivory Coast,Group,
+57,4,2,0.0024,Curaçao,Ivory Coast,Group,
+57,4,3,0.0012,Curaçao,Ivory Coast,Group,
+57,4,4,0.0007,Curaçao,Ivory Coast,Group,
+57,4,5,0.0001,Curaçao,Ivory Coast,Group,
+57,5,0,0.0006,Curaçao,Ivory Coast,Group,
+57,5,1,0.0008,Curaçao,Ivory Coast,Group,
+57,5,2,0.0005,Curaçao,Ivory Coast,Group,
+57,5,3,0.0003,Curaçao,Ivory Coast,Group,
+57,6,3,0.0001,Curaçao,Ivory Coast,Group,
+58,0,0,0.0508,Tunisia,Netherlands,Group,
+58,0,1,0.1257,Tunisia,Netherlands,Group,
+58,0,2,0.1398,Tunisia,Netherlands,Group,
+58,0,3,0.1074,Tunisia,Netherlands,Group,
+58,0,4,0.061,Tunisia,Netherlands,Group,
+58,0,5,0.0272,Tunisia,Netherlands,Group,
+58,0,6,0.0131,Tunisia,Netherlands,Group,
+58,0,7,0.0029,Tunisia,Netherlands,Group,
+58,0,8,0.0007,Tunisia,Netherlands,Group,
+58,0,9,0.0004,Tunisia,Netherlands,Group,
+58,0,10,0.0001,Tunisia,Netherlands,Group,
+58,1,0,0.0341,Tunisia,Netherlands,Group,
+58,1,1,0.0719,Tunisia,Netherlands,Group,
+58,1,2,0.0931,Tunisia,Netherlands,Group,
+58,1,3,0.0698,Tunisia,Netherlands,Group,
+58,1,4,0.0381,Tunisia,Netherlands,Group,
+58,1,5,0.0179,Tunisia,Netherlands,Group,
+58,1,6,0.0073,Tunisia,Netherlands,Group,
+58,1,7,0.0016,Tunisia,Netherlands,Group,
+58,1,8,0.0007,Tunisia,Netherlands,Group,
+58,1,9,0.0001,Tunisia,Netherlands,Group,
+58,2,0,0.0101,Tunisia,Netherlands,Group,
+58,2,1,0.0265,Tunisia,Netherlands,Group,
+58,2,2,0.0293,Tunisia,Netherlands,Group,
+58,2,3,0.0185,Tunisia,Netherlands,Group,
+58,2,4,0.0129,Tunisia,Netherlands,Group,
+58,2,5,0.0063,Tunisia,Netherlands,Group,
+58,2,6,0.0018,Tunisia,Netherlands,Group,
+58,2,7,0.001,Tunisia,Netherlands,Group,
+58,2,8,0.0001,Tunisia,Netherlands,Group,
+58,3,0,0.0025,Tunisia,Netherlands,Group,
+58,3,1,0.0056,Tunisia,Netherlands,Group,
+58,3,2,0.0068,Tunisia,Netherlands,Group,
+58,3,3,0.0052,Tunisia,Netherlands,Group,
+58,3,4,0.0031,Tunisia,Netherlands,Group,
+58,3,5,0.0011,Tunisia,Netherlands,Group,
+58,3,6,0.0006,Tunisia,Netherlands,Group,
+58,3,8,0.0001,Tunisia,Netherlands,Group,
+58,4,0,0.0005,Tunisia,Netherlands,Group,
+58,4,1,0.0011,Tunisia,Netherlands,Group,
+58,4,2,0.0008,Tunisia,Netherlands,Group,
+58,4,3,0.0007,Tunisia,Netherlands,Group,
+58,4,4,0.0004,Tunisia,Netherlands,Group,
+58,4,5,0.0005,Tunisia,Netherlands,Group,
+58,4,7,0.0002,Tunisia,Netherlands,Group,
+58,5,0,0.0001,Tunisia,Netherlands,Group,
+58,5,1,0.0001,Tunisia,Netherlands,Group,
+58,5,3,0.0001,Tunisia,Netherlands,Group,
+58,5,5,0.0001,Tunisia,Netherlands,Group,
+58,6,0,0.0001,Tunisia,Netherlands,Group,
+58,6,2,0.0001,Tunisia,Netherlands,Group,
+59,0,0,0.0654,Japan,Sweden,Group,
+59,0,1,0.061,Japan,Sweden,Group,
+59,0,2,0.0276,Japan,Sweden,Group,
+59,0,3,0.0088,Japan,Sweden,Group,
+59,0,4,0.0022,Japan,Sweden,Group,
+59,0,5,0.0005,Japan,Sweden,Group,
+59,1,0,0.1136,Japan,Sweden,Group,
+59,1,1,0.1087,Japan,Sweden,Group,
+59,1,2,0.0495,Japan,Sweden,Group,
+59,1,3,0.0157,Japan,Sweden,Group,
+59,1,4,0.0048,Japan,Sweden,Group,
+59,1,5,0.0007,Japan,Sweden,Group,
+59,1,6,0.0002,Japan,Sweden,Group,
+59,2,0,0.1001,Japan,Sweden,Group,
+59,2,1,0.1017,Japan,Sweden,Group,
+59,2,2,0.0458,Japan,Sweden,Group,
+59,2,3,0.0151,Japan,Sweden,Group,
+59,2,4,0.0037,Japan,Sweden,Group,
+59,2,5,0.0008,Japan,Sweden,Group,
+59,2,6,0.0003,Japan,Sweden,Group,
+59,3,0,0.0594,Japan,Sweden,Group,
+59,3,1,0.0587,Japan,Sweden,Group,
+59,3,2,0.0273,Japan,Sweden,Group,
+59,3,3,0.0093,Japan,Sweden,Group,
+59,3,4,0.0026,Japan,Sweden,Group,
+59,3,5,0.0003,Japan,Sweden,Group,
+59,4,0,0.0285,Japan,Sweden,Group,
+59,4,1,0.0285,Japan,Sweden,Group,
+59,4,2,0.0123,Japan,Sweden,Group,
+59,4,3,0.0038,Japan,Sweden,Group,
+59,4,4,0.001,Japan,Sweden,Group,
+59,4,5,0.0001,Japan,Sweden,Group,
+59,5,0,0.0112,Japan,Sweden,Group,
+59,5,1,0.0103,Japan,Sweden,Group,
+59,5,2,0.005,Japan,Sweden,Group,
+59,5,3,0.0017,Japan,Sweden,Group,
+59,5,4,0.0005,Japan,Sweden,Group,
+59,6,0,0.0032,Japan,Sweden,Group,
+59,6,1,0.004,Japan,Sweden,Group,
+59,6,2,0.0016,Japan,Sweden,Group,
+59,6,3,0.0006,Japan,Sweden,Group,
+59,6,4,0.0004,Japan,Sweden,Group,
+59,7,0,0.0019,Japan,Sweden,Group,
+59,7,1,0.0007,Japan,Sweden,Group,
+59,7,2,0.0003,Japan,Sweden,Group,
+59,7,3,0.0002,Japan,Sweden,Group,
+59,8,0,0.0001,Japan,Sweden,Group,
+59,8,2,0.0001,Japan,Sweden,Group,
+59,9,1,0.0001,Japan,Sweden,Group,
+59,9,4,0.0001,Japan,Sweden,Group,
+60,0,0,0.0521,New Zealand,Belgium,Group,
+60,0,1,0.1182,New Zealand,Belgium,Group,
+60,0,2,0.1402,New Zealand,Belgium,Group,
+60,0,3,0.1126,New Zealand,Belgium,Group,
+60,0,4,0.0639,New Zealand,Belgium,Group,
+60,0,5,0.0279,New Zealand,Belgium,Group,
+60,0,6,0.0129,New Zealand,Belgium,Group,
+60,0,7,0.0037,New Zealand,Belgium,Group,
+60,0,8,0.0011,New Zealand,Belgium,Group,
+60,0,9,0.0002,New Zealand,Belgium,Group,
+60,0,11,0.0001,New Zealand,Belgium,Group,
+60,1,0,0.033,New Zealand,Belgium,Group,
+60,1,1,0.0774,New Zealand,Belgium,Group,
+60,1,2,0.0889,New Zealand,Belgium,Group,
+60,1,3,0.0689,New Zealand,Belgium,Group,
+60,1,4,0.0418,New Zealand,Belgium,Group,
+60,1,5,0.0189,New Zealand,Belgium,Group,
+60,1,6,0.008,New Zealand,Belgium,Group,
+60,1,7,0.0018,New Zealand,Belgium,Group,
+60,1,8,0.0005,New Zealand,Belgium,Group,
+60,1,9,0.0003,New Zealand,Belgium,Group,
+60,1,10,0.0001,New Zealand,Belgium,Group,
+60,2,0,0.0115,New Zealand,Belgium,Group,
+60,2,1,0.024,New Zealand,Belgium,Group,
+60,2,2,0.0252,New Zealand,Belgium,Group,
+60,2,3,0.0214,New Zealand,Belgium,Group,
+60,2,4,0.0112,New Zealand,Belgium,Group,
+60,2,5,0.0063,New Zealand,Belgium,Group,
+60,2,6,0.0021,New Zealand,Belgium,Group,
+60,2,7,0.0011,New Zealand,Belgium,Group,
+60,2,8,0.0002,New Zealand,Belgium,Group,
+60,3,0,0.0021,New Zealand,Belgium,Group,
+60,3,1,0.0057,New Zealand,Belgium,Group,
+60,3,2,0.0052,New Zealand,Belgium,Group,
+60,3,3,0.0043,New Zealand,Belgium,Group,
+60,3,4,0.0022,New Zealand,Belgium,Group,
+60,3,5,0.0015,New Zealand,Belgium,Group,
+60,3,6,0.0004,New Zealand,Belgium,Group,
+60,4,0,0.0005,New Zealand,Belgium,Group,
+60,4,1,0.0007,New Zealand,Belgium,Group,
+60,4,2,0.0004,New Zealand,Belgium,Group,
+60,4,3,0.0002,New Zealand,Belgium,Group,
+60,4,4,0.0003,New Zealand,Belgium,Group,
+60,4,5,0.0007,New Zealand,Belgium,Group,
+60,5,1,0.0002,New Zealand,Belgium,Group,
+60,5,3,0.0001,New Zealand,Belgium,Group,
+61,0,0,0.107,Egypt,Iran,Group,
+61,0,1,0.124,Egypt,Iran,Group,
+61,0,2,0.0662,Egypt,Iran,Group,
+61,0,3,0.0274,Egypt,Iran,Group,
+61,0,4,0.0072,Egypt,Iran,Group,
+61,0,5,0.0021,Egypt,Iran,Group,
+61,0,6,0.0008,Egypt,Iran,Group,
+61,0,7,0.0001,Egypt,Iran,Group,
+61,1,0,0.1221,Egypt,Iran,Group,
+61,1,1,0.1351,Egypt,Iran,Group,
+61,1,2,0.0743,Egypt,Iran,Group,
+61,1,3,0.0305,Egypt,Iran,Group,
+61,1,4,0.0074,Egypt,Iran,Group,
+61,1,5,0.0019,Egypt,Iran,Group,
+61,1,6,0.0005,Egypt,Iran,Group,
+61,2,0,0.0674,Egypt,Iran,Group,
+61,2,1,0.0709,Egypt,Iran,Group,
+61,2,2,0.0391,Egypt,Iran,Group,
+61,2,3,0.0148,Egypt,Iran,Group,
+61,2,4,0.0047,Egypt,Iran,Group,
+61,2,5,0.0016,Egypt,Iran,Group,
+61,2,6,0.0002,Egypt,Iran,Group,
+61,2,7,0.0001,Egypt,Iran,Group,
+61,3,0,0.0254,Egypt,Iran,Group,
+61,3,1,0.0242,Egypt,Iran,Group,
+61,3,2,0.0159,Egypt,Iran,Group,
+61,3,3,0.0053,Egypt,Iran,Group,
+61,3,4,0.0021,Egypt,Iran,Group,
+61,3,5,0.0001,Egypt,Iran,Group,
+61,4,0,0.0062,Egypt,Iran,Group,
+61,4,1,0.0065,Egypt,Iran,Group,
+61,4,2,0.0039,Egypt,Iran,Group,
+61,4,3,0.0008,Egypt,Iran,Group,
+61,4,4,0.0002,Egypt,Iran,Group,
+61,4,5,0.0001,Egypt,Iran,Group,
+61,5,0,0.0009,Egypt,Iran,Group,
+61,5,1,0.0011,Egypt,Iran,Group,
+61,5,2,0.0007,Egypt,Iran,Group,
+61,5,3,0.0002,Egypt,Iran,Group,
+61,6,0,0.0003,Egypt,Iran,Group,
+61,6,1,0.0004,Egypt,Iran,Group,
+61,6,5,0.0001,Egypt,Iran,Group,
+61,7,0,0.0001,Egypt,Iran,Group,
+61,7,1,0.0001,Egypt,Iran,Group,
+62,0,0,0.0709,Uruguay,Spain,Group,
+62,0,1,0.1397,Uruguay,Spain,Group,
+62,0,2,0.1274,Uruguay,Spain,Group,
+62,0,3,0.0788,Uruguay,Spain,Group,
+62,0,4,0.0348,Uruguay,Spain,Group,
+62,0,5,0.0154,Uruguay,Spain,Group,
+62,0,6,0.0034,Uruguay,Spain,Group,
+62,0,7,0.0014,Uruguay,Spain,Group,
+62,0,8,0.0002,Uruguay,Spain,Group,
+62,1,0,0.0549,Uruguay,Spain,Group,
+62,1,1,0.1046,Uruguay,Spain,Group,
+62,1,2,0.0972,Uruguay,Spain,Group,
+62,1,3,0.0583,Uruguay,Spain,Group,
+62,1,4,0.0294,Uruguay,Spain,Group,
+62,1,5,0.0104,Uruguay,Spain,Group,
+62,1,6,0.0033,Uruguay,Spain,Group,
+62,1,7,0.0013,Uruguay,Spain,Group,
+62,1,8,0.0001,Uruguay,Spain,Group,
+62,2,0,0.0192,Uruguay,Spain,Group,
+62,2,1,0.0396,Uruguay,Spain,Group,
+62,2,2,0.0329,Uruguay,Spain,Group,
+62,2,3,0.0227,Uruguay,Spain,Group,
+62,2,4,0.0098,Uruguay,Spain,Group,
+62,2,5,0.0039,Uruguay,Spain,Group,
+62,2,6,0.0012,Uruguay,Spain,Group,
+62,2,7,0.0002,Uruguay,Spain,Group,
+62,3,0,0.0049,Uruguay,Spain,Group,
+62,3,1,0.0093,Uruguay,Spain,Group,
+62,3,2,0.0092,Uruguay,Spain,Group,
+62,3,3,0.0054,Uruguay,Spain,Group,
+62,3,4,0.0023,Uruguay,Spain,Group,
+62,3,5,0.0014,Uruguay,Spain,Group,
+62,3,6,0.0001,Uruguay,Spain,Group,
+62,3,7,0.0002,Uruguay,Spain,Group,
+62,4,0,0.0008,Uruguay,Spain,Group,
+62,4,1,0.002,Uruguay,Spain,Group,
+62,4,2,0.0018,Uruguay,Spain,Group,
+62,4,3,0.0007,Uruguay,Spain,Group,
+62,4,4,0.0004,Uruguay,Spain,Group,
+62,4,6,0.0001,Uruguay,Spain,Group,
+62,5,1,0.0001,Uruguay,Spain,Group,
+62,5,2,0.0002,Uruguay,Spain,Group,
+62,5,4,0.0001,Uruguay,Spain,Group,
+63,0,0,0.1123,Cape Verde,Saudi Arabia,Group,
+63,0,1,0.1103,Cape Verde,Saudi Arabia,Group,
+63,0,2,0.0589,Cape Verde,Saudi Arabia,Group,
+63,0,3,0.0162,Cape Verde,Saudi Arabia,Group,
+63,0,4,0.0036,Cape Verde,Saudi Arabia,Group,
+63,0,5,0.0011,Cape Verde,Saudi Arabia,Group,
+63,0,6,0.0001,Cape Verde,Saudi Arabia,Group,
+63,1,0,0.1392,Cape Verde,Saudi Arabia,Group,
+63,1,1,0.1319,Cape Verde,Saudi Arabia,Group,
+63,1,2,0.0634,Cape Verde,Saudi Arabia,Group,
+63,1,3,0.0207,Cape Verde,Saudi Arabia,Group,
+63,1,4,0.0046,Cape Verde,Saudi Arabia,Group,
+63,1,5,0.0008,Cape Verde,Saudi Arabia,Group,
+63,1,6,0.0001,Cape Verde,Saudi Arabia,Group,
+63,2,0,0.0854,Cape Verde,Saudi Arabia,Group,
+63,2,1,0.0799,Cape Verde,Saudi Arabia,Group,
+63,2,2,0.0348,Cape Verde,Saudi Arabia,Group,
+63,2,3,0.0129,Cape Verde,Saudi Arabia,Group,
+63,2,4,0.0021,Cape Verde,Saudi Arabia,Group,
+63,2,5,0.0003,Cape Verde,Saudi Arabia,Group,
+63,2,7,0.0001,Cape Verde,Saudi Arabia,Group,
+63,2,9,0.0001,Cape Verde,Saudi Arabia,Group,
+63,3,0,0.0337,Cape Verde,Saudi Arabia,Group,
+63,3,1,0.0335,Cape Verde,Saudi Arabia,Group,
+63,3,2,0.0146,Cape Verde,Saudi Arabia,Group,
+63,3,3,0.0047,Cape Verde,Saudi Arabia,Group,
+63,3,4,0.002,Cape Verde,Saudi Arabia,Group,
+63,3,5,0.0004,Cape Verde,Saudi Arabia,Group,
+63,4,0,0.0098,Cape Verde,Saudi Arabia,Group,
+63,4,1,0.0096,Cape Verde,Saudi Arabia,Group,
+63,4,2,0.0048,Cape Verde,Saudi Arabia,Group,
+63,4,3,0.0013,Cape Verde,Saudi Arabia,Group,
+63,4,4,0.0002,Cape Verde,Saudi Arabia,Group,
+63,5,0,0.0018,Cape Verde,Saudi Arabia,Group,
+63,5,1,0.0017,Cape Verde,Saudi Arabia,Group,
+63,5,2,0.0016,Cape Verde,Saudi Arabia,Group,
+63,5,3,0.0007,Cape Verde,Saudi Arabia,Group,
+63,6,0,0.0003,Cape Verde,Saudi Arabia,Group,
+63,6,2,0.0001,Cape Verde,Saudi Arabia,Group,
+63,6,3,0.0001,Cape Verde,Saudi Arabia,Group,
+63,7,1,0.0001,Cape Verde,Saudi Arabia,Group,
+63,7,2,0.0001,Cape Verde,Saudi Arabia,Group,
+63,9,1,0.0001,Cape Verde,Saudi Arabia,Group,
+64,0,0,0.0668,Norway,France,Group,
+64,0,1,0.125,Norway,France,Group,
+64,0,2,0.1071,Norway,France,Group,
+64,0,3,0.0638,Norway,France,Group,
+64,0,4,0.0241,Norway,France,Group,
+64,0,5,0.0113,Norway,France,Group,
+64,0,6,0.0023,Norway,France,Group,
+64,0,7,0.001,Norway,France,Group,
+64,0,8,0.0002,Norway,France,Group,
+64,1,0,0.0645,Norway,France,Group,
+64,1,1,0.1127,Norway,France,Group,
+64,1,2,0.0975,Norway,France,Group,
+64,1,3,0.0538,Norway,France,Group,
+64,1,4,0.0251,Norway,France,Group,
+64,1,5,0.0087,Norway,France,Group,
+64,1,6,0.0025,Norway,France,Group,
+64,1,7,0.0007,Norway,France,Group,
+64,1,9,0.0001,Norway,France,Group,
+64,2,0,0.0316,Norway,France,Group,
+64,2,1,0.0518,Norway,France,Group,
+64,2,2,0.0403,Norway,France,Group,
+64,2,3,0.0263,Norway,France,Group,
+64,2,4,0.0134,Norway,France,Group,
+64,2,5,0.0036,Norway,France,Group,
+64,2,6,0.0015,Norway,France,Group,
+64,2,7,0.0004,Norway,France,Group,
+64,2,8,0.0001,Norway,France,Group,
+64,3,0,0.0085,Norway,France,Group,
+64,3,1,0.0157,Norway,France,Group,
+64,3,2,0.012,Norway,France,Group,
+64,3,3,0.0079,Norway,France,Group,
+64,3,4,0.0039,Norway,France,Group,
+64,3,5,0.0012,Norway,France,Group,
+64,3,6,0.0002,Norway,France,Group,
+64,3,7,0.0005,Norway,France,Group,
+64,4,0,0.002,Norway,France,Group,
+64,4,1,0.003,Norway,France,Group,
+64,4,2,0.0038,Norway,France,Group,
+64,4,3,0.002,Norway,France,Group,
+64,4,4,0.0006,Norway,France,Group,
+64,4,5,0.0003,Norway,France,Group,
+64,4,6,0.0001,Norway,France,Group,
+64,5,0,0.0005,Norway,France,Group,
+64,5,1,0.0005,Norway,France,Group,
+64,5,2,0.0005,Norway,France,Group,
+64,5,3,0.0002,Norway,France,Group,
+64,6,2,0.0002,Norway,France,Group,
+64,7,2,0.0002,Norway,France,Group,
+65,0,0,0.0869,Senegal,Iraq,Group,
+65,0,1,0.0736,Senegal,Iraq,Group,
+65,0,2,0.0291,Senegal,Iraq,Group,
+65,0,3,0.0071,Senegal,Iraq,Group,
+65,0,4,0.0012,Senegal,Iraq,Group,
+65,0,5,0.0001,Senegal,Iraq,Group,
+65,0,7,0.0001,Senegal,Iraq,Group,
+65,1,0,0.1449,Senegal,Iraq,Group,
+65,1,1,0.115,Senegal,Iraq,Group,
+65,1,2,0.0437,Senegal,Iraq,Group,
+65,1,3,0.0136,Senegal,Iraq,Group,
+65,1,4,0.0032,Senegal,Iraq,Group,
+65,1,5,0.0003,Senegal,Iraq,Group,
+65,2,0,0.1228,Senegal,Iraq,Group,
+65,2,1,0.0922,Senegal,Iraq,Group,
+65,2,2,0.0362,Senegal,Iraq,Group,
+65,2,3,0.0084,Senegal,Iraq,Group,
+65,2,4,0.0022,Senegal,Iraq,Group,
+65,2,5,0.0002,Senegal,Iraq,Group,
+65,3,0,0.0596,Senegal,Iraq,Group,
+65,3,1,0.0505,Senegal,Iraq,Group,
+65,3,2,0.0194,Senegal,Iraq,Group,
+65,3,3,0.0048,Senegal,Iraq,Group,
+65,3,4,0.0012,Senegal,Iraq,Group,
+65,3,5,0.0003,Senegal,Iraq,Group,
+65,4,0,0.0274,Senegal,Iraq,Group,
+65,4,1,0.0209,Senegal,Iraq,Group,
+65,4,2,0.0084,Senegal,Iraq,Group,
+65,4,3,0.0025,Senegal,Iraq,Group,
+65,4,4,0.0008,Senegal,Iraq,Group,
+65,5,0,0.0088,Senegal,Iraq,Group,
+65,5,1,0.0053,Senegal,Iraq,Group,
+65,5,2,0.002,Senegal,Iraq,Group,
+65,5,3,0.001,Senegal,Iraq,Group,
+65,6,0,0.0022,Senegal,Iraq,Group,
+65,6,1,0.0021,Senegal,Iraq,Group,
+65,6,2,0.0006,Senegal,Iraq,Group,
+65,6,3,0.0001,Senegal,Iraq,Group,
+65,7,0,0.0003,Senegal,Iraq,Group,
+65,7,1,0.0004,Senegal,Iraq,Group,
+65,7,2,0.0002,Senegal,Iraq,Group,
+65,8,0,0.0003,Senegal,Iraq,Group,
+65,8,1,0.0001,Senegal,Iraq,Group,
+66,0,0,0.0463,Jordan,Argentina,Group,
+66,0,1,0.1135,Jordan,Argentina,Group,
+66,0,2,0.1423,Jordan,Argentina,Group,
+66,0,3,0.1189,Jordan,Argentina,Group,
+66,0,4,0.0766,Jordan,Argentina,Group,
+66,0,5,0.0377,Jordan,Argentina,Group,
+66,0,6,0.0152,Jordan,Argentina,Group,
+66,0,7,0.0048,Jordan,Argentina,Group,
+66,0,8,0.0014,Jordan,Argentina,Group,
+66,0,9,0.0008,Jordan,Argentina,Group,
+66,1,0,0.0248,Jordan,Argentina,Group,
+66,1,1,0.0711,Jordan,Argentina,Group,
+66,1,2,0.0886,Jordan,Argentina,Group,
+66,1,3,0.0668,Jordan,Argentina,Group,
+66,1,4,0.0424,Jordan,Argentina,Group,
+66,1,5,0.0211,Jordan,Argentina,Group,
+66,1,6,0.007,Jordan,Argentina,Group,
+66,1,7,0.0032,Jordan,Argentina,Group,
+66,1,8,0.0006,Jordan,Argentina,Group,
+66,2,0,0.0073,Jordan,Argentina,Group,
+66,2,1,0.0176,Jordan,Argentina,Group,
+66,2,2,0.026,Jordan,Argentina,Group,
+66,2,3,0.0206,Jordan,Argentina,Group,
+66,2,4,0.0152,Jordan,Argentina,Group,
+66,2,5,0.0052,Jordan,Argentina,Group,
+66,2,6,0.0025,Jordan,Argentina,Group,
+66,2,7,0.0009,Jordan,Argentina,Group,
+66,2,8,0.0002,Jordan,Argentina,Group,
+66,2,9,0.0001,Jordan,Argentina,Group,
+66,3,0,0.0012,Jordan,Argentina,Group,
+66,3,1,0.004,Jordan,Argentina,Group,
+66,3,2,0.0043,Jordan,Argentina,Group,
+66,3,3,0.0037,Jordan,Argentina,Group,
+66,3,4,0.0024,Jordan,Argentina,Group,
+66,3,5,0.0016,Jordan,Argentina,Group,
+66,3,6,0.0009,Jordan,Argentina,Group,
+66,3,7,0.0002,Jordan,Argentina,Group,
+66,3,8,0.0001,Jordan,Argentina,Group,
+66,3,9,0.0001,Jordan,Argentina,Group,
+66,4,0,0.0002,Jordan,Argentina,Group,
+66,4,1,0.0004,Jordan,Argentina,Group,
+66,4,2,0.0008,Jordan,Argentina,Group,
+66,4,3,0.0007,Jordan,Argentina,Group,
+66,4,4,0.0003,Jordan,Argentina,Group,
+66,5,1,0.0001,Jordan,Argentina,Group,
+66,5,3,0.0002,Jordan,Argentina,Group,
+66,5,6,0.0001,Jordan,Argentina,Group,
+67,0,0,0.1123,Algeria,Austria,Group,
+67,0,1,0.1267,Algeria,Austria,Group,
+67,0,2,0.0704,Algeria,Austria,Group,
+67,0,3,0.0252,Algeria,Austria,Group,
+67,0,4,0.0076,Algeria,Austria,Group,
+67,0,5,0.0019,Algeria,Austria,Group,
+67,0,6,0.0003,Algeria,Austria,Group,
+67,0,7,0.0003,Algeria,Austria,Group,
+67,1,0,0.1205,Algeria,Austria,Group,
+67,1,1,0.1365,Algeria,Austria,Group,
+67,1,2,0.0747,Algeria,Austria,Group,
+67,1,3,0.0291,Algeria,Austria,Group,
+67,1,4,0.0085,Algeria,Austria,Group,
+67,1,5,0.0022,Algeria,Austria,Group,
+67,1,7,0.0001,Algeria,Austria,Group,
+67,2,0,0.0635,Algeria,Austria,Group,
+67,2,1,0.0734,Algeria,Austria,Group,
+67,2,2,0.0414,Algeria,Austria,Group,
+67,2,3,0.0147,Algeria,Austria,Group,
+67,2,4,0.0042,Algeria,Austria,Group,
+67,2,5,0.0007,Algeria,Austria,Group,
+67,2,6,0.0002,Algeria,Austria,Group,
+67,3,0,0.0206,Algeria,Austria,Group,
+67,3,1,0.0234,Algeria,Austria,Group,
+67,3,2,0.0148,Algeria,Austria,Group,
+67,3,3,0.0052,Algeria,Austria,Group,
+67,3,4,0.0018,Algeria,Austria,Group,
+67,3,5,0.0005,Algeria,Austria,Group,
+67,3,7,0.0001,Algeria,Austria,Group,
+67,4,0,0.005,Algeria,Austria,Group,
+67,4,1,0.0046,Algeria,Austria,Group,
+67,4,2,0.0039,Algeria,Austria,Group,
+67,4,3,0.0015,Algeria,Austria,Group,
+67,4,4,0.0002,Algeria,Austria,Group,
+67,4,5,0.0002,Algeria,Austria,Group,
+67,5,0,0.0007,Algeria,Austria,Group,
+67,5,1,0.0018,Algeria,Austria,Group,
+67,5,2,0.0001,Algeria,Austria,Group,
+67,5,3,0.0001,Algeria,Austria,Group,
+67,5,4,0.0001,Algeria,Austria,Group,
+67,6,0,0.0001,Algeria,Austria,Group,
+67,6,1,0.0006,Algeria,Austria,Group,
+67,6,4,0.0001,Algeria,Austria,Group,
+67,7,1,0.0001,Algeria,Austria,Group,
+67,8,1,0.0001,Algeria,Austria,Group,
+68,0,0,0.088,Colombia,Portugal,Group,
+68,0,1,0.1059,Colombia,Portugal,Group,
+68,0,2,0.0616,Colombia,Portugal,Group,
+68,0,3,0.0251,Colombia,Portugal,Group,
+68,0,4,0.0072,Colombia,Portugal,Group,
+68,0,5,0.0017,Colombia,Portugal,Group,
+68,0,6,0.0006,Colombia,Portugal,Group,
+68,0,7,0.0001,Colombia,Portugal,Group,
+68,1,0,0.1055,Colombia,Portugal,Group,
+68,1,1,0.1287,Colombia,Portugal,Group,
+68,1,2,0.0809,Colombia,Portugal,Group,
+68,1,3,0.03,Colombia,Portugal,Group,
+68,1,4,0.0086,Colombia,Portugal,Group,
+68,1,5,0.002,Colombia,Portugal,Group,
+68,1,6,0.0003,Colombia,Portugal,Group,
+68,1,7,0.0001,Colombia,Portugal,Group,
+68,2,0,0.0715,Colombia,Portugal,Group,
+68,2,1,0.0803,Colombia,Portugal,Group,
+68,2,2,0.0466,Colombia,Portugal,Group,
+68,2,3,0.0171,Colombia,Portugal,Group,
+68,2,4,0.0057,Colombia,Portugal,Group,
+68,2,5,0.0012,Colombia,Portugal,Group,
+68,2,6,0.0005,Colombia,Portugal,Group,
+68,2,7,0.0001,Colombia,Portugal,Group,
+68,3,0,0.0276,Colombia,Portugal,Group,
+68,3,1,0.0329,Colombia,Portugal,Group,
+68,3,2,0.0234,Colombia,Portugal,Group,
+68,3,3,0.0075,Colombia,Portugal,Group,
+68,3,4,0.0028,Colombia,Portugal,Group,
+68,3,5,0.0003,Colombia,Portugal,Group,
+68,3,6,0.0002,Colombia,Portugal,Group,
+68,3,7,0.0001,Colombia,Portugal,Group,
+68,4,0,0.0085,Colombia,Portugal,Group,
+68,4,1,0.0094,Colombia,Portugal,Group,
+68,4,2,0.0073,Colombia,Portugal,Group,
+68,4,3,0.0026,Colombia,Portugal,Group,
+68,4,4,0.0003,Colombia,Portugal,Group,
+68,4,5,0.0002,Colombia,Portugal,Group,
+68,5,0,0.0016,Colombia,Portugal,Group,
+68,5,1,0.0021,Colombia,Portugal,Group,
+68,5,2,0.0013,Colombia,Portugal,Group,
+68,5,3,0.0008,Colombia,Portugal,Group,
+68,5,4,0.0003,Colombia,Portugal,Group,
+68,6,0,0.0009,Colombia,Portugal,Group,
+68,6,1,0.0003,Colombia,Portugal,Group,
+68,6,2,0.0001,Colombia,Portugal,Group,
+68,6,4,0.0001,Colombia,Portugal,Group,
+68,7,3,0.0001,Colombia,Portugal,Group,
+69,0,0,0.1153,DR Congo,Uzbekistan,Group,
+69,0,1,0.1242,DR Congo,Uzbekistan,Group,
+69,0,2,0.0758,DR Congo,Uzbekistan,Group,
+69,0,3,0.0263,DR Congo,Uzbekistan,Group,
+69,0,4,0.007,DR Congo,Uzbekistan,Group,
+69,0,5,0.0015,DR Congo,Uzbekistan,Group,
+69,0,6,0.0003,DR Congo,Uzbekistan,Group,
+69,1,0,0.1163,DR Congo,Uzbekistan,Group,
+69,1,1,0.1361,DR Congo,Uzbekistan,Group,
+69,1,2,0.077,DR Congo,Uzbekistan,Group,
+69,1,3,0.0288,DR Congo,Uzbekistan,Group,
+69,1,4,0.0076,DR Congo,Uzbekistan,Group,
+69,1,5,0.0021,DR Congo,Uzbekistan,Group,
+69,1,6,0.0005,DR Congo,Uzbekistan,Group,
+69,1,7,0.0002,DR Congo,Uzbekistan,Group,
+69,2,0,0.0613,DR Congo,Uzbekistan,Group,
+69,2,1,0.0734,DR Congo,Uzbekistan,Group,
+69,2,2,0.0402,DR Congo,Uzbekistan,Group,
+69,2,3,0.0136,DR Congo,Uzbekistan,Group,
+69,2,4,0.0034,DR Congo,Uzbekistan,Group,
+69,2,5,0.0009,DR Congo,Uzbekistan,Group,
+69,2,8,0.0001,DR Congo,Uzbekistan,Group,
+69,3,0,0.0198,DR Congo,Uzbekistan,Group,
+69,3,1,0.0264,DR Congo,Uzbekistan,Group,
+69,3,2,0.0132,DR Congo,Uzbekistan,Group,
+69,3,3,0.0061,DR Congo,Uzbekistan,Group,
+69,3,4,0.0015,DR Congo,Uzbekistan,Group,
+69,3,5,0.0002,DR Congo,Uzbekistan,Group,
+69,4,0,0.0043,DR Congo,Uzbekistan,Group,
+69,4,1,0.0071,DR Congo,Uzbekistan,Group,
+69,4,2,0.0033,DR Congo,Uzbekistan,Group,
+69,4,3,0.0018,DR Congo,Uzbekistan,Group,
+69,4,4,0.0003,DR Congo,Uzbekistan,Group,
+69,5,0,0.001,DR Congo,Uzbekistan,Group,
+69,5,1,0.001,DR Congo,Uzbekistan,Group,
+69,5,2,0.001,DR Congo,Uzbekistan,Group,
+69,5,3,0.0002,DR Congo,Uzbekistan,Group,
+69,5,4,0.0001,DR Congo,Uzbekistan,Group,
+69,6,0,0.0003,DR Congo,Uzbekistan,Group,
+69,6,1,0.0002,DR Congo,Uzbekistan,Group,
+69,6,2,0.0001,DR Congo,Uzbekistan,Group,
+69,6,3,0.0001,DR Congo,Uzbekistan,Group,
+69,7,0,0.0001,DR Congo,Uzbekistan,Group,
+70,0,0,0.0561,Panama,England,Group,
+70,0,1,0.1268,Panama,England,Group,
+70,0,2,0.131,Panama,England,Group,
+70,0,3,0.1069,Panama,England,Group,
+70,0,4,0.0559,Panama,England,Group,
+70,0,5,0.0252,Panama,England,Group,
+70,0,6,0.0112,Panama,England,Group,
+70,0,7,0.0022,Panama,England,Group,
+70,0,8,0.001,Panama,England,Group,
+70,0,9,0.0004,Panama,England,Group,
+70,1,0,0.0352,Panama,England,Group,
+70,1,1,0.0795,Panama,England,Group,
+70,1,2,0.0872,Panama,England,Group,
+70,1,3,0.0678,Panama,England,Group,
+70,1,4,0.0394,Panama,England,Group,
+70,1,5,0.0165,Panama,England,Group,
+70,1,6,0.0074,Panama,England,Group,
+70,1,7,0.0031,Panama,England,Group,
+70,1,8,0.0007,Panama,England,Group,
+70,1,9,0.0002,Panama,England,Group,
+70,1,10,0.0001,Panama,England,Group,
+70,2,0,0.0114,Panama,England,Group,
+70,2,1,0.0258,Panama,England,Group,
+70,2,2,0.0342,Panama,England,Group,
+70,2,3,0.0235,Panama,England,Group,
+70,2,4,0.0141,Panama,England,Group,
+70,2,5,0.0064,Panama,England,Group,
+70,2,6,0.0014,Panama,England,Group,
+70,2,7,0.0005,Panama,England,Group,
+70,2,8,0.0001,Panama,England,Group,
+70,3,0,0.0023,Panama,England,Group,
+70,3,1,0.006,Panama,England,Group,
+70,3,2,0.0073,Panama,England,Group,
+70,3,3,0.0055,Panama,England,Group,
+70,3,4,0.0021,Panama,England,Group,
+70,3,5,0.0015,Panama,England,Group,
+70,3,6,0.0005,Panama,England,Group,
+70,4,0,0.0004,Panama,England,Group,
+70,4,1,0.0009,Panama,England,Group,
+70,4,2,0.0012,Panama,England,Group,
+70,4,3,0.0009,Panama,England,Group,
+70,4,4,0.0001,Panama,England,Group,
+70,4,5,0.0001,Panama,England,Group,
+71,0,0,0.0397,Croatia,Ghana,Group,
+71,0,1,0.0247,Croatia,Ghana,Group,
+71,0,2,0.0063,Croatia,Ghana,Group,
+71,0,3,0.001,Croatia,Ghana,Group,
+71,0,4,0.0002,Croatia,Ghana,Group,
+71,1,0,0.1088,Croatia,Ghana,Group,
+71,1,1,0.0605,Croatia,Ghana,Group,
+71,1,2,0.0164,Croatia,Ghana,Group,
+71,1,3,0.0035,Croatia,Ghana,Group,
+71,1,4,0.0002,Croatia,Ghana,Group,
+71,2,0,0.1458,Croatia,Ghana,Group,
+71,2,1,0.0786,Croatia,Ghana,Group,
+71,2,2,0.0245,Croatia,Ghana,Group,
+71,2,3,0.0048,Croatia,Ghana,Group,
+71,2,4,0.0006,Croatia,Ghana,Group,
+71,3,0,0.1159,Croatia,Ghana,Group,
+71,3,1,0.0718,Croatia,Ghana,Group,
+71,3,2,0.0206,Croatia,Ghana,Group,
+71,3,3,0.004,Croatia,Ghana,Group,
+71,3,4,0.0005,Croatia,Ghana,Group,
+71,4,0,0.0786,Croatia,Ghana,Group,
+71,4,1,0.0486,Croatia,Ghana,Group,
+71,4,2,0.0133,Croatia,Ghana,Group,
+71,4,3,0.0026,Croatia,Ghana,Group,
+71,4,4,0.0005,Croatia,Ghana,Group,
+71,5,0,0.0439,Croatia,Ghana,Group,
+71,5,1,0.0236,Croatia,Ghana,Group,
+71,5,2,0.0069,Croatia,Ghana,Group,
+71,5,3,0.0016,Croatia,Ghana,Group,
+71,5,4,0.0002,Croatia,Ghana,Group,
+71,6,0,0.0193,Croatia,Ghana,Group,
+71,6,1,0.0105,Croatia,Ghana,Group,
+71,6,2,0.0027,Croatia,Ghana,Group,
+71,6,3,0.0003,Croatia,Ghana,Group,
+71,6,4,0.0001,Croatia,Ghana,Group,
+71,7,0,0.0079,Croatia,Ghana,Group,
+71,7,1,0.0047,Croatia,Ghana,Group,
+71,7,2,0.0012,Croatia,Ghana,Group,
+71,8,0,0.0021,Croatia,Ghana,Group,
+71,8,1,0.0014,Croatia,Ghana,Group,
+71,8,2,0.0007,Croatia,Ghana,Group,
+71,8,3,0.0001,Croatia,Ghana,Group,
+71,9,0,0.0005,Croatia,Ghana,Group,
+71,9,1,0.0002,Croatia,Ghana,Group,
+71,10,0,0.0001,Croatia,Ghana,Group,
+0,0,0,0.1065,Czechia,Canada,R32,73.0
+0,0,1,0.1464,Czechia,Canada,R32,73.0
+0,0,2,0.0987,Czechia,Canada,R32,73.0
+0,0,3,0.0471,Czechia,Canada,R32,73.0
+0,0,4,0.0142,Czechia,Canada,R32,73.0
+0,0,5,0.0031,Czechia,Canada,R32,73.0
+0,0,6,0.0008,Czechia,Canada,R32,73.0
+0,0,7,0.0004,Czechia,Canada,R32,73.0
+0,1,0,0.096,Czechia,Canada,R32,73.0
+0,1,1,0.1278,Czechia,Canada,R32,73.0
+0,1,2,0.0846,Czechia,Canada,R32,73.0
+0,1,3,0.0397,Czechia,Canada,R32,73.0
+0,1,4,0.0141,Czechia,Canada,R32,73.0
+0,1,5,0.0045,Czechia,Canada,R32,73.0
+0,1,6,0.001,Czechia,Canada,R32,73.0
+0,2,0,0.0395,Czechia,Canada,R32,73.0
+0,2,1,0.0564,Czechia,Canada,R32,73.0
+0,2,2,0.0334,Czechia,Canada,R32,73.0
+0,2,3,0.0177,Czechia,Canada,R32,73.0
+0,2,4,0.0056,Czechia,Canada,R32,73.0
+0,2,5,0.0018,Czechia,Canada,R32,73.0
+0,2,6,0.0006,Czechia,Canada,R32,73.0
+0,2,7,0.0001,Czechia,Canada,R32,73.0
+0,3,0,0.0124,Czechia,Canada,R32,73.0
+0,3,1,0.0167,Czechia,Canada,R32,73.0
+0,3,2,0.0121,Czechia,Canada,R32,73.0
+0,3,3,0.0054,Czechia,Canada,R32,73.0
+0,3,4,0.002,Czechia,Canada,R32,73.0
+0,3,5,0.0008,Czechia,Canada,R32,73.0
+0,4,0,0.0022,Czechia,Canada,R32,73.0
+0,4,1,0.0035,Czechia,Canada,R32,73.0
+0,4,2,0.0016,Czechia,Canada,R32,73.0
+0,4,3,0.0011,Czechia,Canada,R32,73.0
+0,4,6,0.0001,Czechia,Canada,R32,73.0
+0,5,0,0.0005,Czechia,Canada,R32,73.0
+0,5,1,0.0006,Czechia,Canada,R32,73.0
+0,5,2,0.0003,Czechia,Canada,R32,73.0
+0,5,3,0.0004,Czechia,Canada,R32,73.0
+0,5,5,0.0002,Czechia,Canada,R32,73.0
+0,6,3,0.0001,Czechia,Canada,R32,73.0
+1,0,0,0.0894,Ecuador,Scotland,R32,74.0
+1,0,1,0.0689,Ecuador,Scotland,R32,74.0
+1,0,2,0.0288,Ecuador,Scotland,R32,74.0
+1,0,3,0.0057,Ecuador,Scotland,R32,74.0
+1,0,4,0.001,Ecuador,Scotland,R32,74.0
+1,0,5,0.0001,Ecuador,Scotland,R32,74.0
+1,1,0,0.1471,Ecuador,Scotland,R32,74.0
+1,1,1,0.12,Ecuador,Scotland,R32,74.0
+1,1,2,0.0449,Ecuador,Scotland,R32,74.0
+1,1,3,0.0123,Ecuador,Scotland,R32,74.0
+1,1,4,0.0019,Ecuador,Scotland,R32,74.0
+1,1,5,0.0003,Ecuador,Scotland,R32,74.0
+1,2,0,0.1186,Ecuador,Scotland,R32,74.0
+1,2,1,0.0932,Ecuador,Scotland,R32,74.0
+1,2,2,0.0335,Ecuador,Scotland,R32,74.0
+1,2,3,0.0095,Ecuador,Scotland,R32,74.0
+1,2,4,0.0024,Ecuador,Scotland,R32,74.0
+1,2,5,0.0004,Ecuador,Scotland,R32,74.0
+1,2,6,0.0001,Ecuador,Scotland,R32,74.0
+1,3,0,0.0631,Ecuador,Scotland,R32,74.0
+1,3,1,0.0525,Ecuador,Scotland,R32,74.0
+1,3,2,0.0178,Ecuador,Scotland,R32,74.0
+1,3,3,0.0046,Ecuador,Scotland,R32,74.0
+1,3,4,0.0013,Ecuador,Scotland,R32,74.0
+1,3,5,0.0003,Ecuador,Scotland,R32,74.0
+1,4,0,0.0287,Ecuador,Scotland,R32,74.0
+1,4,1,0.0181,Ecuador,Scotland,R32,74.0
+1,4,2,0.0092,Ecuador,Scotland,R32,74.0
+1,4,3,0.0014,Ecuador,Scotland,R32,74.0
+1,4,4,0.0001,Ecuador,Scotland,R32,74.0
+1,4,5,0.0002,Ecuador,Scotland,R32,74.0
+1,5,0,0.0066,Ecuador,Scotland,R32,74.0
+1,5,1,0.0066,Ecuador,Scotland,R32,74.0
+1,5,2,0.0032,Ecuador,Scotland,R32,74.0
+1,5,3,0.0005,Ecuador,Scotland,R32,74.0
+1,5,4,0.0002,Ecuador,Scotland,R32,74.0
+1,6,0,0.0027,Ecuador,Scotland,R32,74.0
+1,6,1,0.0015,Ecuador,Scotland,R32,74.0
+1,6,2,0.0008,Ecuador,Scotland,R32,74.0
+1,6,4,0.0002,Ecuador,Scotland,R32,74.0
+1,7,0,0.0008,Ecuador,Scotland,R32,74.0
+1,7,1,0.0007,Ecuador,Scotland,R32,74.0
+1,7,2,0.0004,Ecuador,Scotland,R32,74.0
+1,8,0,0.0003,Ecuador,Scotland,R32,74.0
+1,10,2,0.0001,Ecuador,Scotland,R32,74.0
+2,0,0,0.1154,Netherlands,Morocco,R32,75.0
+2,0,1,0.0918,Netherlands,Morocco,R32,75.0
+2,0,2,0.0379,Netherlands,Morocco,R32,75.0
+2,0,3,0.0105,Netherlands,Morocco,R32,75.0
+2,0,4,0.0019,Netherlands,Morocco,R32,75.0
+2,0,5,0.0005,Netherlands,Morocco,R32,75.0
+2,0,6,0.0001,Netherlands,Morocco,R32,75.0
+2,1,0,0.1565,Netherlands,Morocco,R32,75.0
+2,1,1,0.1285,Netherlands,Morocco,R32,75.0
+2,1,2,0.0531,Netherlands,Morocco,R32,75.0
+2,1,3,0.0133,Netherlands,Morocco,R32,75.0
+2,1,4,0.0035,Netherlands,Morocco,R32,75.0
+2,1,5,0.0004,Netherlands,Morocco,R32,75.0
+2,1,6,0.0001,Netherlands,Morocco,R32,75.0
+2,2,0,0.1057,Netherlands,Morocco,R32,75.0
+2,2,1,0.0847,Netherlands,Morocco,R32,75.0
+2,2,2,0.0364,Netherlands,Morocco,R32,75.0
+2,2,3,0.0089,Netherlands,Morocco,R32,75.0
+2,2,4,0.0014,Netherlands,Morocco,R32,75.0
+2,2,5,0.0002,Netherlands,Morocco,R32,75.0
+2,3,0,0.045,Netherlands,Morocco,R32,75.0
+2,3,1,0.0379,Netherlands,Morocco,R32,75.0
+2,3,2,0.0158,Netherlands,Morocco,R32,75.0
+2,3,3,0.0042,Netherlands,Morocco,R32,75.0
+2,3,4,0.0008,Netherlands,Morocco,R32,75.0
+2,3,5,0.0001,Netherlands,Morocco,R32,75.0
+2,3,6,0.0001,Netherlands,Morocco,R32,75.0
+2,4,0,0.0147,Netherlands,Morocco,R32,75.0
+2,4,1,0.0133,Netherlands,Morocco,R32,75.0
+2,4,2,0.0051,Netherlands,Morocco,R32,75.0
+2,4,3,0.0011,Netherlands,Morocco,R32,75.0
+2,4,4,0.0005,Netherlands,Morocco,R32,75.0
+2,5,0,0.0034,Netherlands,Morocco,R32,75.0
+2,5,1,0.0033,Netherlands,Morocco,R32,75.0
+2,5,2,0.0021,Netherlands,Morocco,R32,75.0
+2,5,3,0.0003,Netherlands,Morocco,R32,75.0
+2,6,0,0.0008,Netherlands,Morocco,R32,75.0
+2,6,1,0.0004,Netherlands,Morocco,R32,75.0
+2,7,1,0.0001,Netherlands,Morocco,R32,75.0
+2,8,1,0.0002,Netherlands,Morocco,R32,75.0
+3,0,0,0.0765,Brazil,Japan,R32,76.0
+3,0,1,0.0671,Brazil,Japan,R32,76.0
+3,0,2,0.0323,Brazil,Japan,R32,76.0
+3,0,3,0.0086,Brazil,Japan,R32,76.0
+3,0,4,0.0029,Brazil,Japan,R32,76.0
+3,0,5,0.0003,Brazil,Japan,R32,76.0
+3,0,6,0.0002,Brazil,Japan,R32,76.0
+3,0,8,0.0001,Brazil,Japan,R32,76.0
+3,1,0,0.1327,Brazil,Japan,R32,76.0
+3,1,1,0.1156,Brazil,Japan,R32,76.0
+3,1,2,0.0495,Brazil,Japan,R32,76.0
+3,1,3,0.0148,Brazil,Japan,R32,76.0
+3,1,4,0.004,Brazil,Japan,R32,76.0
+3,1,5,0.0007,Brazil,Japan,R32,76.0
+3,2,0,0.1061,Brazil,Japan,R32,76.0
+3,2,1,0.0984,Brazil,Japan,R32,76.0
+3,2,2,0.039,Brazil,Japan,R32,76.0
+3,2,3,0.0138,Brazil,Japan,R32,76.0
+3,2,4,0.0036,Brazil,Japan,R32,76.0
+3,2,5,0.0006,Brazil,Japan,R32,76.0
+3,3,0,0.0577,Brazil,Japan,R32,76.0
+3,3,1,0.056,Brazil,Japan,R32,76.0
+3,3,2,0.0223,Brazil,Japan,R32,76.0
+3,3,3,0.0065,Brazil,Japan,R32,76.0
+3,3,4,0.0018,Brazil,Japan,R32,76.0
+3,3,5,0.0003,Brazil,Japan,R32,76.0
+3,4,0,0.0247,Brazil,Japan,R32,76.0
+3,4,1,0.0225,Brazil,Japan,R32,76.0
+3,4,2,0.0085,Brazil,Japan,R32,76.0
+3,4,3,0.0031,Brazil,Japan,R32,76.0
+3,4,4,0.0007,Brazil,Japan,R32,76.0
+3,4,5,0.0003,Brazil,Japan,R32,76.0
+3,4,6,0.0001,Brazil,Japan,R32,76.0
+3,5,0,0.0083,Brazil,Japan,R32,76.0
+3,5,1,0.0084,Brazil,Japan,R32,76.0
+3,5,2,0.0035,Brazil,Japan,R32,76.0
+3,5,3,0.0009,Brazil,Japan,R32,76.0
+3,5,4,0.0003,Brazil,Japan,R32,76.0
+3,5,5,0.0001,Brazil,Japan,R32,76.0
+3,6,0,0.0027,Brazil,Japan,R32,76.0
+3,6,1,0.0013,Brazil,Japan,R32,76.0
+3,6,2,0.0006,Brazil,Japan,R32,76.0
+3,6,3,0.0005,Brazil,Japan,R32,76.0
+3,6,4,0.0001,Brazil,Japan,R32,76.0
+3,7,0,0.0007,Brazil,Japan,R32,76.0
+3,7,1,0.0004,Brazil,Japan,R32,76.0
+3,7,2,0.0005,Brazil,Japan,R32,76.0
+3,8,0,0.0002,Brazil,Japan,R32,76.0
+3,8,1,0.0001,Brazil,Japan,R32,76.0
+3,8,2,0.0001,Brazil,Japan,R32,76.0
+4,0,0,0.0418,France,Sweden,R32,77.0
+4,0,1,0.0347,France,Sweden,R32,77.0
+4,0,2,0.0126,France,Sweden,R32,77.0
+4,0,3,0.0041,France,Sweden,R32,77.0
+4,0,4,0.0003,France,Sweden,R32,77.0
+4,0,5,0.0001,France,Sweden,R32,77.0
+4,1,0,0.0979,France,Sweden,R32,77.0
+4,1,1,0.0825,France,Sweden,R32,77.0
+4,1,2,0.0341,France,Sweden,R32,77.0
+4,1,3,0.0108,France,Sweden,R32,77.0
+4,1,4,0.0016,France,Sweden,R32,77.0
+4,1,5,0.0002,France,Sweden,R32,77.0
+4,2,0,0.1187,France,Sweden,R32,77.0
+4,2,1,0.0951,France,Sweden,R32,77.0
+4,2,2,0.0364,France,Sweden,R32,77.0
+4,2,3,0.0103,France,Sweden,R32,77.0
+4,2,4,0.0023,France,Sweden,R32,77.0
+4,2,5,0.0001,France,Sweden,R32,77.0
+4,2,6,0.0001,France,Sweden,R32,77.0
+4,3,0,0.0947,France,Sweden,R32,77.0
+4,3,1,0.0774,France,Sweden,R32,77.0
+4,3,2,0.03,France,Sweden,R32,77.0
+4,3,3,0.0072,France,Sweden,R32,77.0
+4,3,4,0.002,France,Sweden,R32,77.0
+4,3,5,0.0003,France,Sweden,R32,77.0
+4,4,0,0.0516,France,Sweden,R32,77.0
+4,4,1,0.042,France,Sweden,R32,77.0
+4,4,2,0.0151,France,Sweden,R32,77.0
+4,4,3,0.0039,France,Sweden,R32,77.0
+4,4,4,0.0008,France,Sweden,R32,77.0
+4,4,5,0.0001,France,Sweden,R32,77.0
+4,5,0,0.0256,France,Sweden,R32,77.0
+4,5,1,0.022,France,Sweden,R32,77.0
+4,5,2,0.0088,France,Sweden,R32,77.0
+4,5,3,0.0025,France,Sweden,R32,77.0
+4,5,4,0.0006,France,Sweden,R32,77.0
+4,6,0,0.0095,France,Sweden,R32,77.0
+4,6,1,0.0084,France,Sweden,R32,77.0
+4,6,2,0.0026,France,Sweden,R32,77.0
+4,6,3,0.0007,France,Sweden,R32,77.0
+4,7,0,0.0034,France,Sweden,R32,77.0
+4,7,1,0.0027,France,Sweden,R32,77.0
+4,7,2,0.001,France,Sweden,R32,77.0
+4,7,3,0.0002,France,Sweden,R32,77.0
+4,8,0,0.0012,France,Sweden,R32,77.0
+4,8,1,0.0009,France,Sweden,R32,77.0
+4,8,2,0.0006,France,Sweden,R32,77.0
+4,8,3,0.0001,France,Sweden,R32,77.0
+4,9,0,0.0001,France,Sweden,R32,77.0
+4,9,2,0.0001,France,Sweden,R32,77.0
+4,10,0,0.0002,France,Sweden,R32,77.0
+5,0,0,0.0819,Germany,Norway,R32,78.0
+5,0,1,0.085,Germany,Norway,R32,78.0
+5,0,2,0.0443,Germany,Norway,R32,78.0
+5,0,3,0.0158,Germany,Norway,R32,78.0
+5,0,4,0.0035,Germany,Norway,R32,78.0
+5,0,5,0.0009,Germany,Norway,R32,78.0
+5,0,6,0.0003,Germany,Norway,R32,78.0
+5,1,0,0.1194,Germany,Norway,R32,78.0
+5,1,1,0.1242,Germany,Norway,R32,78.0
+5,1,2,0.0617,Germany,Norway,R32,78.0
+5,1,3,0.0213,Germany,Norway,R32,78.0
+5,1,4,0.0067,Germany,Norway,R32,78.0
+5,1,5,0.0009,Germany,Norway,R32,78.0
+5,1,6,0.0002,Germany,Norway,R32,78.0
+5,2,0,0.0868,Germany,Norway,R32,78.0
+5,2,1,0.0917,Germany,Norway,R32,78.0
+5,2,2,0.044,Germany,Norway,R32,78.0
+5,2,3,0.0153,Germany,Norway,R32,78.0
+5,2,4,0.0044,Germany,Norway,R32,78.0
+5,2,5,0.0007,Germany,Norway,R32,78.0
+5,3,0,0.0446,Germany,Norway,R32,78.0
+5,3,1,0.0457,Germany,Norway,R32,78.0
+5,3,2,0.0266,Germany,Norway,R32,78.0
+5,3,3,0.009,Germany,Norway,R32,78.0
+5,3,4,0.0024,Germany,Norway,R32,78.0
+5,3,5,0.0006,Germany,Norway,R32,78.0
+5,3,6,0.0001,Germany,Norway,R32,78.0
+5,4,0,0.0152,Germany,Norway,R32,78.0
+5,4,1,0.0166,Germany,Norway,R32,78.0
+5,4,2,0.0089,Germany,Norway,R32,78.0
+5,4,3,0.0032,Germany,Norway,R32,78.0
+5,4,4,0.0009,Germany,Norway,R32,78.0
+5,4,5,0.0003,Germany,Norway,R32,78.0
+5,5,0,0.0043,Germany,Norway,R32,78.0
+5,5,1,0.0043,Germany,Norway,R32,78.0
+5,5,2,0.0024,Germany,Norway,R32,78.0
+5,5,3,0.001,Germany,Norway,R32,78.0
+5,5,4,0.0001,Germany,Norway,R32,78.0
+5,5,5,0.0003,Germany,Norway,R32,78.0
+5,6,0,0.0012,Germany,Norway,R32,78.0
+5,6,1,0.0013,Germany,Norway,R32,78.0
+5,6,2,0.0011,Germany,Norway,R32,78.0
+5,6,3,0.0002,Germany,Norway,R32,78.0
+5,6,4,0.0001,Germany,Norway,R32,78.0
+5,7,0,0.0001,Germany,Norway,R32,78.0
+5,7,1,0.0001,Germany,Norway,R32,78.0
+5,7,2,0.0001,Germany,Norway,R32,78.0
+5,8,0,0.0001,Germany,Norway,R32,78.0
+5,8,1,0.0001,Germany,Norway,R32,78.0
+5,9,0,0.0001,Germany,Norway,R32,78.0
+6,0,0,0.0724,Mexico,Ivory Coast,R32,79.0
+6,0,1,0.0659,Mexico,Ivory Coast,R32,79.0
+6,0,2,0.0222,Mexico,Ivory Coast,R32,79.0
+6,0,3,0.0061,Mexico,Ivory Coast,R32,79.0
+6,0,4,0.0012,Mexico,Ivory Coast,R32,79.0
+6,0,5,0.0004,Mexico,Ivory Coast,R32,79.0
+6,1,0,0.1437,Mexico,Ivory Coast,R32,79.0
+6,1,1,0.1035,Mexico,Ivory Coast,R32,79.0
+6,1,2,0.0427,Mexico,Ivory Coast,R32,79.0
+6,1,3,0.0119,Mexico,Ivory Coast,R32,79.0
+6,1,4,0.0023,Mexico,Ivory Coast,R32,79.0
+6,1,5,0.0003,Mexico,Ivory Coast,R32,79.0
+6,2,0,0.1199,Mexico,Ivory Coast,R32,79.0
+6,2,1,0.0977,Mexico,Ivory Coast,R32,79.0
+6,2,2,0.0399,Mexico,Ivory Coast,R32,79.0
+6,2,3,0.0089,Mexico,Ivory Coast,R32,79.0
+6,2,4,0.0025,Mexico,Ivory Coast,R32,79.0
+6,3,0,0.0653,Mexico,Ivory Coast,R32,79.0
+6,3,1,0.0586,Mexico,Ivory Coast,R32,79.0
+6,3,2,0.0216,Mexico,Ivory Coast,R32,79.0
+6,3,3,0.0054,Mexico,Ivory Coast,R32,79.0
+6,3,4,0.0011,Mexico,Ivory Coast,R32,79.0
+6,3,5,0.0002,Mexico,Ivory Coast,R32,79.0
+6,4,0,0.0325,Mexico,Ivory Coast,R32,79.0
+6,4,1,0.0257,Mexico,Ivory Coast,R32,79.0
+6,4,2,0.0108,Mexico,Ivory Coast,R32,79.0
+6,4,3,0.0017,Mexico,Ivory Coast,R32,79.0
+6,4,4,0.0003,Mexico,Ivory Coast,R32,79.0
+6,5,0,0.0114,Mexico,Ivory Coast,R32,79.0
+6,5,1,0.0105,Mexico,Ivory Coast,R32,79.0
+6,5,2,0.0033,Mexico,Ivory Coast,R32,79.0
+6,5,3,0.001,Mexico,Ivory Coast,R32,79.0
+6,5,4,0.0002,Mexico,Ivory Coast,R32,79.0
+6,5,5,0.0001,Mexico,Ivory Coast,R32,79.0
+6,6,0,0.0028,Mexico,Ivory Coast,R32,79.0
+6,6,1,0.0022,Mexico,Ivory Coast,R32,79.0
+6,6,2,0.0012,Mexico,Ivory Coast,R32,79.0
+6,6,3,0.0002,Mexico,Ivory Coast,R32,79.0
+6,7,0,0.0014,Mexico,Ivory Coast,R32,79.0
+6,7,1,0.0002,Mexico,Ivory Coast,R32,79.0
+6,7,2,0.0002,Mexico,Ivory Coast,R32,79.0
+6,7,4,0.0002,Mexico,Ivory Coast,R32,79.0
+6,8,1,0.0001,Mexico,Ivory Coast,R32,79.0
+6,8,2,0.0002,Mexico,Ivory Coast,R32,79.0
+6,8,4,0.0001,Mexico,Ivory Coast,R32,79.0
+7,0,0,0.056,England,Uzbekistan,R32,80.0
+7,0,1,0.0373,England,Uzbekistan,R32,80.0
+7,0,2,0.0119,England,Uzbekistan,R32,80.0
+7,0,3,0.0028,England,Uzbekistan,R32,80.0
+7,0,4,0.0004,England,Uzbekistan,R32,80.0
+7,0,5,0.0001,England,Uzbekistan,R32,80.0
+7,1,0,0.1205,England,Uzbekistan,R32,80.0
+7,1,1,0.0822,England,Uzbekistan,R32,80.0
+7,1,2,0.0267,England,Uzbekistan,R32,80.0
+7,1,3,0.0064,England,Uzbekistan,R32,80.0
+7,1,4,0.0013,England,Uzbekistan,R32,80.0
+7,1,5,0.0002,England,Uzbekistan,R32,80.0
+7,2,0,0.1406,England,Uzbekistan,R32,80.0
+7,2,1,0.0905,England,Uzbekistan,R32,80.0
+7,2,2,0.0301,England,Uzbekistan,R32,80.0
+7,2,3,0.0058,England,Uzbekistan,R32,80.0
+7,2,4,0.0005,England,Uzbekistan,R32,80.0
+7,2,5,0.0002,England,Uzbekistan,R32,80.0
+7,3,0,0.1026,England,Uzbekistan,R32,80.0
+7,3,1,0.0639,England,Uzbekistan,R32,80.0
+7,3,2,0.0272,England,Uzbekistan,R32,80.0
+7,3,3,0.0041,England,Uzbekistan,R32,80.0
+7,3,4,0.0006,England,Uzbekistan,R32,80.0
+7,3,5,0.0004,England,Uzbekistan,R32,80.0
+7,4,0,0.0596,England,Uzbekistan,R32,80.0
+7,4,1,0.0348,England,Uzbekistan,R32,80.0
+7,4,2,0.0121,England,Uzbekistan,R32,80.0
+7,4,3,0.0014,England,Uzbekistan,R32,80.0
+7,4,4,0.0003,England,Uzbekistan,R32,80.0
+7,5,0,0.0256,England,Uzbekistan,R32,80.0
+7,5,1,0.0173,England,Uzbekistan,R32,80.0
+7,5,2,0.0076,England,Uzbekistan,R32,80.0
+7,5,3,0.0013,England,Uzbekistan,R32,80.0
+7,5,4,0.0001,England,Uzbekistan,R32,80.0
+7,6,0,0.0111,England,Uzbekistan,R32,80.0
+7,6,1,0.0055,England,Uzbekistan,R32,80.0
+7,6,2,0.0026,England,Uzbekistan,R32,80.0
+7,6,3,0.0004,England,Uzbekistan,R32,80.0
+7,6,4,0.0001,England,Uzbekistan,R32,80.0
+7,7,0,0.0032,England,Uzbekistan,R32,80.0
+7,7,1,0.0019,England,Uzbekistan,R32,80.0
+7,7,2,0.0004,England,Uzbekistan,R32,80.0
+7,8,0,0.0011,England,Uzbekistan,R32,80.0
+7,8,1,0.0004,England,Uzbekistan,R32,80.0
+7,8,2,0.0005,England,Uzbekistan,R32,80.0
+7,9,0,0.0002,England,Uzbekistan,R32,80.0
+7,9,1,0.0001,England,Uzbekistan,R32,80.0
+7,9,3,0.0001,England,Uzbekistan,R32,80.0
+8,0,0,0.0859,Turkey,Bosnia and Herzegovina,R32,81.0
+8,0,1,0.0571,Turkey,Bosnia and Herzegovina,R32,81.0
+8,0,2,0.0176,Turkey,Bosnia and Herzegovina,R32,81.0
+8,0,3,0.0038,Turkey,Bosnia and Herzegovina,R32,81.0
+8,0,4,0.0007,Turkey,Bosnia and Herzegovina,R32,81.0
+8,0,5,0.0001,Turkey,Bosnia and Herzegovina,R32,81.0
+8,0,6,0.0002,Turkey,Bosnia and Herzegovina,R32,81.0
+8,1,0,0.1541,Turkey,Bosnia and Herzegovina,R32,81.0
+8,1,1,0.1078,Turkey,Bosnia and Herzegovina,R32,81.0
+8,1,2,0.0336,Turkey,Bosnia and Herzegovina,R32,81.0
+8,1,3,0.0067,Turkey,Bosnia and Herzegovina,R32,81.0
+8,1,4,0.0016,Turkey,Bosnia and Herzegovina,R32,81.0
+8,2,0,0.1384,Turkey,Bosnia and Herzegovina,R32,81.0
+8,2,1,0.0928,Turkey,Bosnia and Herzegovina,R32,81.0
+8,2,2,0.0312,Turkey,Bosnia and Herzegovina,R32,81.0
+8,2,3,0.0053,Turkey,Bosnia and Herzegovina,R32,81.0
+8,2,4,0.0011,Turkey,Bosnia and Herzegovina,R32,81.0
+8,2,5,0.0001,Turkey,Bosnia and Herzegovina,R32,81.0
+8,3,0,0.0809,Turkey,Bosnia and Herzegovina,R32,81.0
+8,3,1,0.0524,Turkey,Bosnia and Herzegovina,R32,81.0
+8,3,2,0.0161,Turkey,Bosnia and Herzegovina,R32,81.0
+8,3,3,0.0043,Turkey,Bosnia and Herzegovina,R32,81.0
+8,3,4,0.001,Turkey,Bosnia and Herzegovina,R32,81.0
+8,4,0,0.0354,Turkey,Bosnia and Herzegovina,R32,81.0
+8,4,1,0.0245,Turkey,Bosnia and Herzegovina,R32,81.0
+8,4,2,0.0078,Turkey,Bosnia and Herzegovina,R32,81.0
+8,4,3,0.0022,Turkey,Bosnia and Herzegovina,R32,81.0
+8,4,4,0.0005,Turkey,Bosnia and Herzegovina,R32,81.0
+8,5,0,0.0152,Turkey,Bosnia and Herzegovina,R32,81.0
+8,5,1,0.0088,Turkey,Bosnia and Herzegovina,R32,81.0
+8,5,2,0.0024,Turkey,Bosnia and Herzegovina,R32,81.0
+8,5,3,0.0005,Turkey,Bosnia and Herzegovina,R32,81.0
+8,5,4,0.0001,Turkey,Bosnia and Herzegovina,R32,81.0
+8,6,0,0.0039,Turkey,Bosnia and Herzegovina,R32,81.0
+8,6,1,0.0022,Turkey,Bosnia and Herzegovina,R32,81.0
+8,6,2,0.001,Turkey,Bosnia and Herzegovina,R32,81.0
+8,6,3,0.0003,Turkey,Bosnia and Herzegovina,R32,81.0
+8,7,0,0.0016,Turkey,Bosnia and Herzegovina,R32,81.0
+8,7,1,0.0008,Turkey,Bosnia and Herzegovina,R32,81.0
+9,0,0,0.0773,Belgium,Czechia,R32,82.0
+9,0,1,0.0696,Belgium,Czechia,R32,82.0
+9,0,2,0.0303,Belgium,Czechia,R32,82.0
+9,0,3,0.0086,Belgium,Czechia,R32,82.0
+9,0,4,0.0023,Belgium,Czechia,R32,82.0
+9,0,5,0.0006,Belgium,Czechia,R32,82.0
+9,0,6,0.0001,Belgium,Czechia,R32,82.0
+9,1,0,0.1311,Belgium,Czechia,R32,82.0
+9,1,1,0.1069,Belgium,Czechia,R32,82.0
+9,1,2,0.0506,Belgium,Czechia,R32,82.0
+9,1,3,0.0162,Belgium,Czechia,R32,82.0
+9,1,4,0.0036,Belgium,Czechia,R32,82.0
+9,1,5,0.0004,Belgium,Czechia,R32,82.0
+9,1,6,0.0004,Belgium,Czechia,R32,82.0
+9,2,0,0.111,Belgium,Czechia,R32,82.0
+9,2,1,0.0962,Belgium,Czechia,R32,82.0
+9,2,2,0.0388,Belgium,Czechia,R32,82.0
+9,2,3,0.0125,Belgium,Czechia,R32,82.0
+9,2,4,0.0031,Belgium,Czechia,R32,82.0
+9,2,5,0.0009,Belgium,Czechia,R32,82.0
+9,2,6,0.0002,Belgium,Czechia,R32,82.0
+9,3,0,0.0634,Belgium,Czechia,R32,82.0
+9,3,1,0.0538,Belgium,Czechia,R32,82.0
+9,3,2,0.0217,Belgium,Czechia,R32,82.0
+9,3,3,0.008,Belgium,Czechia,R32,82.0
+9,3,4,0.001,Belgium,Czechia,R32,82.0
+9,3,5,0.0001,Belgium,Czechia,R32,82.0
+9,4,0,0.0245,Belgium,Czechia,R32,82.0
+9,4,1,0.0227,Belgium,Czechia,R32,82.0
+9,4,2,0.0105,Belgium,Czechia,R32,82.0
+9,4,3,0.0032,Belgium,Czechia,R32,82.0
+9,4,4,0.0004,Belgium,Czechia,R32,82.0
+9,4,5,0.0001,Belgium,Czechia,R32,82.0
+9,4,6,0.0001,Belgium,Czechia,R32,82.0
+9,5,0,0.0101,Belgium,Czechia,R32,82.0
+9,5,1,0.0082,Belgium,Czechia,R32,82.0
+9,5,2,0.0031,Belgium,Czechia,R32,82.0
+9,5,3,0.0008,Belgium,Czechia,R32,82.0
+9,5,4,0.0001,Belgium,Czechia,R32,82.0
+9,5,5,0.0002,Belgium,Czechia,R32,82.0
+9,6,0,0.0026,Belgium,Czechia,R32,82.0
+9,6,1,0.0022,Belgium,Czechia,R32,82.0
+9,6,2,0.0006,Belgium,Czechia,R32,82.0
+9,6,3,0.0004,Belgium,Czechia,R32,82.0
+9,7,0,0.0002,Belgium,Czechia,R32,82.0
+9,7,1,0.0003,Belgium,Czechia,R32,82.0
+9,7,2,0.0003,Belgium,Czechia,R32,82.0
+9,7,3,0.0002,Belgium,Czechia,R32,82.0
+9,7,4,0.0001,Belgium,Czechia,R32,82.0
+9,8,0,0.0001,Belgium,Czechia,R32,82.0
+9,8,2,0.0002,Belgium,Czechia,R32,82.0
+9,10,0,0.0001,Belgium,Czechia,R32,82.0
+10,0,0,0.0992,Portugal,Croatia,R32,83.0
+10,0,1,0.1041,Portugal,Croatia,R32,83.0
+10,0,2,0.0541,Portugal,Croatia,R32,83.0
+10,0,3,0.0208,Portugal,Croatia,R32,83.0
+10,0,4,0.0071,Portugal,Croatia,R32,83.0
+10,0,5,0.0008,Portugal,Croatia,R32,83.0
+10,0,6,0.0002,Portugal,Croatia,R32,83.0
+10,1,0,0.1257,Portugal,Croatia,R32,83.0
+10,1,1,0.1343,Portugal,Croatia,R32,83.0
+10,1,2,0.0723,Portugal,Croatia,R32,83.0
+10,1,3,0.0248,Portugal,Croatia,R32,83.0
+10,1,4,0.0061,Portugal,Croatia,R32,83.0
+10,1,5,0.0017,Portugal,Croatia,R32,83.0
+10,1,6,0.0004,Portugal,Croatia,R32,83.0
+10,2,0,0.0794,Portugal,Croatia,R32,83.0
+10,2,1,0.0832,Portugal,Croatia,R32,83.0
+10,2,2,0.0415,Portugal,Croatia,R32,83.0
+10,2,3,0.0156,Portugal,Croatia,R32,83.0
+10,2,4,0.004,Portugal,Croatia,R32,83.0
+10,2,5,0.0009,Portugal,Croatia,R32,83.0
+10,2,6,0.0003,Portugal,Croatia,R32,83.0
+10,2,8,0.0001,Portugal,Croatia,R32,83.0
+10,3,0,0.0312,Portugal,Croatia,R32,83.0
+10,3,1,0.0325,Portugal,Croatia,R32,83.0
+10,3,2,0.0175,Portugal,Croatia,R32,83.0
+10,3,3,0.0055,Portugal,Croatia,R32,83.0
+10,3,4,0.0015,Portugal,Croatia,R32,83.0
+10,3,5,0.0003,Portugal,Croatia,R32,83.0
+10,3,6,0.0001,Portugal,Croatia,R32,83.0
+10,4,0,0.0092,Portugal,Croatia,R32,83.0
+10,4,1,0.0097,Portugal,Croatia,R32,83.0
+10,4,2,0.0048,Portugal,Croatia,R32,83.0
+10,4,3,0.0014,Portugal,Croatia,R32,83.0
+10,4,4,0.0009,Portugal,Croatia,R32,83.0
+10,5,0,0.0028,Portugal,Croatia,R32,83.0
+10,5,1,0.0023,Portugal,Croatia,R32,83.0
+10,5,2,0.0016,Portugal,Croatia,R32,83.0
+10,5,3,0.0004,Portugal,Croatia,R32,83.0
+10,6,0,0.0004,Portugal,Croatia,R32,83.0
+10,6,1,0.0008,Portugal,Croatia,R32,83.0
+10,6,2,0.0002,Portugal,Croatia,R32,83.0
+10,6,3,0.0001,Portugal,Croatia,R32,83.0
+10,6,4,0.0001,Portugal,Croatia,R32,83.0
+10,8,2,0.0001,Portugal,Croatia,R32,83.0
+11,0,0,0.0821,Spain,Austria,R32,84.0
+11,0,1,0.0499,Spain,Austria,R32,84.0
+11,0,2,0.0181,Spain,Austria,R32,84.0
+11,0,3,0.0034,Spain,Austria,R32,84.0
+11,0,4,0.0009,Spain,Austria,R32,84.0
+11,1,0,0.1448,Spain,Austria,R32,84.0
+11,1,1,0.0943,Spain,Austria,R32,84.0
+11,1,2,0.0336,Spain,Austria,R32,84.0
+11,1,3,0.0087,Spain,Austria,R32,84.0
+11,1,4,0.0018,Spain,Austria,R32,84.0
+11,1,5,0.0003,Spain,Austria,R32,84.0
+11,2,0,0.1366,Spain,Austria,R32,84.0
+11,2,1,0.0929,Spain,Austria,R32,84.0
+11,2,2,0.0351,Spain,Austria,R32,84.0
+11,2,3,0.0057,Spain,Austria,R32,84.0
+11,2,4,0.0015,Spain,Austria,R32,84.0
+11,2,5,0.0001,Spain,Austria,R32,84.0
+11,2,6,0.0001,Spain,Austria,R32,84.0
+11,3,0,0.0854,Spain,Austria,R32,84.0
+11,3,1,0.0566,Spain,Austria,R32,84.0
+11,3,2,0.0191,Spain,Austria,R32,84.0
+11,3,3,0.0049,Spain,Austria,R32,84.0
+11,3,4,0.0007,Spain,Austria,R32,84.0
+11,4,0,0.0381,Spain,Austria,R32,84.0
+11,4,1,0.0267,Spain,Austria,R32,84.0
+11,4,2,0.0109,Spain,Austria,R32,84.0
+11,4,3,0.0019,Spain,Austria,R32,84.0
+11,4,4,0.0002,Spain,Austria,R32,84.0
+11,4,5,0.0001,Spain,Austria,R32,84.0
+11,5,0,0.0171,Spain,Austria,R32,84.0
+11,5,1,0.0102,Spain,Austria,R32,84.0
+11,5,2,0.0043,Spain,Austria,R32,84.0
+11,5,3,0.0003,Spain,Austria,R32,84.0
+11,5,4,0.0001,Spain,Austria,R32,84.0
+11,6,0,0.0032,Spain,Austria,R32,84.0
+11,6,1,0.0046,Spain,Austria,R32,84.0
+11,6,2,0.0014,Spain,Austria,R32,84.0
+11,6,3,0.0002,Spain,Austria,R32,84.0
+11,7,0,0.0017,Spain,Austria,R32,84.0
+11,7,1,0.0009,Spain,Austria,R32,84.0
+11,7,2,0.0005,Spain,Austria,R32,84.0
+11,8,0,0.0003,Spain,Austria,R32,84.0
+11,8,1,0.0001,Spain,Austria,R32,84.0
+11,8,2,0.0001,Spain,Austria,R32,84.0
+11,8,3,0.0002,Spain,Austria,R32,84.0
+11,9,0,0.0002,Spain,Austria,R32,84.0
+11,9,1,0.0001,Spain,Austria,R32,84.0
+12,0,0,0.0842,Switzerland,Egypt,R32,85.0
+12,0,1,0.0779,Switzerland,Egypt,R32,85.0
+12,0,2,0.0329,Switzerland,Egypt,R32,85.0
+12,0,3,0.0101,Switzerland,Egypt,R32,85.0
+12,0,4,0.0023,Switzerland,Egypt,R32,85.0
+12,0,5,0.0006,Switzerland,Egypt,R32,85.0
+12,0,6,0.0002,Switzerland,Egypt,R32,85.0
+12,1,0,0.1374,Switzerland,Egypt,R32,85.0
+12,1,1,0.1144,Switzerland,Egypt,R32,85.0
+12,1,2,0.051,Switzerland,Egypt,R32,85.0
+12,1,3,0.0154,Switzerland,Egypt,R32,85.0
+12,1,4,0.003,Switzerland,Egypt,R32,85.0
+12,1,5,0.0006,Switzerland,Egypt,R32,85.0
+12,1,6,0.0002,Switzerland,Egypt,R32,85.0
+12,2,0,0.1089,Switzerland,Egypt,R32,85.0
+12,2,1,0.0955,Switzerland,Egypt,R32,85.0
+12,2,2,0.0435,Switzerland,Egypt,R32,85.0
+12,2,3,0.0122,Switzerland,Egypt,R32,85.0
+12,2,4,0.0031,Switzerland,Egypt,R32,85.0
+12,2,5,0.0006,Switzerland,Egypt,R32,85.0
+12,3,0,0.0574,Switzerland,Egypt,R32,85.0
+12,3,1,0.049,Switzerland,Egypt,R32,85.0
+12,3,2,0.0214,Switzerland,Egypt,R32,85.0
+12,3,3,0.0062,Switzerland,Egypt,R32,85.0
+12,3,4,0.0015,Switzerland,Egypt,R32,85.0
+12,3,5,0.0002,Switzerland,Egypt,R32,85.0
+12,3,6,0.0001,Switzerland,Egypt,R32,85.0
+12,4,0,0.0211,Switzerland,Egypt,R32,85.0
+12,4,1,0.0179,Switzerland,Egypt,R32,85.0
+12,4,2,0.0082,Switzerland,Egypt,R32,85.0
+12,4,3,0.0017,Switzerland,Egypt,R32,85.0
+12,4,4,0.0001,Switzerland,Egypt,R32,85.0
+12,4,5,0.0001,Switzerland,Egypt,R32,85.0
+12,5,0,0.0064,Switzerland,Egypt,R32,85.0
+12,5,1,0.006,Switzerland,Egypt,R32,85.0
+12,5,2,0.0023,Switzerland,Egypt,R32,85.0
+12,5,3,0.0009,Switzerland,Egypt,R32,85.0
+12,5,4,0.0003,Switzerland,Egypt,R32,85.0
+12,6,0,0.0021,Switzerland,Egypt,R32,85.0
+12,6,1,0.0015,Switzerland,Egypt,R32,85.0
+12,6,2,0.0006,Switzerland,Egypt,R32,85.0
+12,7,0,0.0007,Switzerland,Egypt,R32,85.0
+12,7,1,0.0001,Switzerland,Egypt,R32,85.0
+12,7,3,0.0001,Switzerland,Egypt,R32,85.0
+12,9,1,0.0001,Switzerland,Egypt,R32,85.0
+13,0,0,0.0835,Argentina,Uruguay,R32,86.0
+13,0,1,0.0687,Argentina,Uruguay,R32,86.0
+13,0,2,0.0279,Argentina,Uruguay,R32,86.0
+13,0,3,0.0059,Argentina,Uruguay,R32,86.0
+13,0,4,0.0017,Argentina,Uruguay,R32,86.0
+13,0,5,0.0001,Argentina,Uruguay,R32,86.0
+13,1,0,0.1473,Argentina,Uruguay,R32,86.0
+13,1,1,0.1118,Argentina,Uruguay,R32,86.0
+13,1,2,0.0447,Argentina,Uruguay,R32,86.0
+13,1,3,0.0132,Argentina,Uruguay,R32,86.0
+13,1,4,0.0031,Argentina,Uruguay,R32,86.0
+13,1,5,0.0004,Argentina,Uruguay,R32,86.0
+13,1,6,0.0001,Argentina,Uruguay,R32,86.0
+13,2,0,0.1149,Argentina,Uruguay,R32,86.0
+13,2,1,0.0981,Argentina,Uruguay,R32,86.0
+13,2,2,0.0375,Argentina,Uruguay,R32,86.0
+13,2,3,0.0091,Argentina,Uruguay,R32,86.0
+13,2,4,0.0018,Argentina,Uruguay,R32,86.0
+13,2,5,0.0001,Argentina,Uruguay,R32,86.0
+13,3,0,0.0666,Argentina,Uruguay,R32,86.0
+13,3,1,0.0501,Argentina,Uruguay,R32,86.0
+13,3,2,0.0189,Argentina,Uruguay,R32,86.0
+13,3,3,0.0053,Argentina,Uruguay,R32,86.0
+13,3,4,0.0004,Argentina,Uruguay,R32,86.0
+13,3,5,0.0002,Argentina,Uruguay,R32,86.0
+13,4,0,0.0265,Argentina,Uruguay,R32,86.0
+13,4,1,0.0238,Argentina,Uruguay,R32,86.0
+13,4,2,0.0085,Argentina,Uruguay,R32,86.0
+13,4,3,0.0023,Argentina,Uruguay,R32,86.0
+13,4,4,0.0004,Argentina,Uruguay,R32,86.0
+13,4,5,0.0001,Argentina,Uruguay,R32,86.0
+13,5,0,0.0087,Argentina,Uruguay,R32,86.0
+13,5,1,0.0068,Argentina,Uruguay,R32,86.0
+13,5,2,0.0035,Argentina,Uruguay,R32,86.0
+13,5,3,0.0004,Argentina,Uruguay,R32,86.0
+13,5,4,0.0002,Argentina,Uruguay,R32,86.0
+13,6,0,0.0027,Argentina,Uruguay,R32,86.0
+13,6,1,0.0025,Argentina,Uruguay,R32,86.0
+13,6,2,0.0004,Argentina,Uruguay,R32,86.0
+13,6,3,0.0005,Argentina,Uruguay,R32,86.0
+13,6,4,0.0002,Argentina,Uruguay,R32,86.0
+13,7,0,0.0004,Argentina,Uruguay,R32,86.0
+13,7,1,0.0004,Argentina,Uruguay,R32,86.0
+13,8,1,0.0003,Argentina,Uruguay,R32,86.0
+14,0,0,0.0655,Colombia,Panama,R32,87.0
+14,0,1,0.0524,Colombia,Panama,R32,87.0
+14,0,2,0.022,Colombia,Panama,R32,87.0
+14,0,3,0.0041,Colombia,Panama,R32,87.0
+14,0,4,0.0015,Colombia,Panama,R32,87.0
+14,0,5,0.0002,Colombia,Panama,R32,87.0
+14,1,0,0.1287,Colombia,Panama,R32,87.0
+14,1,1,0.1015,Colombia,Panama,R32,87.0
+14,1,2,0.0403,Colombia,Panama,R32,87.0
+14,1,3,0.0098,Colombia,Panama,R32,87.0
+14,1,4,0.0021,Colombia,Panama,R32,87.0
+14,1,5,0.0001,Colombia,Panama,R32,87.0
+14,2,0,0.119,Colombia,Panama,R32,87.0
+14,2,1,0.0938,Colombia,Panama,R32,87.0
+14,2,2,0.0383,Colombia,Panama,R32,87.0
+14,2,3,0.0101,Colombia,Panama,R32,87.0
+14,2,4,0.0023,Colombia,Panama,R32,87.0
+14,2,5,0.0001,Colombia,Panama,R32,87.0
+14,3,0,0.0802,Colombia,Panama,R32,87.0
+14,3,1,0.0675,Colombia,Panama,R32,87.0
+14,3,2,0.0249,Colombia,Panama,R32,87.0
+14,3,3,0.006,Colombia,Panama,R32,87.0
+14,3,4,0.0013,Colombia,Panama,R32,87.0
+14,3,5,0.0001,Colombia,Panama,R32,87.0
+14,4,0,0.0387,Colombia,Panama,R32,87.0
+14,4,1,0.0296,Colombia,Panama,R32,87.0
+14,4,2,0.0111,Colombia,Panama,R32,87.0
+14,4,3,0.0026,Colombia,Panama,R32,87.0
+14,4,4,0.0006,Colombia,Panama,R32,87.0
+14,4,5,0.0003,Colombia,Panama,R32,87.0
+14,5,0,0.0148,Colombia,Panama,R32,87.0
+14,5,1,0.0114,Colombia,Panama,R32,87.0
+14,5,2,0.0038,Colombia,Panama,R32,87.0
+14,5,3,0.0013,Colombia,Panama,R32,87.0
+14,5,4,0.0002,Colombia,Panama,R32,87.0
+14,6,0,0.0051,Colombia,Panama,R32,87.0
+14,6,1,0.0039,Colombia,Panama,R32,87.0
+14,6,2,0.0015,Colombia,Panama,R32,87.0
+14,6,3,0.0004,Colombia,Panama,R32,87.0
+14,6,4,0.0001,Colombia,Panama,R32,87.0
+14,7,0,0.0012,Colombia,Panama,R32,87.0
+14,7,1,0.0007,Colombia,Panama,R32,87.0
+14,7,2,0.0001,Colombia,Panama,R32,87.0
+14,8,0,0.0001,Colombia,Panama,R32,87.0
+14,8,1,0.0002,Colombia,Panama,R32,87.0
+14,8,2,0.0003,Colombia,Panama,R32,87.0
+14,9,0,0.0002,Colombia,Panama,R32,87.0
+15,0,0,0.1132,Paraguay,Iran,R32,88.0
+15,0,1,0.1216,Paraguay,Iran,R32,88.0
+15,0,2,0.0634,Paraguay,Iran,R32,88.0
+15,0,3,0.0246,Paraguay,Iran,R32,88.0
+15,0,4,0.0075,Paraguay,Iran,R32,88.0
+15,0,5,0.0012,Paraguay,Iran,R32,88.0
+15,0,6,0.0003,Paraguay,Iran,R32,88.0
+15,1,0,0.1317,Paraguay,Iran,R32,88.0
+15,1,1,0.1355,Paraguay,Iran,R32,88.0
+15,1,2,0.0701,Paraguay,Iran,R32,88.0
+15,1,3,0.0253,Paraguay,Iran,R32,88.0
+15,1,4,0.0073,Paraguay,Iran,R32,88.0
+15,1,5,0.0021,Paraguay,Iran,R32,88.0
+15,1,6,0.0002,Paraguay,Iran,R32,88.0
+15,2,0,0.0683,Paraguay,Iran,R32,88.0
+15,2,1,0.0714,Paraguay,Iran,R32,88.0
+15,2,2,0.04,Paraguay,Iran,R32,88.0
+15,2,3,0.0127,Paraguay,Iran,R32,88.0
+15,2,4,0.0047,Paraguay,Iran,R32,88.0
+15,2,5,0.0004,Paraguay,Iran,R32,88.0
+15,2,6,0.0001,Paraguay,Iran,R32,88.0
+15,3,0,0.0235,Paraguay,Iran,R32,88.0
+15,3,1,0.0252,Paraguay,Iran,R32,88.0
+15,3,2,0.0148,Paraguay,Iran,R32,88.0
+15,3,3,0.0053,Paraguay,Iran,R32,88.0
+15,3,4,0.002,Paraguay,Iran,R32,88.0
+15,3,5,0.0005,Paraguay,Iran,R32,88.0
+15,4,0,0.0067,Paraguay,Iran,R32,88.0
+15,4,1,0.0077,Paraguay,Iran,R32,88.0
+15,4,2,0.0041,Paraguay,Iran,R32,88.0
+15,4,3,0.0013,Paraguay,Iran,R32,88.0
+15,4,4,0.0001,Paraguay,Iran,R32,88.0
+15,4,5,0.0001,Paraguay,Iran,R32,88.0
+15,5,0,0.0019,Paraguay,Iran,R32,88.0
+15,5,1,0.0021,Paraguay,Iran,R32,88.0
+15,5,2,0.0014,Paraguay,Iran,R32,88.0
+15,5,3,0.0008,Paraguay,Iran,R32,88.0
+15,5,4,0.0001,Paraguay,Iran,R32,88.0
+15,6,0,0.0001,Paraguay,Iran,R32,88.0
+15,6,1,0.0004,Paraguay,Iran,R32,88.0
+15,6,2,0.0001,Paraguay,Iran,R32,88.0
+15,6,4,0.0001,Paraguay,Iran,R32,88.0
+15,7,1,0.0001,Paraguay,Iran,R32,88.0
+16,0,0,0.1222,Ecuador,France,R16,89.0
+16,0,1,0.1497,Ecuador,France,R16,89.0
+16,0,2,0.1017,Ecuador,France,R16,89.0
+16,0,3,0.045,Ecuador,France,R16,89.0
+16,0,4,0.014,Ecuador,France,R16,89.0
+16,0,5,0.0041,Ecuador,France,R16,89.0
+16,0,6,0.0009,Ecuador,France,R16,89.0
+16,0,7,0.0002,Ecuador,France,R16,89.0
+16,1,0,0.0979,Ecuador,France,R16,89.0
+16,1,1,0.1306,Ecuador,France,R16,89.0
+16,1,2,0.0847,Ecuador,France,R16,89.0
+16,1,3,0.0319,Ecuador,France,R16,89.0
+16,1,4,0.0111,Ecuador,France,R16,89.0
+16,1,5,0.0036,Ecuador,France,R16,89.0
+16,1,6,0.0003,Ecuador,France,R16,89.0
+16,2,0,0.0427,Ecuador,France,R16,89.0
+16,2,1,0.0538,Ecuador,France,R16,89.0
+16,2,2,0.0339,Ecuador,France,R16,89.0
+16,2,3,0.0147,Ecuador,France,R16,89.0
+16,2,4,0.0047,Ecuador,France,R16,89.0
+16,2,5,0.0008,Ecuador,France,R16,89.0
+16,2,6,0.0001,Ecuador,France,R16,89.0
+16,3,0,0.0107,Ecuador,France,R16,89.0
+16,3,1,0.014,Ecuador,France,R16,89.0
+16,3,2,0.0094,Ecuador,France,R16,89.0
+16,3,3,0.0047,Ecuador,France,R16,89.0
+16,3,4,0.0011,Ecuador,France,R16,89.0
+16,3,5,0.0004,Ecuador,France,R16,89.0
+16,3,6,0.0001,Ecuador,France,R16,89.0
+16,4,0,0.0031,Ecuador,France,R16,89.0
+16,4,1,0.0034,Ecuador,France,R16,89.0
+16,4,2,0.0021,Ecuador,France,R16,89.0
+16,4,3,0.0007,Ecuador,France,R16,89.0
+16,4,4,0.0004,Ecuador,France,R16,89.0
+16,5,0,0.0002,Ecuador,France,R16,89.0
+16,5,1,0.0006,Ecuador,France,R16,89.0
+16,5,2,0.0002,Ecuador,France,R16,89.0
+16,5,3,0.0001,Ecuador,France,R16,89.0
+16,6,1,0.0001,Ecuador,France,R16,89.0
+16,6,3,0.0001,Ecuador,France,R16,89.0
+17,0,0,0.1124,Canada,Netherlands,R16,90.0
+17,0,1,0.1579,Canada,Netherlands,R16,90.0
+17,0,2,0.1148,Canada,Netherlands,R16,90.0
+17,0,3,0.0477,Canada,Netherlands,R16,90.0
+17,0,4,0.0171,Canada,Netherlands,R16,90.0
+17,0,5,0.0043,Canada,Netherlands,R16,90.0
+17,0,6,0.0014,Canada,Netherlands,R16,90.0
+17,0,7,0.0005,Canada,Netherlands,R16,90.0
+17,0,8,0.0002,Canada,Netherlands,R16,90.0
+17,0,9,0.0002,Canada,Netherlands,R16,90.0
+17,1,0,0.0854,Canada,Netherlands,R16,90.0
+17,1,1,0.1266,Canada,Netherlands,R16,90.0
+17,1,2,0.0883,Canada,Netherlands,R16,90.0
+17,1,3,0.0399,Canada,Netherlands,R16,90.0
+17,1,4,0.013,Canada,Netherlands,R16,90.0
+17,1,5,0.003,Canada,Netherlands,R16,90.0
+17,1,6,0.0011,Canada,Netherlands,R16,90.0
+17,1,7,0.0001,Canada,Netherlands,R16,90.0
+17,2,0,0.0331,Canada,Netherlands,R16,90.0
+17,2,1,0.0523,Canada,Netherlands,R16,90.0
+17,2,2,0.0351,Canada,Netherlands,R16,90.0
+17,2,3,0.0145,Canada,Netherlands,R16,90.0
+17,2,4,0.0052,Canada,Netherlands,R16,90.0
+17,2,5,0.0017,Canada,Netherlands,R16,90.0
+17,2,6,0.0001,Canada,Netherlands,R16,90.0
+17,2,8,0.0001,Canada,Netherlands,R16,90.0
+17,3,0,0.0089,Canada,Netherlands,R16,90.0
+17,3,1,0.0127,Canada,Netherlands,R16,90.0
+17,3,2,0.0103,Canada,Netherlands,R16,90.0
+17,3,3,0.0034,Canada,Netherlands,R16,90.0
+17,3,4,0.0011,Canada,Netherlands,R16,90.0
+17,3,5,0.0003,Canada,Netherlands,R16,90.0
+17,4,0,0.002,Canada,Netherlands,R16,90.0
+17,4,1,0.0027,Canada,Netherlands,R16,90.0
+17,4,2,0.0011,Canada,Netherlands,R16,90.0
+17,4,3,0.0008,Canada,Netherlands,R16,90.0
+17,4,4,0.0001,Canada,Netherlands,R16,90.0
+17,5,0,0.0002,Canada,Netherlands,R16,90.0
+17,5,1,0.0002,Canada,Netherlands,R16,90.0
+17,5,2,0.0002,Canada,Netherlands,R16,90.0
+18,0,0,0.0723,Brazil,Germany,R16,91.0
+18,0,1,0.0724,Brazil,Germany,R16,91.0
+18,0,2,0.0393,Brazil,Germany,R16,91.0
+18,0,3,0.0122,Brazil,Germany,R16,91.0
+18,0,4,0.0031,Brazil,Germany,R16,91.0
+18,0,5,0.0006,Brazil,Germany,R16,91.0
+18,0,6,0.0003,Brazil,Germany,R16,91.0
+18,1,0,0.1147,Brazil,Germany,R16,91.0
+18,1,1,0.1136,Brazil,Germany,R16,91.0
+18,1,2,0.0616,Brazil,Germany,R16,91.0
+18,1,3,0.0221,Brazil,Germany,R16,91.0
+18,1,4,0.0039,Brazil,Germany,R16,91.0
+18,1,5,0.0008,Brazil,Germany,R16,91.0
+18,1,6,0.0002,Brazil,Germany,R16,91.0
+18,1,7,0.0001,Brazil,Germany,R16,91.0
+18,2,0,0.0967,Brazil,Germany,R16,91.0
+18,2,1,0.0965,Brazil,Germany,R16,91.0
+18,2,2,0.0494,Brazil,Germany,R16,91.0
+18,2,3,0.0186,Brazil,Germany,R16,91.0
+18,2,4,0.0037,Brazil,Germany,R16,91.0
+18,2,5,0.0009,Brazil,Germany,R16,91.0
+18,3,0,0.0481,Brazil,Germany,R16,91.0
+18,3,1,0.0522,Brazil,Germany,R16,91.0
+18,3,2,0.0252,Brazil,Germany,R16,91.0
+18,3,3,0.0085,Brazil,Germany,R16,91.0
+18,3,4,0.0016,Brazil,Germany,R16,91.0
+18,3,5,0.0005,Brazil,Germany,R16,91.0
+18,3,6,0.0002,Brazil,Germany,R16,91.0
+18,4,0,0.0224,Brazil,Germany,R16,91.0
+18,4,1,0.0182,Brazil,Germany,R16,91.0
+18,4,2,0.0101,Brazil,Germany,R16,91.0
+18,4,3,0.0036,Brazil,Germany,R16,91.0
+18,4,4,0.0005,Brazil,Germany,R16,91.0
+18,4,5,0.0002,Brazil,Germany,R16,91.0
+18,4,8,0.0001,Brazil,Germany,R16,91.0
+18,5,0,0.0059,Brazil,Germany,R16,91.0
+18,5,1,0.0063,Brazil,Germany,R16,91.0
+18,5,2,0.0029,Brazil,Germany,R16,91.0
+18,5,3,0.0017,Brazil,Germany,R16,91.0
+18,5,4,0.0003,Brazil,Germany,R16,91.0
+18,6,0,0.0026,Brazil,Germany,R16,91.0
+18,6,1,0.0023,Brazil,Germany,R16,91.0
+18,6,2,0.0014,Brazil,Germany,R16,91.0
+18,6,3,0.0003,Brazil,Germany,R16,91.0
+18,6,4,0.0001,Brazil,Germany,R16,91.0
+18,7,0,0.0003,Brazil,Germany,R16,91.0
+18,7,1,0.0006,Brazil,Germany,R16,91.0
+18,7,2,0.0003,Brazil,Germany,R16,91.0
+18,7,3,0.0001,Brazil,Germany,R16,91.0
+18,8,0,0.0001,Brazil,Germany,R16,91.0
+18,8,1,0.0002,Brazil,Germany,R16,91.0
+18,8,2,0.0001,Brazil,Germany,R16,91.0
+18,9,2,0.0001,Brazil,Germany,R16,91.0
+19,0,0,0.1119,Mexico,England,R16,92.0
+19,0,1,0.1567,Mexico,England,R16,92.0
+19,0,2,0.1041,Mexico,England,R16,92.0
+19,0,3,0.0444,Mexico,England,R16,92.0
+19,0,4,0.0146,Mexico,England,R16,92.0
+19,0,5,0.0049,Mexico,England,R16,92.0
+19,0,6,0.0006,Mexico,England,R16,92.0
+19,0,7,0.0001,Mexico,England,R16,92.0
+19,1,0,0.0913,Mexico,England,R16,92.0
+19,1,1,0.1256,Mexico,England,R16,92.0
+19,1,2,0.0902,Mexico,England,R16,92.0
+19,1,3,0.0387,Mexico,England,R16,92.0
+19,1,4,0.0147,Mexico,England,R16,92.0
+19,1,5,0.0039,Mexico,England,R16,92.0
+19,1,6,0.0012,Mexico,England,R16,92.0
+19,2,0,0.0385,Mexico,England,R16,92.0
+19,2,1,0.0549,Mexico,England,R16,92.0
+19,2,2,0.033,Mexico,England,R16,92.0
+19,2,3,0.0158,Mexico,England,R16,92.0
+19,2,4,0.0043,Mexico,England,R16,92.0
+19,2,5,0.0015,Mexico,England,R16,92.0
+19,2,6,0.0003,Mexico,England,R16,92.0
+19,2,7,0.0002,Mexico,England,R16,92.0
+19,3,0,0.0107,Mexico,England,R16,92.0
+19,3,1,0.0147,Mexico,England,R16,92.0
+19,3,2,0.0087,Mexico,England,R16,92.0
+19,3,3,0.0036,Mexico,England,R16,92.0
+19,3,4,0.0012,Mexico,England,R16,92.0
+19,3,5,0.0004,Mexico,England,R16,92.0
+19,3,6,0.0004,Mexico,England,R16,92.0
+19,4,0,0.0017,Mexico,England,R16,92.0
+19,4,1,0.003,Mexico,England,R16,92.0
+19,4,2,0.0017,Mexico,England,R16,92.0
+19,4,3,0.001,Mexico,England,R16,92.0
+19,4,4,0.0004,Mexico,England,R16,92.0
+19,4,8,0.0001,Mexico,England,R16,92.0
+19,5,0,0.0001,Mexico,England,R16,92.0
+19,5,1,0.0002,Mexico,England,R16,92.0
+19,5,2,0.0002,Mexico,England,R16,92.0
+19,5,3,0.0001,Mexico,England,R16,92.0
+19,6,0,0.0001,Mexico,England,R16,92.0
+19,6,1,0.0002,Mexico,England,R16,92.0
+19,6,2,0.0001,Mexico,England,R16,92.0
+20,0,0,0.0749,Croatia,Spain,R16,93.0
+20,0,1,0.1331,Croatia,Spain,R16,93.0
+20,0,2,0.1123,Croatia,Spain,R16,93.0
+20,0,3,0.0622,Croatia,Spain,R16,93.0
+20,0,4,0.0261,Croatia,Spain,R16,93.0
+20,0,5,0.0085,Croatia,Spain,R16,93.0
+20,0,6,0.0025,Croatia,Spain,R16,93.0
+20,0,7,0.0008,Croatia,Spain,R16,93.0
+20,0,8,0.0001,Croatia,Spain,R16,93.0
+20,1,0,0.067,Croatia,Spain,R16,93.0
+20,1,1,0.1126,Croatia,Spain,R16,93.0
+20,1,2,0.0981,Croatia,Spain,R16,93.0
+20,1,3,0.0545,Croatia,Spain,R16,93.0
+20,1,4,0.0188,Croatia,Spain,R16,93.0
+20,1,5,0.008,Croatia,Spain,R16,93.0
+20,1,6,0.0024,Croatia,Spain,R16,93.0
+20,1,7,0.0005,Croatia,Spain,R16,93.0
+20,1,9,0.0001,Croatia,Spain,R16,93.0
+20,2,0,0.0313,Croatia,Spain,R16,93.0
+20,2,1,0.05,Croatia,Spain,R16,93.0
+20,2,2,0.0417,Croatia,Spain,R16,93.0
+20,2,3,0.0228,Croatia,Spain,R16,93.0
+20,2,4,0.0108,Croatia,Spain,R16,93.0
+20,2,5,0.0037,Croatia,Spain,R16,93.0
+20,2,6,0.0007,Croatia,Spain,R16,93.0
+20,2,7,0.0002,Croatia,Spain,R16,93.0
+20,2,8,0.0001,Croatia,Spain,R16,93.0
+20,3,0,0.0087,Croatia,Spain,R16,93.0
+20,3,1,0.0136,Croatia,Spain,R16,93.0
+20,3,2,0.0126,Croatia,Spain,R16,93.0
+20,3,3,0.0061,Croatia,Spain,R16,93.0
+20,3,4,0.0034,Croatia,Spain,R16,93.0
+20,3,5,0.0008,Croatia,Spain,R16,93.0
+20,3,6,0.0005,Croatia,Spain,R16,93.0
+20,3,7,0.0001,Croatia,Spain,R16,93.0
+20,4,0,0.0014,Croatia,Spain,R16,93.0
+20,4,1,0.0033,Croatia,Spain,R16,93.0
+20,4,2,0.0023,Croatia,Spain,R16,93.0
+20,4,3,0.001,Croatia,Spain,R16,93.0
+20,4,4,0.0003,Croatia,Spain,R16,93.0
+20,4,5,0.0001,Croatia,Spain,R16,93.0
+20,5,0,0.0003,Croatia,Spain,R16,93.0
+20,5,1,0.0005,Croatia,Spain,R16,93.0
+20,5,2,0.0003,Croatia,Spain,R16,93.0
+20,5,3,0.0004,Croatia,Spain,R16,93.0
+20,5,4,0.0001,Croatia,Spain,R16,93.0
+20,6,1,0.0003,Croatia,Spain,R16,93.0
+20,6,2,0.0001,Croatia,Spain,R16,93.0
+21,0,0,0.0979,Turkey,Belgium,R16,94.0
+21,0,1,0.1119,Turkey,Belgium,R16,94.0
+21,0,2,0.0682,Turkey,Belgium,R16,94.0
+21,0,3,0.0241,Turkey,Belgium,R16,94.0
+21,0,4,0.0074,Turkey,Belgium,R16,94.0
+21,0,5,0.002,Turkey,Belgium,R16,94.0
+21,0,6,0.0003,Turkey,Belgium,R16,94.0
+21,1,0,0.1133,Turkey,Belgium,R16,94.0
+21,1,1,0.125,Turkey,Belgium,R16,94.0
+21,1,2,0.0787,Turkey,Belgium,R16,94.0
+21,1,3,0.0312,Turkey,Belgium,R16,94.0
+21,1,4,0.0087,Turkey,Belgium,R16,94.0
+21,1,5,0.0021,Turkey,Belgium,R16,94.0
+21,1,6,0.0004,Turkey,Belgium,R16,94.0
+21,1,7,0.0001,Turkey,Belgium,R16,94.0
+21,2,0,0.0647,Turkey,Belgium,R16,94.0
+21,2,1,0.0786,Turkey,Belgium,R16,94.0
+21,2,2,0.0478,Turkey,Belgium,R16,94.0
+21,2,3,0.0177,Turkey,Belgium,R16,94.0
+21,2,4,0.0041,Turkey,Belgium,R16,94.0
+21,2,5,0.0008,Turkey,Belgium,R16,94.0
+21,2,6,0.0002,Turkey,Belgium,R16,94.0
+21,3,0,0.0255,Turkey,Belgium,R16,94.0
+21,3,1,0.0341,Turkey,Belgium,R16,94.0
+21,3,2,0.017,Turkey,Belgium,R16,94.0
+21,3,3,0.0061,Turkey,Belgium,R16,94.0
+21,3,4,0.002,Turkey,Belgium,R16,94.0
+21,3,5,0.0005,Turkey,Belgium,R16,94.0
+21,3,6,0.0001,Turkey,Belgium,R16,94.0
+21,4,0,0.0079,Turkey,Belgium,R16,94.0
+21,4,1,0.0093,Turkey,Belgium,R16,94.0
+21,4,2,0.0041,Turkey,Belgium,R16,94.0
+21,4,3,0.0019,Turkey,Belgium,R16,94.0
+21,4,4,0.0003,Turkey,Belgium,R16,94.0
+21,4,5,0.0004,Turkey,Belgium,R16,94.0
+21,5,0,0.0018,Turkey,Belgium,R16,94.0
+21,5,1,0.001,Turkey,Belgium,R16,94.0
+21,5,2,0.0011,Turkey,Belgium,R16,94.0
+21,5,3,0.0004,Turkey,Belgium,R16,94.0
+21,5,4,0.0002,Turkey,Belgium,R16,94.0
+21,6,0,0.0006,Turkey,Belgium,R16,94.0
+21,6,1,0.0002,Turkey,Belgium,R16,94.0
+21,6,2,0.0001,Turkey,Belgium,R16,94.0
+21,6,3,0.0001,Turkey,Belgium,R16,94.0
+21,7,3,0.0001,Turkey,Belgium,R16,94.0
+22,0,0,0.0835,Argentina,Turkey,R16,95.0
+22,0,1,0.0649,Argentina,Turkey,R16,95.0
+22,0,2,0.027,Argentina,Turkey,R16,95.0
+22,0,3,0.0079,Argentina,Turkey,R16,95.0
+22,0,4,0.0011,Argentina,Turkey,R16,95.0
+22,0,5,0.0002,Argentina,Turkey,R16,95.0
+22,1,0,0.14,Argentina,Turkey,R16,95.0
+22,1,1,0.114,Argentina,Turkey,R16,95.0
+22,1,2,0.045,Argentina,Turkey,R16,95.0
+22,1,3,0.0145,Argentina,Turkey,R16,95.0
+22,1,4,0.0025,Argentina,Turkey,R16,95.0
+22,1,5,0.0002,Argentina,Turkey,R16,95.0
+22,1,7,0.0001,Argentina,Turkey,R16,95.0
+22,2,0,0.1205,Argentina,Turkey,R16,95.0
+22,2,1,0.0934,Argentina,Turkey,R16,95.0
+22,2,2,0.0366,Argentina,Turkey,R16,95.0
+22,2,3,0.0092,Argentina,Turkey,R16,95.0
+22,2,4,0.0017,Argentina,Turkey,R16,95.0
+22,2,5,0.0004,Argentina,Turkey,R16,95.0
+22,3,0,0.0695,Argentina,Turkey,R16,95.0
+22,3,1,0.0516,Argentina,Turkey,R16,95.0
+22,3,2,0.0224,Argentina,Turkey,R16,95.0
+22,3,3,0.0054,Argentina,Turkey,R16,95.0
+22,3,4,0.0013,Argentina,Turkey,R16,95.0
+22,3,5,0.0001,Argentina,Turkey,R16,95.0
+22,4,0,0.0263,Argentina,Turkey,R16,95.0
+22,4,1,0.0217,Argentina,Turkey,R16,95.0
+22,4,2,0.0077,Argentina,Turkey,R16,95.0
+22,4,3,0.0018,Argentina,Turkey,R16,95.0
+22,4,4,0.0006,Argentina,Turkey,R16,95.0
+22,5,0,0.0089,Argentina,Turkey,R16,95.0
+22,5,1,0.0074,Argentina,Turkey,R16,95.0
+22,5,2,0.0027,Argentina,Turkey,R16,95.0
+22,5,3,0.0009,Argentina,Turkey,R16,95.0
+22,5,4,0.0001,Argentina,Turkey,R16,95.0
+22,5,5,0.0001,Argentina,Turkey,R16,95.0
+22,6,0,0.0029,Argentina,Turkey,R16,95.0
+22,6,1,0.0028,Argentina,Turkey,R16,95.0
+22,6,2,0.0009,Argentina,Turkey,R16,95.0
+22,6,3,0.0001,Argentina,Turkey,R16,95.0
+22,6,4,0.0001,Argentina,Turkey,R16,95.0
+22,7,0,0.0007,Argentina,Turkey,R16,95.0
+22,7,1,0.0008,Argentina,Turkey,R16,95.0
+22,7,2,0.0002,Argentina,Turkey,R16,95.0
+22,7,3,0.0001,Argentina,Turkey,R16,95.0
+22,8,2,0.0002,Argentina,Turkey,R16,95.0
+23,0,0,0.0656,Switzerland,Colombia,R16,96.0
+23,0,1,0.1125,Switzerland,Colombia,R16,96.0
+23,0,2,0.0969,Switzerland,Colombia,R16,96.0
+23,0,3,0.0543,Switzerland,Colombia,R16,96.0
+23,0,4,0.0236,Switzerland,Colombia,R16,96.0
+23,0,5,0.0076,Switzerland,Colombia,R16,96.0
+23,0,6,0.0022,Switzerland,Colombia,R16,96.0
+23,0,7,0.0012,Switzerland,Colombia,R16,96.0
+23,0,8,0.0001,Switzerland,Colombia,R16,96.0
+23,1,0,0.0685,Switzerland,Colombia,R16,96.0
+23,1,1,0.1148,Switzerland,Colombia,R16,96.0
+23,1,2,0.0959,Switzerland,Colombia,R16,96.0
+23,1,3,0.0545,Switzerland,Colombia,R16,96.0
+23,1,4,0.0236,Switzerland,Colombia,R16,96.0
+23,1,5,0.0083,Switzerland,Colombia,R16,96.0
+23,1,6,0.0019,Switzerland,Colombia,R16,96.0
+23,1,7,0.0004,Switzerland,Colombia,R16,96.0
+23,1,8,0.0002,Switzerland,Colombia,R16,96.0
+23,2,0,0.0344,Switzerland,Colombia,R16,96.0
+23,2,1,0.0597,Switzerland,Colombia,R16,96.0
+23,2,2,0.0475,Switzerland,Colombia,R16,96.0
+23,2,3,0.0273,Switzerland,Colombia,R16,96.0
+23,2,4,0.0116,Switzerland,Colombia,R16,96.0
+23,2,5,0.0033,Switzerland,Colombia,R16,96.0
+23,2,6,0.0011,Switzerland,Colombia,R16,96.0
+23,2,7,0.0002,Switzerland,Colombia,R16,96.0
+23,3,0,0.0114,Switzerland,Colombia,R16,96.0
+23,3,1,0.0188,Switzerland,Colombia,R16,96.0
+23,3,2,0.0175,Switzerland,Colombia,R16,96.0
+23,3,3,0.01,Switzerland,Colombia,R16,96.0
+23,3,4,0.0039,Switzerland,Colombia,R16,96.0
+23,3,5,0.0011,Switzerland,Colombia,R16,96.0
+23,3,7,0.0002,Switzerland,Colombia,R16,96.0
+23,4,0,0.003,Switzerland,Colombia,R16,96.0
+23,4,1,0.0055,Switzerland,Colombia,R16,96.0
+23,4,2,0.0042,Switzerland,Colombia,R16,96.0
+23,4,3,0.002,Switzerland,Colombia,R16,96.0
+23,4,4,0.0012,Switzerland,Colombia,R16,96.0
+23,4,5,0.0003,Switzerland,Colombia,R16,96.0
+23,5,0,0.0009,Switzerland,Colombia,R16,96.0
+23,5,1,0.0009,Switzerland,Colombia,R16,96.0
+23,5,2,0.0006,Switzerland,Colombia,R16,96.0
+23,5,3,0.0005,Switzerland,Colombia,R16,96.0
+23,5,4,0.0002,Switzerland,Colombia,R16,96.0
+23,5,5,0.0001,Switzerland,Colombia,R16,96.0
+23,6,1,0.0002,Switzerland,Colombia,R16,96.0
+23,6,3,0.0001,Switzerland,Colombia,R16,96.0
+23,7,0,0.0001,Switzerland,Colombia,R16,96.0
+23,7,3,0.0001,Switzerland,Colombia,R16,96.0
+24,0,0,0.0769,France,Netherlands,QF,97.0
+24,0,1,0.0735,France,Netherlands,QF,97.0
+24,0,2,0.0384,France,Netherlands,QF,97.0
+24,0,3,0.01,France,Netherlands,QF,97.0
+24,0,4,0.0024,France,Netherlands,QF,97.0
+24,0,5,0.0003,France,Netherlands,QF,97.0
+24,0,6,0.0001,France,Netherlands,QF,97.0
+24,1,0,0.1211,France,Netherlands,QF,97.0
+24,1,1,0.1188,France,Netherlands,QF,97.0
+24,1,2,0.057,France,Netherlands,QF,97.0
+24,1,3,0.0185,France,Netherlands,QF,97.0
+24,1,4,0.0033,France,Netherlands,QF,97.0
+24,1,5,0.0001,France,Netherlands,QF,97.0
+24,2,0,0.0985,France,Netherlands,QF,97.0
+24,2,1,0.09,France,Netherlands,QF,97.0
+24,2,2,0.0445,France,Netherlands,QF,97.0
+24,2,3,0.0163,France,Netherlands,QF,97.0
+24,2,4,0.0038,France,Netherlands,QF,97.0
+24,2,5,0.0007,France,Netherlands,QF,97.0
+24,2,6,0.0001,France,Netherlands,QF,97.0
+24,3,0,0.0529,France,Netherlands,QF,97.0
+24,3,1,0.0538,France,Netherlands,QF,97.0
+24,3,2,0.0247,France,Netherlands,QF,97.0
+24,3,3,0.0082,France,Netherlands,QF,97.0
+24,3,4,0.0023,France,Netherlands,QF,97.0
+24,4,0,0.0236,France,Netherlands,QF,97.0
+24,4,1,0.0228,France,Netherlands,QF,97.0
+24,4,2,0.0079,France,Netherlands,QF,97.0
+24,4,3,0.0035,France,Netherlands,QF,97.0
+24,4,4,0.0008,France,Netherlands,QF,97.0
+24,4,5,0.0001,France,Netherlands,QF,97.0
+24,5,0,0.0071,France,Netherlands,QF,97.0
+24,5,1,0.0071,France,Netherlands,QF,97.0
+24,5,2,0.0037,France,Netherlands,QF,97.0
+24,5,3,0.0008,France,Netherlands,QF,97.0
+24,5,4,0.0003,France,Netherlands,QF,97.0
+24,6,0,0.0023,France,Netherlands,QF,97.0
+24,6,1,0.0012,France,Netherlands,QF,97.0
+24,6,2,0.0008,France,Netherlands,QF,97.0
+24,6,3,0.0004,France,Netherlands,QF,97.0
+24,6,4,0.0001,France,Netherlands,QF,97.0
+24,7,0,0.0003,France,Netherlands,QF,97.0
+24,7,1,0.0006,France,Netherlands,QF,97.0
+24,7,2,0.0002,France,Netherlands,QF,97.0
+24,8,1,0.0001,France,Netherlands,QF,97.0
+24,11,0,0.0001,France,Netherlands,QF,97.0
+25,0,0,0.0819,Spain,Belgium,QF,98.0
+25,0,1,0.0676,Spain,Belgium,QF,98.0
+25,0,2,0.0279,Spain,Belgium,QF,98.0
+25,0,3,0.0084,Spain,Belgium,QF,98.0
+25,0,4,0.002,Spain,Belgium,QF,98.0
+25,0,5,0.0005,Spain,Belgium,QF,98.0
+25,0,6,0.0001,Spain,Belgium,QF,98.0
+25,1,0,0.1359,Spain,Belgium,QF,98.0
+25,1,1,0.1147,Spain,Belgium,QF,98.0
+25,1,2,0.05,Spain,Belgium,QF,98.0
+25,1,3,0.0146,Spain,Belgium,QF,98.0
+25,1,4,0.0027,Spain,Belgium,QF,98.0
+25,1,5,0.0006,Spain,Belgium,QF,98.0
+25,1,6,0.0001,Spain,Belgium,QF,98.0
+25,2,0,0.1083,Spain,Belgium,QF,98.0
+25,2,1,0.0945,Spain,Belgium,QF,98.0
+25,2,2,0.0407,Spain,Belgium,QF,98.0
+25,2,3,0.011,Spain,Belgium,QF,98.0
+25,2,4,0.0025,Spain,Belgium,QF,98.0
+25,2,5,0.0004,Spain,Belgium,QF,98.0
+25,2,7,0.0001,Spain,Belgium,QF,98.0
+25,3,0,0.0615,Spain,Belgium,QF,98.0
+25,3,1,0.0531,Spain,Belgium,QF,98.0
+25,3,2,0.0219,Spain,Belgium,QF,98.0
+25,3,3,0.0053,Spain,Belgium,QF,98.0
+25,3,4,0.0016,Spain,Belgium,QF,98.0
+25,3,5,0.0001,Spain,Belgium,QF,98.0
+25,4,0,0.0277,Spain,Belgium,QF,98.0
+25,4,1,0.0234,Spain,Belgium,QF,98.0
+25,4,2,0.0099,Spain,Belgium,QF,98.0
+25,4,3,0.0036,Spain,Belgium,QF,98.0
+25,4,4,0.0004,Spain,Belgium,QF,98.0
+25,4,5,0.0003,Spain,Belgium,QF,98.0
+25,5,0,0.0091,Spain,Belgium,QF,98.0
+25,5,1,0.0066,Spain,Belgium,QF,98.0
+25,5,2,0.0027,Spain,Belgium,QF,98.0
+25,5,3,0.0005,Spain,Belgium,QF,98.0
+25,5,4,0.0002,Spain,Belgium,QF,98.0
+25,6,0,0.0023,Spain,Belgium,QF,98.0
+25,6,1,0.0021,Spain,Belgium,QF,98.0
+25,6,2,0.0008,Spain,Belgium,QF,98.0
+25,6,3,0.0006,Spain,Belgium,QF,98.0
+25,7,0,0.0006,Spain,Belgium,QF,98.0
+25,7,1,0.0007,Spain,Belgium,QF,98.0
+25,7,2,0.0001,Spain,Belgium,QF,98.0
+25,7,3,0.0001,Spain,Belgium,QF,98.0
+25,8,0,0.0001,Spain,Belgium,QF,98.0
+25,9,1,0.0002,Spain,Belgium,QF,98.0
+26,0,0,0.0809,Brazil,England,QF,99.0
+26,0,1,0.0994,Brazil,England,QF,99.0
+26,0,2,0.0646,Brazil,England,QF,99.0
+26,0,3,0.0259,Brazil,England,QF,99.0
+26,0,4,0.0085,Brazil,England,QF,99.0
+26,0,5,0.0027,Brazil,England,QF,99.0
+26,0,6,0.0004,Brazil,England,QF,99.0
+26,0,7,0.0001,Brazil,England,QF,99.0
+26,0,9,0.0001,Brazil,England,QF,99.0
+26,1,0,0.1024,Brazil,England,QF,99.0
+26,1,1,0.1272,Brazil,England,QF,99.0
+26,1,2,0.0786,Brazil,England,QF,99.0
+26,1,3,0.0342,Brazil,England,QF,99.0
+26,1,4,0.0121,Brazil,England,QF,99.0
+26,1,5,0.0027,Brazil,England,QF,99.0
+26,1,6,0.0003,Brazil,England,QF,99.0
+26,1,8,0.0001,Brazil,England,QF,99.0
+26,2,0,0.0669,Brazil,England,QF,99.0
+26,2,1,0.0812,Brazil,England,QF,99.0
+26,2,2,0.0529,Brazil,England,QF,99.0
+26,2,3,0.0216,Brazil,England,QF,99.0
+26,2,4,0.0066,Brazil,England,QF,99.0
+26,2,5,0.0023,Brazil,England,QF,99.0
+26,2,6,0.0005,Brazil,England,QF,99.0
+26,3,0,0.0258,Brazil,England,QF,99.0
+26,3,1,0.0338,Brazil,England,QF,99.0
+26,3,2,0.0207,Brazil,England,QF,99.0
+26,3,3,0.0084,Brazil,England,QF,99.0
+26,3,4,0.0021,Brazil,England,QF,99.0
+26,3,5,0.0005,Brazil,England,QF,99.0
+26,3,6,0.0005,Brazil,England,QF,99.0
+26,4,0,0.0077,Brazil,England,QF,99.0
+26,4,1,0.01,Brazil,England,QF,99.0
+26,4,2,0.0063,Brazil,England,QF,99.0
+26,4,3,0.0026,Brazil,England,QF,99.0
+26,4,4,0.0011,Brazil,England,QF,99.0
+26,4,5,0.0004,Brazil,England,QF,99.0
+26,5,0,0.0013,Brazil,England,QF,99.0
+26,5,1,0.0024,Brazil,England,QF,99.0
+26,5,2,0.0012,Brazil,England,QF,99.0
+26,5,3,0.0005,Brazil,England,QF,99.0
+26,5,4,0.0004,Brazil,England,QF,99.0
+26,5,5,0.0001,Brazil,England,QF,99.0
+26,6,0,0.0004,Brazil,England,QF,99.0
+26,6,1,0.0006,Brazil,England,QF,99.0
+26,6,2,0.0006,Brazil,England,QF,99.0
+26,6,3,0.0001,Brazil,England,QF,99.0
+26,7,0,0.0002,Brazil,England,QF,99.0
+26,7,3,0.0001,Brazil,England,QF,99.0
+27,0,0,0.077,Argentina,Colombia,QF,100.0
+27,0,1,0.0774,Argentina,Colombia,QF,100.0
+27,0,2,0.0377,Argentina,Colombia,QF,100.0
+27,0,3,0.0115,Argentina,Colombia,QF,100.0
+27,0,4,0.003,Argentina,Colombia,QF,100.0
+27,0,5,0.0011,Argentina,Colombia,QF,100.0
+27,0,7,0.0001,Argentina,Colombia,QF,100.0
+27,1,0,0.1205,Argentina,Colombia,QF,100.0
+27,1,1,0.1186,Argentina,Colombia,QF,100.0
+27,1,2,0.0607,Argentina,Colombia,QF,100.0
+27,1,3,0.0198,Argentina,Colombia,QF,100.0
+27,1,4,0.0038,Argentina,Colombia,QF,100.0
+27,1,5,0.0007,Argentina,Colombia,QF,100.0
+27,1,6,0.0001,Argentina,Colombia,QF,100.0
+27,1,8,0.0001,Argentina,Colombia,QF,100.0
+27,2,0,0.0973,Argentina,Colombia,QF,100.0
+27,2,1,0.0953,Argentina,Colombia,QF,100.0
+27,2,2,0.0463,Argentina,Colombia,QF,100.0
+27,2,3,0.0142,Argentina,Colombia,QF,100.0
+27,2,4,0.0037,Argentina,Colombia,QF,100.0
+27,2,5,0.0012,Argentina,Colombia,QF,100.0
+27,2,6,0.0002,Argentina,Colombia,QF,100.0
+27,3,0,0.0517,Argentina,Colombia,QF,100.0
+27,3,1,0.0482,Argentina,Colombia,QF,100.0
+27,3,2,0.0242,Argentina,Colombia,QF,100.0
+27,3,3,0.0062,Argentina,Colombia,QF,100.0
+27,3,4,0.0011,Argentina,Colombia,QF,100.0
+27,3,5,0.0003,Argentina,Colombia,QF,100.0
+27,3,6,0.0002,Argentina,Colombia,QF,100.0
+27,4,0,0.0218,Argentina,Colombia,QF,100.0
+27,4,1,0.0209,Argentina,Colombia,QF,100.0
+27,4,2,0.0099,Argentina,Colombia,QF,100.0
+27,4,3,0.0025,Argentina,Colombia,QF,100.0
+27,4,4,0.0007,Argentina,Colombia,QF,100.0
+27,5,0,0.0051,Argentina,Colombia,QF,100.0
+27,5,1,0.0048,Argentina,Colombia,QF,100.0
+27,5,2,0.004,Argentina,Colombia,QF,100.0
+27,5,3,0.0009,Argentina,Colombia,QF,100.0
+27,5,4,0.0006,Argentina,Colombia,QF,100.0
+27,6,0,0.0019,Argentina,Colombia,QF,100.0
+27,6,1,0.0018,Argentina,Colombia,QF,100.0
+27,6,2,0.0008,Argentina,Colombia,QF,100.0
+27,6,3,0.0002,Argentina,Colombia,QF,100.0
+27,6,4,0.0002,Argentina,Colombia,QF,100.0
+27,7,0,0.0006,Argentina,Colombia,QF,100.0
+27,7,1,0.0003,Argentina,Colombia,QF,100.0
+27,7,2,0.0004,Argentina,Colombia,QF,100.0
+27,8,0,0.0003,Argentina,Colombia,QF,100.0
+27,8,1,0.0001,Argentina,Colombia,QF,100.0
+28,0,0,0.1099,France,Spain,SF,101.0
+28,0,1,0.1394,France,Spain,SF,101.0
+28,0,2,0.0807,France,Spain,SF,101.0
+28,0,3,0.0336,France,Spain,SF,101.0
+28,0,4,0.0102,France,Spain,SF,101.0
+28,0,5,0.0019,France,Spain,SF,101.0
+28,0,6,0.0008,France,Spain,SF,101.0
+28,0,7,0.0002,France,Spain,SF,101.0
+28,0,8,0.0001,France,Spain,SF,101.0
+28,1,0,0.1093,France,Spain,SF,101.0
+28,1,1,0.1366,France,Spain,SF,101.0
+28,1,2,0.0806,France,Spain,SF,101.0
+28,1,3,0.0323,France,Spain,SF,101.0
+28,1,4,0.0099,France,Spain,SF,101.0
+28,1,5,0.0018,France,Spain,SF,101.0
+28,1,6,0.0012,France,Spain,SF,101.0
+28,1,7,0.0001,France,Spain,SF,101.0
+28,1,8,0.0001,France,Spain,SF,101.0
+28,2,0,0.0543,France,Spain,SF,101.0
+28,2,1,0.0598,France,Spain,SF,101.0
+28,2,2,0.039,France,Spain,SF,101.0
+28,2,3,0.0172,France,Spain,SF,101.0
+28,2,4,0.0048,France,Spain,SF,101.0
+28,2,5,0.001,France,Spain,SF,101.0
+28,2,6,0.0002,France,Spain,SF,101.0
+28,2,7,0.0002,France,Spain,SF,101.0
+28,3,0,0.0177,France,Spain,SF,101.0
+28,3,1,0.0197,France,Spain,SF,101.0
+28,3,2,0.0142,France,Spain,SF,101.0
+28,3,3,0.0047,France,Spain,SF,101.0
+28,3,4,0.0013,France,Spain,SF,101.0
+28,3,5,0.0003,France,Spain,SF,101.0
+28,4,0,0.0046,France,Spain,SF,101.0
+28,4,1,0.0058,France,Spain,SF,101.0
+28,4,2,0.0024,France,Spain,SF,101.0
+28,4,3,0.0011,France,Spain,SF,101.0
+28,4,4,0.0003,France,Spain,SF,101.0
+28,4,5,0.0001,France,Spain,SF,101.0
+28,5,0,0.0007,France,Spain,SF,101.0
+28,5,1,0.001,France,Spain,SF,101.0
+28,5,2,0.0006,France,Spain,SF,101.0
+28,6,1,0.0003,France,Spain,SF,101.0
+29,0,0,0.0766,Brazil,Argentina,SF,102.0
+29,0,1,0.1191,Brazil,Argentina,SF,102.0
+29,0,2,0.096,Brazil,Argentina,SF,102.0
+29,0,3,0.0502,Brazil,Argentina,SF,102.0
+29,0,4,0.0199,Brazil,Argentina,SF,102.0
+29,0,5,0.0065,Brazil,Argentina,SF,102.0
+29,0,6,0.0014,Brazil,Argentina,SF,102.0
+29,0,7,0.0003,Brazil,Argentina,SF,102.0
+29,0,8,0.0001,Brazil,Argentina,SF,102.0
+29,1,0,0.0795,Brazil,Argentina,SF,102.0
+29,1,1,0.1206,Brazil,Argentina,SF,102.0
+29,1,2,0.0927,Brazil,Argentina,SF,102.0
+29,1,3,0.0464,Brazil,Argentina,SF,102.0
+29,1,4,0.0209,Brazil,Argentina,SF,102.0
+29,1,5,0.0052,Brazil,Argentina,SF,102.0
+29,1,6,0.002,Brazil,Argentina,SF,102.0
+29,1,7,0.0005,Brazil,Argentina,SF,102.0
+29,1,8,0.0001,Brazil,Argentina,SF,102.0
+29,2,0,0.0383,Brazil,Argentina,SF,102.0
+29,2,1,0.0592,Brazil,Argentina,SF,102.0
+29,2,2,0.0458,Brazil,Argentina,SF,102.0
+29,2,3,0.0262,Brazil,Argentina,SF,102.0
+29,2,4,0.0072,Brazil,Argentina,SF,102.0
+29,2,5,0.0023,Brazil,Argentina,SF,102.0
+29,2,6,0.0007,Brazil,Argentina,SF,102.0
+29,2,7,0.0002,Brazil,Argentina,SF,102.0
+29,3,0,0.0136,Brazil,Argentina,SF,102.0
+29,3,1,0.0218,Brazil,Argentina,SF,102.0
+29,3,2,0.0154,Brazil,Argentina,SF,102.0
+29,3,3,0.0086,Brazil,Argentina,SF,102.0
+29,3,4,0.0041,Brazil,Argentina,SF,102.0
+29,3,5,0.001,Brazil,Argentina,SF,102.0
+29,3,6,0.0003,Brazil,Argentina,SF,102.0
+29,3,8,0.0001,Brazil,Argentina,SF,102.0
+29,4,0,0.0032,Brazil,Argentina,SF,102.0
+29,4,1,0.0046,Brazil,Argentina,SF,102.0
+29,4,2,0.0036,Brazil,Argentina,SF,102.0
+29,4,3,0.0016,Brazil,Argentina,SF,102.0
+29,4,4,0.0006,Brazil,Argentina,SF,102.0
+29,4,5,0.0003,Brazil,Argentina,SF,102.0
+29,4,6,0.0002,Brazil,Argentina,SF,102.0
+29,5,0,0.0006,Brazil,Argentina,SF,102.0
+29,5,1,0.0008,Brazil,Argentina,SF,102.0
+29,5,2,0.0007,Brazil,Argentina,SF,102.0
+29,5,3,0.0003,Brazil,Argentina,SF,102.0
+29,5,4,0.0003,Brazil,Argentina,SF,102.0
+29,5,5,0.0001,Brazil,Argentina,SF,102.0
+29,6,0,0.0001,Brazil,Argentina,SF,102.0
+29,6,1,0.0001,Brazil,Argentina,SF,102.0
+29,7,0,0.0001,Brazil,Argentina,SF,102.0
+30,0,0,0.1011,Spain,Argentina,Final,103.0
+30,0,1,0.1145,Spain,Argentina,Final,103.0
+30,0,2,0.0657,Spain,Argentina,Final,103.0
+30,0,3,0.0274,Spain,Argentina,Final,103.0
+30,0,4,0.0071,Spain,Argentina,Final,103.0
+30,0,5,0.001,Spain,Argentina,Final,103.0
+30,0,6,0.0006,Spain,Argentina,Final,103.0
+30,0,7,0.0001,Spain,Argentina,Final,103.0
+30,1,0,0.1156,Spain,Argentina,Final,103.0
+30,1,1,0.1343,Spain,Argentina,Final,103.0
+30,1,2,0.0762,Spain,Argentina,Final,103.0
+30,1,3,0.0273,Spain,Argentina,Final,103.0
+30,1,4,0.0077,Spain,Argentina,Final,103.0
+30,1,5,0.0015,Spain,Argentina,Final,103.0
+30,1,6,0.0001,Spain,Argentina,Final,103.0
+30,2,0,0.0655,Spain,Argentina,Final,103.0
+30,2,1,0.0757,Spain,Argentina,Final,103.0
+30,2,2,0.0453,Spain,Argentina,Final,103.0
+30,2,3,0.0139,Spain,Argentina,Final,103.0
+30,2,4,0.0044,Spain,Argentina,Final,103.0
+30,2,5,0.0009,Spain,Argentina,Final,103.0
+30,2,6,0.0006,Spain,Argentina,Final,103.0
+30,3,0,0.0252,Spain,Argentina,Final,103.0
+30,3,1,0.0306,Spain,Argentina,Final,103.0
+30,3,2,0.0179,Spain,Argentina,Final,103.0
+30,3,3,0.0057,Spain,Argentina,Final,103.0
+30,3,4,0.0015,Spain,Argentina,Final,103.0
+30,3,5,0.0003,Spain,Argentina,Final,103.0
+30,4,0,0.0093,Spain,Argentina,Final,103.0
+30,4,1,0.0096,Spain,Argentina,Final,103.0
+30,4,2,0.0051,Spain,Argentina,Final,103.0
+30,4,3,0.0016,Spain,Argentina,Final,103.0
+30,4,4,0.0002,Spain,Argentina,Final,103.0
+30,4,5,0.0001,Spain,Argentina,Final,103.0
+30,5,0,0.0017,Spain,Argentina,Final,103.0
+30,5,1,0.0022,Spain,Argentina,Final,103.0
+30,5,2,0.0006,Spain,Argentina,Final,103.0
+30,5,3,0.0004,Spain,Argentina,Final,103.0
+30,5,4,0.0002,Spain,Argentina,Final,103.0
+30,5,5,0.0001,Spain,Argentina,Final,103.0
+30,6,0,0.0005,Spain,Argentina,Final,103.0
+30,6,1,0.0003,Spain,Argentina,Final,103.0
+30,6,2,0.0001,Spain,Argentina,Final,103.0
+30,6,4,0.0001,Spain,Argentina,Final,103.0
+30,6,5,0.0001,Spain,Argentina,Final,103.0
+30,7,0,0.0001,Spain,Argentina,Final,103.0

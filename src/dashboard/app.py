@@ -457,6 +457,14 @@ def main() -> None:
         st.error(f"Failed to load latest inference artifacts: {exc}")
         return
 
+    if info.is_stale:
+        st.warning(
+            "Live tracking server (DagsHub) is currently unreachable — "
+            f"showing the last cached snapshot"
+            + (f" from {info.inference_timestamp}" if info.inference_timestamp else "")
+            + ". Predictions auto-refresh within 5 minutes once it's back."
+        )
+
     _render_run_metadata(info)
 
     tournament_df = data.get("tournament_probabilities")

@@ -10,10 +10,18 @@ Option A (A.9).  ``load_latest_inference_artifacts`` filters them to the
 champion automatically, so the Streamlit app requires no changes.  Pre-Option-A
 runs that lack a ``model_name`` column are passed through unchanged
 (backward-compatible).
+
+Offline fallback: every successful MLflow load is persisted to
+``_offline_cache/`` (CSVs + ``_meta.json``) so the dashboard stays functional
+when DagsHub is in maintenance.  The ``is_stale`` flag on ``InferenceRunInfo``
+signals that the cache was used.  The ``@st.cache_data(ttl=300)`` wrapper means
+the live path is retried automatically every 5 minutes.
 """
 
 from __future__ import annotations
 
+import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -31,6 +39,7 @@ except ModuleNotFoundError:
         sys.path.insert(0, str(project_root))
     from src.models.mlflow_utils import EXPERIMENT_NAME, setup_mlflow
 
+logger = logging.getLogger(__name__)
 
 ARTIFACT_FILENAMES: tuple[str, ...] = (
     "tournament_probabilities.csv",
@@ -49,6 +58,11 @@ _MULTI_MODEL_ARTIFACTS: frozenset[str] = frozenset({
     "ko_pairings",
 })
 
+# Disk cache lives next to this file so it is committed with the repo and
+# survives Streamlit Cloud container restarts.
+_CACHE_DIR = Path(__file__).parent / "_offline_cache"
+_META_FILE = _CACHE_DIR / "_meta.json"
+
 
 @dataclass(frozen=True)
 class InferenceRunInfo:
@@ -59,6 +73,7 @@ class InferenceRunInfo:
     champion_run_id: str | None
     champion_model_name: str | None
     inference_timestamp: str | None
+    is_stale: bool = False
 
 
 def _filter_to_champion(df: pd.DataFrame, champion_model_name: str) -> pd.DataFrame:
@@ -71,6 +86,52 @@ def _filter_to_champion(df: pd.DataFrame, champion_model_name: str) -> pd.DataFr
         return df
     filtered = df[df["model_name"] == champion_model_name].drop(columns=["model_name"])
     return filtered.reset_index(drop=True)
+
+
+def _write_offline_cache(
+    dfs: dict[str, pd.DataFrame],
+    info: InferenceRunInfo,
+) -> None:
+    """Persist champion-filtered DataFrames + metadata to _offline_cache/."""
+    try:
+        _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        for key, df in dfs.items():
+            df.to_csv(_CACHE_DIR / f"{key}.csv", index=False)
+        meta = {
+            "run_id": info.run_id,
+            "n_sims": info.n_sims,
+            "champion_run_id": info.champion_run_id,
+            "champion_model_name": info.champion_model_name,
+            "inference_timestamp": info.inference_timestamp,
+        }
+        _META_FILE.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+        logger.info("Offline cache written to %s", _CACHE_DIR)
+    except Exception:
+        logger.warning("Failed to write offline cache — live data unaffected.", exc_info=True)
+
+
+def _read_offline_cache() -> tuple[dict[str, pd.DataFrame], InferenceRunInfo] | None:
+    """Load cached DataFrames + metadata from _offline_cache/, or None if absent."""
+    if not _META_FILE.exists():
+        return None
+    try:
+        meta = json.loads(_META_FILE.read_text(encoding="utf-8"))
+        dfs: dict[str, pd.DataFrame] = {}
+        for csv_path in _CACHE_DIR.glob("*.csv"):
+            dfs[csv_path.stem] = pd.read_csv(csv_path)
+        info = InferenceRunInfo(
+            run_id=meta.get("run_id", "offline"),
+            n_sims=meta.get("n_sims"),
+            champion_run_id=meta.get("champion_run_id"),
+            champion_model_name=meta.get("champion_model_name"),
+            inference_timestamp=meta.get("inference_timestamp"),
+            is_stale=True,
+        )
+        logger.info("Offline cache loaded from %s", _CACHE_DIR)
+        return dfs, info
+    except Exception:
+        logger.warning("Failed to read offline cache.", exc_info=True)
+        return None
 
 
 def _get_latest_inference_run() -> mlflow.entities.Run:
@@ -107,19 +168,8 @@ def _get_latest_inference_run() -> mlflow.entities.Run:
     return runs[0]
 
 
-@st.cache_data(ttl=300)
-def load_latest_inference_artifacts() -> tuple[dict[str, pd.DataFrame], InferenceRunInfo]:
-    """Download CSV artifacts from the latest inference run.
-
-    Tournament-related artifacts (tournament_probabilities, group_positions,
-    ko_pairings) are filtered to the champion model before being returned,
-    so the Streamlit app sees single-model data exactly as before Option A.
-
-    Returns:
-        A tuple of:
-          - mapping of base artifact name (without .csv) to DataFrame.
-          - ``InferenceRunInfo`` with basic provenance metadata.
-    """
+def _load_from_mlflow() -> tuple[dict[str, pd.DataFrame], InferenceRunInfo]:
+    """Core MLflow fetch — separated so the cache wrapper can call it cleanly."""
     run = _get_latest_inference_run()
     client = mlflow.tracking.MlflowClient()
 
@@ -145,8 +195,39 @@ def load_latest_inference_artifacts() -> tuple[dict[str, pd.DataFrame], Inferenc
         champion_run_id=params.get("champion_run_id"),
         champion_model_name=champion_model_name,
         inference_timestamp=params.get("inference_timestamp"),
+        is_stale=False,
     )
     return dfs, info
+
+
+@st.cache_data(ttl=300)
+def load_latest_inference_artifacts() -> tuple[dict[str, pd.DataFrame], InferenceRunInfo]:
+    """Download CSV artifacts from the latest inference run.
+
+    Tournament-related artifacts (tournament_probabilities, group_positions,
+    ko_pairings) are filtered to the champion model before being returned,
+    so the Streamlit app sees single-model data exactly as before Option A.
+
+    Falls back to the committed offline cache when DagsHub is unreachable.
+    The ``is_stale`` flag on the returned ``InferenceRunInfo`` signals that
+    the cache was used.  The ``ttl=300`` means the live path is retried every
+    5 minutes and recovers automatically once the tracking server is back.
+
+    Returns:
+        A tuple of:
+          - mapping of base artifact name (without .csv) to DataFrame.
+          - ``InferenceRunInfo`` with basic provenance metadata.
+    """
+    try:
+        dfs, info = _load_from_mlflow()
+        _write_offline_cache(dfs, info)
+        return dfs, info
+    except Exception:
+        logger.warning("MLflow unreachable — attempting offline cache.", exc_info=True)
+        cached = _read_offline_cache()
+        if cached is None:
+            raise
+        return cached
 
 
 def load_group_mapping(config_path: Path | str = Path("data/tournament/wc2026.json")) -> dict[str, str]:
