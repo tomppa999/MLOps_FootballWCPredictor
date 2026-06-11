@@ -11,12 +11,12 @@ and end-of-matchday summaries.
 
 ## Pre-tournament deployment (Jun 1–10)
 
-- [date]: GCP test run 1 — result:
-- [date]: GCP test run 2 — result:
-- [date]: GCP test run 3 — result:
-- [date]: Both MLflow aliases resolve (`champion_frozen`, `champion_per_round`)? Y/N
-- [date]: DVC push from container succeeded? Y/N
-- [date]: Monitoring runs appear empty pre-WC? Y/N
+- Jun 9: GCP dress rehearsal (C.9 first pass) — dual-mode dispatch ran (frozen + per_round), metadata tags landed, `predictions_all_models.csv` covered all 4 models, DVC push succeeded. Clean run = gold 6921 rows.
+- Jun 10: every-2h cadence test on live friendly data — validated scheduler mechanics (~50-min run vs 120-min interval), reverted to daily afterwards.
+- Jun 11: final C.9 pass (`inference_only`) — both cadence modes ran, both artifact sets written.
+- Jun 11: Both MLflow aliases resolve (`champion_frozen`, `champion_per_round`)? **Y** — both point at the frozen snapshot (display champion xgboost).
+- Jun 11: DVC push from container succeeded? **Y** (verified Jun 9; Jun 11 local push also succeeded post-DagsHub-recovery).
+- Jun 11: Monitoring runs appear empty pre-WC? **Y** — `No settled WC 2026 matches yet — monitoring no-op`.
 
 ---
 
@@ -25,12 +25,12 @@ and end-of-matchday summaries.
 Matches played: [fill]
 
 Pipeline:
-- Both modes logged inference artifacts? Y/N
-- `champion_frozen` run_id used:
-- `champion_per_round` refit fired at MD1 boundary? Y/N
-  - New `champion_per_round` run_id after refit:
-  - Gold rows at refit time:
-- Any failures or anomalies:
+- Both modes logged inference artifacts? **Y** (pre-kickoff C.9 pass; Gold 6945 rows).
+- `champion_frozen` run_id used: `4f6ce4f0808b43fcb68d4acf10c5f1a8` (per_round inference: `5272ce72261043228b1455b0a06ed5cb`).
+- `champion_per_round` refit fired at MD1 boundary? [fill — fires on first settled results, 0 → 1 boundary]
+  - New `champion_per_round` run_id after refit: [fill]
+  - Gold rows at refit time: [fill]
+- Any failures or anomalies: **DagsHub maintenance outage on go-live day** (~09:46–~19:5x UTC). Git + artifact service down: crashed the first C.9 `inference_only` run at `git push`, then blocked all artifact reads/writes (HTTP 500 on `artifacts/list` and download, for every run). Re-ran C.9 successfully after git recovered; dashboard/artifact access restored once the `mlflow-artifacts` proxy came back. Freeze stayed intact throughout (Gold unchanged at 6945 rows, run metadata healthy, aliases correct).
 
 Observations:
 -

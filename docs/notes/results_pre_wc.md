@@ -243,8 +243,8 @@ poisson_glm, overdispersion barely moves RPS); random_forest dropped (second
 tree, no uncertainty channel). bayesian_poisson kept for its native posterior
 uncertainty (RQ2 / RQ3) despite mild MCMC divergences.
 
-Frozen run_id (both modes start here): [fill after pre-tournament re-fit]
-MLflow aliases assigned: `champion_frozen` = [fill], `champion_per_round` = [fill]
+Frozen run_id (both modes start here): 5f5a313ad5c14199aef0a791d2e4041a
+MLflow aliases assigned: `champion_frozen` = v15, `champion_per_round` = v15
 
 ---
 
