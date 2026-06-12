@@ -69,8 +69,8 @@ def add_days_since_last_match(df: pd.DataFrame) -> pd.DataFrame:
     gap = (history["date_utc"] - history["prior_date"]).dt.days
     history["days_since_last_match"] = gap.astype("Float64")
 
-    home_log = history[history["side"] == "home"]
-    away_log = history[history["side"] == "away"]
+    home_log = history[history["side"] == "home"].drop_duplicates(subset="fixture_id", keep="last")
+    away_log = history[history["side"] == "away"].drop_duplicates(subset="fixture_id", keep="last")
     home_map = home_log.set_index("fixture_id")["days_since_last_match"]
     away_map = away_log.set_index("fixture_id")["days_since_last_match"]
 

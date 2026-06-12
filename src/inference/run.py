@@ -307,15 +307,23 @@ def run_inference_and_simulation(
 
     # Augment Gold with finished WC results so rolling features for later
     # tournament matches incorporate earlier WC scores (Phase 4).
+    # Only append rows whose fixture_id is not already in Gold — once the
+    # nightly pipeline has fully processed a WC match through Silver→Gold, the
+    # Gold version (with real stats) takes precedence over the stub row here.
+    # Without this guard, matches that appear in both Gold and wc_gold_rows
+    # produce duplicate fixture_ids that crash add_days_since_last_match.
     wc_gold_rows = wc_results_to_gold_rows(wc_results)
     if not wc_gold_rows.empty:
-        augmented_gold = pd.concat([gold_df, wc_gold_rows], ignore_index=True)
+        new_wc_rows = wc_gold_rows[~wc_gold_rows["fixture_id"].isin(gold_df["fixture_id"])]
+        augmented_gold = pd.concat([gold_df, new_wc_rows], ignore_index=True)
         augmented_gold = augmented_gold.sort_values("date_utc").reset_index(drop=True)
         latest_wc_date = wc_gold_rows["date_utc"].max()
         reference_date = latest_wc_date + pd.Timedelta(days=1)
         logger.info(
-            "Augmented Gold with %d WC result rows (%d total), reference_date=%s",
-            len(wc_gold_rows),
+            "Augmented Gold with %d new WC result rows (%d already in Gold, %d total), "
+            "reference_date=%s",
+            len(new_wc_rows),
+            len(wc_gold_rows) - len(new_wc_rows),
             len(augmented_gold),
             reference_date.date(),
         )

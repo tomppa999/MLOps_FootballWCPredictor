@@ -44,13 +44,16 @@ def _format_percentage_columns(df: pd.DataFrame, cols: list[str]) -> pd.DataFram
 
 def _render_run_metadata(info: InferenceRunInfo) -> None:
     st.sidebar.markdown("**Run metadata**")
-    st.sidebar.text(f"run_id: {info.run_id}")
-    if info.n_sims is not None:
-        st.sidebar.text(f"n_sims: {info.n_sims}")
-    if info.champion_run_id:
-        st.sidebar.text(f"champion_run_id: {info.champion_run_id}")
-    if info.inference_timestamp:
-        st.sidebar.text(f"timestamp: {info.inference_timestamp}")
+    st.sidebar.text(f"run_id: {getattr(info, 'run_id', 'unknown')}")
+    n_sims = getattr(info, "n_sims", None)
+    if n_sims is not None:
+        st.sidebar.text(f"n_sims: {n_sims}")
+    champion_run_id = getattr(info, "champion_run_id", None)
+    if champion_run_id:
+        st.sidebar.text(f"champion_run_id: {champion_run_id}")
+    inference_timestamp = getattr(info, "inference_timestamp", None)
+    if inference_timestamp:
+        st.sidebar.text(f"timestamp: {inference_timestamp}")
 
 
 # ---------------------------------------------------------------------------
@@ -457,11 +460,21 @@ def main() -> None:
         st.error(f"Failed to load latest inference artifacts: {exc}")
         return
 
-    if info.is_stale:
+    # Guard against stale @st.cache_data pickles surviving a hot-reload: if the
+    # cached object's class identity changed, clear the cache and rerun silently.
+    try:
+        is_stale = info.is_stale
+    except AttributeError:
+        load_latest_inference_artifacts.clear()
+        st.rerun()
+        return
+
+    if is_stale:
+        ts = getattr(info, "inference_timestamp", None)
         st.warning(
             "Live tracking server (DagsHub) is currently unreachable — "
-            f"showing the last cached snapshot"
-            + (f" from {info.inference_timestamp}" if info.inference_timestamp else "")
+            "showing the last cached snapshot"
+            + (f" from {ts}" if ts else "")
             + ". Predictions auto-refresh within 5 minutes once it's back."
         )
 
