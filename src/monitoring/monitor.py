@@ -22,6 +22,7 @@ from typing import Final
 import mlflow
 import numpy as np
 import pandas as pd
+from mlflow.entities import Metric as MlflowMetric
 
 from src.inference.features import (
     FINISHED_STATUSES,
@@ -52,6 +53,7 @@ _TEAM_MAPPING_PATH: Final[Path] = Path("data/mappings/team_mapping_master_merged
 _WC_SEASONS: Final[frozenset[int]] = frozenset({2025, 2026})
 _PREDICTIONS_ALL_MODELS_FILENAME: Final[str] = "predictions_all_models.csv"
 _MONITORING_ARTIFACT_FILENAME: Final[str] = "wc2026_monitoring.csv"
+_METRIC_BATCH_SIZE: Final[int] = 1000
 CADENCE_MODES: Final[tuple[str, ...]] = ("frozen", "per_round")
 
 
@@ -450,6 +452,47 @@ def evaluate_alert_threshold(
 
 
 # ---------------------------------------------------------------------------
+# Monitoring gate — skip re-logging when nothing has changed
+# ---------------------------------------------------------------------------
+
+
+def _last_logged_n_scored_matches(cadence_mode: str) -> int:
+    """Return n_scored_matches from the most recent monitoring run for this mode.
+
+    Queries DagsHub MLflow for the latest ``stage=monitoring`` run with a
+    matching ``cadence_mode`` tag and reads the ``n_scored_matches`` param.
+
+    Returns:
+        0   — no monitoring runs exist yet for this mode.
+        -1  — query failed (DagsHub unreachable); caller should log anyway.
+        N   — the match count logged in the most recent monitoring cycle.
+    """
+    try:
+        setup_mlflow()
+        client = mlflow.tracking.MlflowClient()
+        exp = client.get_experiment_by_name(EXPERIMENT_NAME)
+        if exp is None:
+            return 0
+        runs = client.search_runs(
+            experiment_ids=[exp.experiment_id],
+            filter_string=(
+                f'tags.stage = "monitoring" AND tags.cadence_mode = "{cadence_mode}"'
+            ),
+            order_by=["start_time DESC"],
+            max_results=1,
+        )
+        if not runs:
+            return 0
+        return int(runs[0].data.params.get("n_scored_matches", "0"))
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "Could not query last monitoring count for cadence_mode=%s — will log.",
+            cadence_mode,
+        )
+        return -1
+
+
+# ---------------------------------------------------------------------------
 # MLflow logging
 # ---------------------------------------------------------------------------
 
@@ -476,9 +519,11 @@ def log_monitoring_run(
 
     setup_mlflow()
     get_or_create_experiment()
+    client = mlflow.tracking.MlflowClient()
 
     out: dict[str, str] = {}
     cycle_ts = datetime.now(timezone.utc).isoformat()
+    ts_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         artifact_path = Path(tmpdir) / _MONITORING_ARTIFACT_FILENAME
@@ -504,14 +549,20 @@ def log_monitoring_run(
                     },
                 )
                 cum_rps_series = group["rps"].expanding().mean()
+                batch: list[MlflowMetric] = []
                 for idx, row in group.iterrows():
                     step = int(idx)
-                    mlflow.log_metric("rps", float(row["rps"]), step=step)
-                    mlflow.log_metric("nll", float(row["nll"]), step=step)
-                    mlflow.log_metric("rmse_h", float(row["rmse_h"]), step=step)
-                    mlflow.log_metric("rmse_a", float(row["rmse_a"]), step=step)
-                    mlflow.log_metric(
-                        "cum_rps", float(cum_rps_series.iloc[step]), step=step,
+                    batch.extend([
+                        MlflowMetric("rps", float(row["rps"]), ts_ms, step),
+                        MlflowMetric("nll", float(row["nll"]), ts_ms, step),
+                        MlflowMetric("rmse_h", float(row["rmse_h"]), ts_ms, step),
+                        MlflowMetric("rmse_a", float(row["rmse_a"]), ts_ms, step),
+                        MlflowMetric("cum_rps", float(cum_rps_series.iloc[step]), ts_ms, step),
+                    ])
+                for i in range(0, len(batch), _METRIC_BATCH_SIZE):
+                    client.log_batch(
+                        run_id=run.info.run_id,
+                        metrics=batch[i : i + _METRIC_BATCH_SIZE],
                     )
                 mlflow.log_artifact(str(artifact_path))
                 out[str(model_name)] = run.info.run_id
@@ -545,7 +596,16 @@ def run_monitoring_step(
         )
         if monitoring_df.empty:
             continue
-        log_monitoring_run(monitoring_df, cadence_mode=mode)
+        current_n = monitoring_df["match_id"].nunique()
+        last_n = _last_logged_n_scored_matches(mode)
+        if last_n >= 0 and current_n == last_n:
+            logger.info(
+                "Monitoring unchanged (%d matches) for cadence_mode=%s — skipping MLflow log.",
+                current_n,
+                mode,
+            )
+        else:
+            log_monitoring_run(monitoring_df, cadence_mode=mode)
         evaluate_alert_threshold(monitoring_df)
         frames.append(monitoring_df)
 

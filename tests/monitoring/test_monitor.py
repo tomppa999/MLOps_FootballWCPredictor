@@ -354,3 +354,199 @@ def test_log_monitoring_run_includes_cadence_mode(
     assert tags["cadence_mode"] == "per_round"
     params = mock_log_run.call_args.kwargs.get("params", {})
     assert params["cadence_mode"] == "per_round"
+
+
+# ---------------------------------------------------------------------------
+# Last-logged count helper
+# ---------------------------------------------------------------------------
+
+
+def _mock_mlflow_client(search_runs_result: list) -> MagicMock:
+    mock_exp = MagicMock()
+    mock_exp.experiment_id = "exp-1"
+    mock_client = MagicMock()
+    mock_client.get_experiment_by_name.return_value = mock_exp
+    mock_client.search_runs.return_value = search_runs_result
+    return mock_client
+
+
+def test_last_logged_n_scored_matches_returns_0_when_no_runs():
+    mock_client = _mock_mlflow_client([])
+    with (
+        patch.object(monitor, "setup_mlflow"),
+        patch("src.monitoring.monitor.mlflow.tracking.MlflowClient", return_value=mock_client),
+    ):
+        assert monitor._last_logged_n_scored_matches("frozen") == 0
+
+
+def test_last_logged_n_scored_matches_returns_count_from_latest_run():
+    mock_run = MagicMock()
+    mock_run.data.params = {"n_scored_matches": "7"}
+    mock_client = _mock_mlflow_client([mock_run])
+    with (
+        patch.object(monitor, "setup_mlflow"),
+        patch("src.monitoring.monitor.mlflow.tracking.MlflowClient", return_value=mock_client),
+    ):
+        assert monitor._last_logged_n_scored_matches("frozen") == 7
+
+
+def test_last_logged_n_scored_matches_returns_minus1_on_error():
+    with patch.object(monitor, "setup_mlflow", side_effect=Exception("network error")):
+        assert monitor._last_logged_n_scored_matches("frozen") == -1
+
+
+def test_last_logged_n_scored_matches_queries_correct_filter():
+    """Confirm the MLflow filter string targets the right cadence mode."""
+    mock_client = _mock_mlflow_client([])
+    with (
+        patch.object(monitor, "setup_mlflow"),
+        patch("src.monitoring.monitor.mlflow.tracking.MlflowClient", return_value=mock_client),
+    ):
+        monitor._last_logged_n_scored_matches("per_round")
+
+    filter_used = mock_client.search_runs.call_args.kwargs.get(
+        "filter_string"
+    ) or mock_client.search_runs.call_args[1].get("filter_string")
+    assert "per_round" in filter_used
+    assert "monitoring" in filter_used
+
+
+# ---------------------------------------------------------------------------
+# Monitoring gate in run_monitoring_step
+# ---------------------------------------------------------------------------
+
+
+def _make_monitoring_df(n_matches: int = 2) -> pd.DataFrame:
+    rows = []
+    for i in range(n_matches):
+        rows.append({
+            "match_id": i,
+            "kickoff_utc": pd.Timestamp("2026-06-15", tz="UTC") + pd.Timedelta(hours=i),
+            "home": "France",
+            "away": "Germany",
+            "actual_h": 2,
+            "actual_a": 1,
+            "actual_outcome": 0,
+            "model_name": "xgboost",
+            "cadence_mode": "frozen",
+            "rps": 0.15,
+            "nll": 2.5,
+            "rmse_h": 0.4,
+            "rmse_a": 0.1,
+            "inference_run_id": "inf-1",
+            "lambda_h": 1.6,
+            "lambda_a": 1.0,
+            "p_home": 0.5,
+            "p_draw": 0.3,
+            "p_away": 0.2,
+        })
+    return pd.DataFrame(rows)
+
+
+def test_run_monitoring_step_skips_log_when_count_unchanged():
+    df = _make_monitoring_df(n_matches=2)
+    with (
+        patch.object(monitor, "score_completed_wc_matches", return_value=df),
+        patch.object(monitor, "_last_logged_n_scored_matches", return_value=2),
+        patch.object(monitor, "log_monitoring_run") as mock_log,
+        patch.object(monitor, "evaluate_alert_threshold"),
+    ):
+        monitor.run_monitoring_step()
+
+    mock_log.assert_not_called()
+
+
+def test_run_monitoring_step_logs_when_new_matches():
+    df = _make_monitoring_df(n_matches=3)
+    with (
+        patch.object(monitor, "score_completed_wc_matches", return_value=df),
+        patch.object(monitor, "_last_logged_n_scored_matches", return_value=2),
+        patch.object(monitor, "log_monitoring_run") as mock_log,
+        patch.object(monitor, "evaluate_alert_threshold"),
+    ):
+        monitor.run_monitoring_step()
+
+    assert mock_log.call_count == 2  # one call per cadence mode
+
+
+def test_run_monitoring_step_logs_when_dagshub_unreachable():
+    """last_n=-1 (query error) → fall through to logging."""
+    df = _make_monitoring_df(n_matches=2)
+    with (
+        patch.object(monitor, "score_completed_wc_matches", return_value=df),
+        patch.object(monitor, "_last_logged_n_scored_matches", return_value=-1),
+        patch.object(monitor, "log_monitoring_run") as mock_log,
+        patch.object(monitor, "evaluate_alert_threshold"),
+    ):
+        monitor.run_monitoring_step()
+
+    assert mock_log.call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# log_batch usage in log_monitoring_run
+# ---------------------------------------------------------------------------
+
+
+@patch("src.monitoring.monitor.mlflow")
+@patch("src.monitoring.monitor.start_run")
+@patch("src.monitoring.monitor.log_run")
+@patch("src.monitoring.monitor.setup_mlflow")
+@patch("src.monitoring.monitor.get_or_create_experiment")
+def test_log_monitoring_run_uses_log_batch_not_log_metric(
+    mock_get_exp,
+    mock_setup,
+    mock_log_run,
+    mock_start_run,
+    mock_mlflow,
+):
+    df = _make_monitoring_df(n_matches=2)
+
+    fake_run = MagicMock()
+    fake_run.info.run_id = "mon_run_1"
+    mock_start_run.return_value.__enter__ = MagicMock(return_value=fake_run)
+    mock_start_run.return_value.__exit__ = MagicMock(return_value=False)
+
+    mock_client = MagicMock()
+    mock_mlflow.tracking.MlflowClient.return_value = mock_client
+
+    monitor.log_monitoring_run(df, cadence_mode="frozen")
+
+    assert mock_client.log_batch.called
+    assert not mock_mlflow.log_metric.called
+
+
+@patch("src.monitoring.monitor.mlflow")
+@patch("src.monitoring.monitor.start_run")
+@patch("src.monitoring.monitor.log_run")
+@patch("src.monitoring.monitor.setup_mlflow")
+@patch("src.monitoring.monitor.get_or_create_experiment")
+def test_log_monitoring_run_batch_contains_correct_metric_keys(
+    mock_get_exp,
+    mock_setup,
+    mock_log_run,
+    mock_start_run,
+    mock_mlflow,
+):
+    df = _make_monitoring_df(n_matches=2)
+
+    fake_run = MagicMock()
+    fake_run.info.run_id = "mon_run_1"
+    mock_start_run.return_value.__enter__ = MagicMock(return_value=fake_run)
+    mock_start_run.return_value.__exit__ = MagicMock(return_value=False)
+
+    mock_client = MagicMock()
+    mock_mlflow.tracking.MlflowClient.return_value = mock_client
+
+    # Use real MlflowMetric so we can inspect the batch contents.
+    from mlflow.entities import Metric as RealMetric
+    with patch("src.monitoring.monitor.MlflowMetric", RealMetric):
+        monitor.log_monitoring_run(df, cadence_mode="frozen")
+
+    batch = mock_client.log_batch.call_args.kwargs.get(
+        "metrics"
+    ) or mock_client.log_batch.call_args[1]["metrics"]
+    keys = {m.key for m in batch}
+    assert keys == {"rps", "nll", "rmse_h", "rmse_a", "cum_rps"}
+    # 2 matches × 5 metrics = 10 entries
+    assert len(batch) == 10
