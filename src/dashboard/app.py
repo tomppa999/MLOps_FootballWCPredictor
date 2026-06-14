@@ -18,12 +18,14 @@ try:
         InferenceRunInfo,
         load_group_mapping,
         load_latest_inference_artifacts,
+        load_latest_monitoring_results,
     )
 except ModuleNotFoundError:
     from load_artifacts import (  # type: ignore
         InferenceRunInfo,
         load_group_mapping,
         load_latest_inference_artifacts,
+        load_latest_monitoring_results,
     )
 
 TOURNAMENT_CONFIG_PATH = Path("data/tournament/wc2026.json")
@@ -238,6 +240,69 @@ def _lookup_prediction(
     return None
 
 
+def _completed_results_lookup(
+    monitoring_df: pd.DataFrame | None,
+    champion_model_name: str | None,
+) -> dict[frozenset, dict]:
+    """Map frozenset({home, away}) -> pre-kickoff probs (%) + actual score.
+
+    Filters to the champion model and cadence_mode=frozen. Returns an empty
+    dict when monitoring data is absent (pre-tournament or outage).
+    """
+    if monitoring_df is None or monitoring_df.empty:
+        return {}
+    df = monitoring_df.copy()
+    if "cadence_mode" in df.columns:
+        df = df[df["cadence_mode"] == "frozen"]
+    if champion_model_name and "model_name" in df.columns:
+        df = df[df["model_name"] == champion_model_name]
+    if df.empty:
+        return {}
+
+    lookup: dict[frozenset, dict] = {}
+    for _, r in df.iterrows():
+        key: frozenset = frozenset({r["home"], r["away"]})
+        lookup[key] = {
+            "m_home": r["home"],
+            "actual_home_goals": int(r["actual_h"]),
+            "actual_away_goals": int(r["actual_a"]),
+            "p_home_pct": round(float(r["p_home"]) * 100, 1),
+            "p_draw_pct": round(float(r["p_draw"]) * 100, 1),
+            "p_away_pct": round(float(r["p_away"]) * 100, 1),
+        }
+    return lookup
+
+
+def _apply_completed_result(row: dict, lookup: dict[frozenset, dict]) -> dict:
+    """Overlay pre-kickoff probs + actual score onto a fixture record if played.
+
+    For played matches: replaces the (post-match) probabilities with the
+    leakage-safe pre-kickoff ones and records actual_h/actual_a.
+    For upcoming matches: sets played=False, actual_h/actual_a=None.
+    """
+    rec = lookup.get(frozenset({row["home_team"], row["away_team"]}))
+    if rec is None:
+        row["played"] = False
+        row["actual_h"] = None
+        row["actual_a"] = None
+        return row
+
+    row["played"] = True
+    row["p_draw"] = rec["p_draw_pct"]
+    if rec["m_home"] == row["home_team"]:
+        row["p_home"] = rec["p_home_pct"]
+        row["p_away"] = rec["p_away_pct"]
+        row["actual_h"] = rec["actual_home_goals"]
+        row["actual_a"] = rec["actual_away_goals"]
+    else:
+        # Config home is monitoring's away — flip sides.
+        row["p_home"] = rec["p_away_pct"]
+        row["p_away"] = rec["p_home_pct"]
+        row["actual_h"] = rec["actual_away_goals"]
+        row["actual_a"] = rec["actual_home_goals"]
+    return row
+
+
 def _build_match_bar(fixtures_with_preds: pd.DataFrame) -> None:
     """Render a stacked horizontal bar chart for a set of fixtures."""
     import plotly.graph_objects as go
@@ -251,7 +316,13 @@ def _build_match_bar(fixtures_with_preds: pd.DataFrame) -> None:
     away_texts: list[str] = []
 
     for _, r in fixtures_with_preds.iterrows():
-        label = f"{r['home_team']}  vs  {r['away_team']}"
+        if r.get("played") and r.get("actual_h") is not None:
+            label = (
+                f"{r['home_team']} {int(r['actual_h'])}–{int(r['actual_a'])} "
+                f"{r['away_team']}  ·  pre-match odds"
+            )
+        else:
+            label = f"{r['home_team']}  vs  {r['away_team']}"
         labels.append(label)
         ph = r.get("p_home", 0.0)
         pd_ = r.get("p_draw", 0.0)
@@ -318,10 +389,18 @@ def _build_match_bar(fixtures_with_preds: pd.DataFrame) -> None:
 def view_match_predictions(
     pred_df: pd.DataFrame,
     ko_fixtures_df: pd.DataFrame | None = None,
+    monitoring_df: pd.DataFrame | None = None,
+    champion_model_name: str | None = None,
 ) -> None:
     st.header("Match predictions")
+    st.caption(
+        "Played matches show **pre-kickoff** probabilities "
+        "(last inference run before kick-off) alongside the final score. "
+        "Upcoming matches show the latest live prediction."
+    )
 
     fixtures = _load_tournament_fixtures()
+    completed = _completed_results_lookup(monitoring_df, champion_model_name)
 
     records: list[dict] = []
     for _, fix in fixtures.iterrows():
@@ -337,7 +416,7 @@ def view_match_predictions(
             "p_draw": pred["p_draw"] if pred else 0.0,
             "p_away": pred["p_away"] if pred else 0.0,
         }
-        records.append(row)
+        records.append(_apply_completed_result(row, completed))
 
     result_df = pd.DataFrame(records)
 
@@ -363,9 +442,20 @@ def view_match_predictions(
         _build_match_bar(gdf)
 
     with st.expander("Raw data"):
-        raw = display_df.copy()
+        base_cols = ["group", "matchday", "home_team", "away_team",
+                     "lambda_h", "lambda_a", "p_home", "p_draw", "p_away"]
+        raw = display_df[base_cols].copy()
         raw.columns = ["Group", "MD", "Home", "Away", "xG Home", "xG Away",
-                        "P(H) %", "P(D) %", "P(A) %"]
+                       "P(H) %", "P(D) %", "P(A) %"]
+        if "actual_h" in display_df.columns:
+            raw["Score"] = display_df.apply(
+                lambda r: (
+                    f"{int(r['actual_h'])}–{int(r['actual_a'])}"
+                    if r.get("played") and r.get("actual_h") is not None
+                    else ""
+                ),
+                axis=1,
+            )
         st.dataframe(raw, use_container_width=True)
 
     # KO fixtures section
@@ -485,6 +575,7 @@ def main() -> None:
     pred_df = data.get("predictions")
     ko_df = data.get("ko_pairings")
     ko_fixtures_df = data.get("ko_fixtures")
+    monitoring_df = load_latest_monitoring_results()
 
     if group_df is not None:
         team_to_group = load_group_mapping()
@@ -513,7 +604,12 @@ def main() -> None:
         if pred_df is None:
             st.warning("predictions.csv not found.")
         else:
-            view_match_predictions(pred_df, ko_fixtures_df=ko_fixtures_df)
+            view_match_predictions(
+                pred_df,
+                ko_fixtures_df=ko_fixtures_df,
+                monitoring_df=monitoring_df,
+                champion_model_name=getattr(info, "champion_model_name", None),
+            )
     else:
         if ko_df is None:
             st.warning("ko_pairings.csv not found.")

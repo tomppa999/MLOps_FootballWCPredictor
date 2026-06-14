@@ -7,7 +7,11 @@ import pytest
 
 from unittest.mock import MagicMock, patch
 
-from src.dashboard.load_artifacts import _filter_to_champion, _get_latest_inference_run
+from src.dashboard.load_artifacts import (
+    _filter_to_champion,
+    _get_latest_inference_run,
+    _load_monitoring_from_mlflow,
+)
 
 
 def _multi_model_df() -> pd.DataFrame:
@@ -69,6 +73,29 @@ def test_get_latest_inference_run_prefers_frozen_lineage(mock_client_cls, mock_s
     assert result is frozen_run
     first_call = mock_client.search_runs.call_args_list[0]
     assert 'params.cadence_mode = "frozen"' in first_call.kwargs["filter_string"]
+
+
+@patch("src.dashboard.load_artifacts.setup_mlflow")
+@patch("src.dashboard.load_artifacts.mlflow.tracking.MlflowClient")
+def test_load_monitoring_from_mlflow_raises_when_no_runs(mock_client_cls, mock_setup):
+    mock_client = MagicMock()
+    mock_client.get_experiment_by_name.return_value = MagicMock(experiment_id="exp-1")
+    mock_client.search_runs.return_value = []
+    mock_client_cls.return_value = mock_client
+
+    with pytest.raises(RuntimeError, match="No monitoring runs found"):
+        _load_monitoring_from_mlflow("frozen")
+
+
+@patch("src.dashboard.load_artifacts.setup_mlflow")
+@patch("src.dashboard.load_artifacts.mlflow.tracking.MlflowClient")
+def test_load_monitoring_from_mlflow_raises_when_no_experiment(mock_client_cls, mock_setup):
+    mock_client = MagicMock()
+    mock_client.get_experiment_by_name.return_value = None
+    mock_client_cls.return_value = mock_client
+
+    with pytest.raises(RuntimeError, match="not found"):
+        _load_monitoring_from_mlflow("frozen")
 
 
 @patch("src.dashboard.load_artifacts.setup_mlflow")

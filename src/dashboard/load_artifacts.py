@@ -63,6 +63,9 @@ _MULTI_MODEL_ARTIFACTS: frozenset[str] = frozenset({
 _CACHE_DIR = Path(__file__).parent / "_offline_cache"
 _META_FILE = _CACHE_DIR / "_meta.json"
 
+_MONITORING_ARTIFACT_FILENAME = "wc2026_monitoring.csv"
+_MONITORING_CACHE_FILE = _CACHE_DIR / "wc2026_monitoring.csv"
+
 
 @dataclass(frozen=True)
 class InferenceRunInfo:
@@ -228,6 +231,56 @@ def load_latest_inference_artifacts() -> tuple[dict[str, pd.DataFrame], Inferenc
         if cached is None:
             raise
         return cached
+
+
+def _load_monitoring_from_mlflow(cadence_mode: str = "frozen") -> pd.DataFrame:
+    """Download wc2026_monitoring.csv from the latest monitoring run."""
+    setup_mlflow()
+    client = mlflow.tracking.MlflowClient()
+    exp = client.get_experiment_by_name(EXPERIMENT_NAME)
+    if exp is None:
+        raise RuntimeError(f"Experiment '{EXPERIMENT_NAME}' not found")
+
+    runs = client.search_runs(
+        experiment_ids=[exp.experiment_id],
+        filter_string=(
+            f'tags.stage = "monitoring" AND tags.cadence_mode = "{cadence_mode}"'
+        ),
+        order_by=["start_time DESC"],
+        max_results=1,
+    )
+    if not runs:
+        raise RuntimeError(f"No monitoring runs found for cadence_mode={cadence_mode!r}.")
+    local_path = client.download_artifacts(
+        runs[0].info.run_id, _MONITORING_ARTIFACT_FILENAME,
+    )
+    return pd.read_csv(local_path)
+
+
+@st.cache_data(ttl=300)
+def load_latest_monitoring_results(cadence_mode: str = "frozen") -> "pd.DataFrame | None":
+    """Latest pre-kickoff predictions + actual results for settled WC matches.
+
+    Returns None (never raises) so the dashboard degrades gracefully
+    pre-WC or during a DagsHub outage. Falls back to the committed
+    offline cache when MLflow is unreachable.
+    """
+    try:
+        df = _load_monitoring_from_mlflow(cadence_mode)
+        try:
+            _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            df.to_csv(_MONITORING_CACHE_FILE, index=False)
+        except Exception:
+            logger.warning("Failed to cache monitoring artifact.", exc_info=True)
+        return df
+    except Exception:
+        logger.warning("Monitoring artifact unavailable — trying offline cache.", exc_info=True)
+        if _MONITORING_CACHE_FILE.exists():
+            try:
+                return pd.read_csv(_MONITORING_CACHE_FILE)
+            except Exception:
+                pass
+        return None
 
 
 def load_group_mapping(config_path: Path | str = Path("data/tournament/wc2026.json")) -> dict[str, str]:
