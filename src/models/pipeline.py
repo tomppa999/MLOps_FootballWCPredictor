@@ -545,7 +545,12 @@ def run_champion_refit(df: pd.DataFrame) -> str:
 # ---------------------------------------------------------------------------
 
 
-def run_per_round_refit(df: pd.DataFrame, *, matchday: str) -> dict[str, str]:
+def run_per_round_refit(
+    df: pd.DataFrame,
+    *,
+    matchday: str,
+    completed_matchday: str,
+) -> dict[str, str]:
     """Refit the 4 EXPERIMENT_MODELS roster entries for the per-round cadence.
 
     Reads each model's hyperparameters from the registry (champion from
@@ -564,10 +569,12 @@ def run_per_round_refit(df: pd.DataFrame, *, matchday: str) -> dict[str, str]:
     Args:
         df: Full Gold DataFrame (already loaded by the caller).
         matchday: Tournament stage label for the round being predicted
-            (e.g. ``"1"``, ``"2"``, ``"3"``, ``"R32"``, ``"R16"``,
-            ``"QF"``, ``"SF"``, ``"Final"``).  Stored as an MLflow run tag
-            so ``_last_per_round_refit_matchday()`` can detect the next
-            boundary.
+            (e.g. ``"2"``, ``"3"``, ``"R32"``, …).  Stored as an MLflow run
+            tag so downstream consumers know what round this model serves.
+        completed_matchday: The round that just fully completed and triggered
+            this refit (e.g. ``"1"`` after all MD1 games finished).  Stored
+            as ``per_round_last_completed_matchday`` so the trigger gate can
+            detect the next boundary without re-firing on the same round.
 
     Returns:
         Dict mapping model_name → MLflow run_id for each model that was
@@ -645,6 +652,7 @@ def run_per_round_refit(df: pd.DataFrame, *, matchday: str) -> dict[str, str]:
             "model_name": model_name,
             "cadence_mode": "per_round",
             "per_round_refit_matchday": matchday,
+            "per_round_last_completed_matchday": completed_matchday,
         }
         with start_run(
             run_name=f"per_round_refit_{model_name}_md{matchday}",

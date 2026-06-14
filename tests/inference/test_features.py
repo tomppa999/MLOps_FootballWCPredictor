@@ -540,6 +540,126 @@ class TestParseWcResults:
         result = parse_wc_results(fixtures_dir, mapping)
         assert result["finished_fixtures"][0]["is_knockout"] is True
 
+    def test_no_fixtures_dir_returns_zero_last_completed(self, tmp_path):
+        result = parse_wc_results(tmp_path / "nonexistent", tmp_path / "mapping.csv")
+        assert result["last_completed_matchday"] == "0"
+
+    def test_round_in_progress_last_completed_is_zero(self, tmp_path):
+        """One finished + one upcoming in same round → round not complete → '0'."""
+        fixtures_dir = tmp_path / "fixtures"
+        mapping = tmp_path / "mapping.csv"
+        _write_team_mapping(mapping, [
+            {"name": "France", "api_id": 2},
+            {"name": "Germany", "api_id": 25},
+        ])
+        _write_finished_fixture(fixtures_dir, {
+            "id": 1, "status": "FT",
+            "league_id": 1, "round": "Group A - 1",
+            "home_id": 2, "home_goals": 1, "away_id": 25, "away_goals": 0,
+        })
+        _write_finished_fixture(fixtures_dir, {
+            "id": 2, "status": "NS",
+            "league_id": 1, "round": "Group A - 1",
+            "home_id": 2, "home_goals": None, "away_id": 25, "away_goals": None,
+        })
+        result = parse_wc_results(fixtures_dir, mapping)
+        assert result["last_completed_matchday"] == "0"
+
+    def test_round_fully_complete_last_completed_equals_label(self, tmp_path):
+        """All scheduled fixtures finished → last_completed_matchday = '1'."""
+        fixtures_dir = tmp_path / "fixtures"
+        mapping = tmp_path / "mapping.csv"
+        _write_team_mapping(mapping, [
+            {"name": "France", "api_id": 2},
+            {"name": "Germany", "api_id": 25},
+        ])
+        _write_finished_fixture(fixtures_dir, {
+            "id": 1, "status": "FT",
+            "league_id": 1, "round": "Group A - 1",
+            "home_id": 2, "home_goals": 1, "away_id": 25, "away_goals": 0,
+        })
+        _write_finished_fixture(fixtures_dir, {
+            "id": 2, "status": "AET",
+            "league_id": 1, "round": "Group B - 1",
+            "home_id": 2, "home_goals": 2, "away_id": 25, "away_goals": 2,
+        })
+        result = parse_wc_results(fixtures_dir, mapping)
+        assert result["last_completed_matchday"] == "1"
+
+    def test_cancelled_fixtures_excluded_from_scheduled(self, tmp_path):
+        """Cancelled fixture does not count as scheduled; only the FT one does."""
+        fixtures_dir = tmp_path / "fixtures"
+        mapping = tmp_path / "mapping.csv"
+        _write_team_mapping(mapping, [
+            {"name": "France", "api_id": 2},
+            {"name": "Germany", "api_id": 25},
+        ])
+        _write_finished_fixture(fixtures_dir, {
+            "id": 1, "status": "FT",
+            "league_id": 1, "round": "Group A - 1",
+            "home_id": 2, "home_goals": 1, "away_id": 25, "away_goals": 0,
+        })
+        _write_finished_fixture(fixtures_dir, {
+            "id": 2, "status": "CANC",
+            "league_id": 1, "round": "Group A - 1",
+            "home_id": 2, "home_goals": None, "away_id": 25, "away_goals": None,
+        })
+        result = parse_wc_results(fixtures_dir, mapping)
+        # 1 scheduled (FT only; CANC excluded), 1 finished → complete
+        assert result["last_completed_matchday"] == "1"
+
+    def test_earlier_round_complete_later_in_progress(self, tmp_path):
+        """MD1 complete + MD2 in progress → last_completed = '1'."""
+        fixtures_dir = tmp_path / "fixtures"
+        mapping = tmp_path / "mapping.csv"
+        _write_team_mapping(mapping, [
+            {"name": "France", "api_id": 2},
+            {"name": "Germany", "api_id": 25},
+        ])
+        # MD1: one fixture, finished
+        _write_finished_fixture(fixtures_dir, {
+            "id": 1, "status": "FT",
+            "league_id": 1, "round": "Group A - 1",
+            "home_id": 2, "home_goals": 1, "away_id": 25, "away_goals": 0,
+        })
+        # MD2: two fixtures, only one finished
+        _write_finished_fixture(fixtures_dir, {
+            "id": 2, "status": "FT",
+            "league_id": 1, "round": "Group A - 2",
+            "home_id": 2, "home_goals": 2, "away_id": 25, "away_goals": 1,
+        })
+        _write_finished_fixture(fixtures_dir, {
+            "id": 3, "status": "NS",
+            "league_id": 1, "round": "Group B - 2",
+            "home_id": 2, "home_goals": None, "away_id": 25, "away_goals": None,
+        })
+        result = parse_wc_results(fixtures_dir, mapping)
+        assert result["last_completed_matchday"] == "1"
+
+    def test_ko_round_fully_complete_last_completed_equals_ko_label(self, tmp_path):
+        """R32 fully done → last_completed_matchday = 'R32'."""
+        fixtures_dir = tmp_path / "fixtures"
+        mapping = tmp_path / "mapping.csv"
+        _write_team_mapping(mapping, [
+            {"name": "France", "api_id": 2},
+            {"name": "Germany", "api_id": 25},
+        ])
+        # Group rounds all done first (MD1, MD2, MD3 each with one game = complete)
+        for md in ("1", "2", "3"):
+            _write_finished_fixture(fixtures_dir, {
+                "id": int(md), "status": "FT",
+                "league_id": 1, "round": f"Group A - {md}",
+                "home_id": 2, "home_goals": 1, "away_id": 25, "away_goals": 0,
+            })
+        # R32: one game, finished
+        _write_finished_fixture(fixtures_dir, {
+            "id": 10, "status": "FT",
+            "league_id": 1, "round": "Round of 32 - 1",
+            "home_id": 2, "home_goals": 2, "away_id": 25, "away_goals": 0,
+        })
+        result = parse_wc_results(fixtures_dir, mapping)
+        assert result["last_completed_matchday"] == "R32"
+
 
 # ---------------------------------------------------------------------------
 # derive_snapshot_metadata

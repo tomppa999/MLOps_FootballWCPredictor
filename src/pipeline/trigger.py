@@ -329,6 +329,41 @@ def _last_per_round_refit_matchday() -> str | None:
         return "0"
 
 
+def _last_per_round_completed_matchday() -> str:
+    """Return the last-completed matchday label stored on the champion_per_round run.
+
+    Used as the gate for the per-round refit: the refit fires when
+    ``parse_wc_results``'s ``last_completed_matchday`` advances past this value.
+
+    Returns ``"0"`` when the tag is absent (no round completed yet), the alias
+    does not exist, or the run cannot be read — making the gate fire as soon
+    as the first round fully completes.
+    """
+    import mlflow  # noqa: PLC0415
+
+    from src.models.mlflow_utils import (  # noqa: PLC0415
+        CHAMPION_ALIAS_PER_ROUND,
+        PRODUCTION_MODEL_NAME,
+        setup_mlflow,
+    )
+
+    setup_mlflow()
+    client = mlflow.tracking.MlflowClient()
+    try:
+        mv = client.get_model_version_by_alias(PRODUCTION_MODEL_NAME, CHAMPION_ALIAS_PER_ROUND)
+    except mlflow.exceptions.MlflowException:
+        return "0"
+    try:
+        return client.get_run(mv.run_id).data.tags.get(
+            "per_round_last_completed_matchday", "0"
+        )
+    except Exception:
+        log.warning(
+            "Failed to read per_round_last_completed_matchday tag — treating as no round completed."
+        )
+        return "0"
+
+
 VALID_MODES = ("auto", "inference_only")
 CADENCE_MODES: tuple[str, ...] = ("frozen", "per_round")
 
@@ -367,11 +402,11 @@ def _safe_shadow_refit(df) -> None:
         log.exception("Shadow refit failed; continuing pipeline.")
 
 
-def _safe_per_round_refit(df, matchday: str) -> None:
+def _safe_per_round_refit(df, matchday: str, completed_matchday: str) -> None:
     """Best-effort per-round roster refit (B.3). Must not gate inference."""
     try:
         from src.models.pipeline import run_per_round_refit  # noqa: PLC0415
-        run_per_round_refit(df, matchday=matchday)
+        run_per_round_refit(df, matchday=matchday, completed_matchday=completed_matchday)
     except Exception:
         log.exception(
             "Per-round refit failed (matchday=%s); inference continues.", matchday,
@@ -432,22 +467,31 @@ def dispatch_training_or_inference(mode: str = "auto") -> None:
 
     # B.3: WC mode — per-round boundary-gated refit (post-A.10).
     # Active once champion_per_round alias is assigned; frozen never refits.
+    # Gate: fire when a round has FULLY completed (all scheduled fixtures
+    # finished), not merely when the first game of the next round exists.
+    # Uses the new per_round_last_completed_matchday tag so the gate is
+    # independent of the legacy per_round_refit_matchday tag, which may carry
+    # stale values from pre-fix runs (e.g. the premature MD1 refit of Jun 12).
     last_per_round_matchday = _last_per_round_refit_matchday()
     if last_per_round_matchday is not None:
         from src.inference.features import parse_wc_results  # noqa: PLC0415
 
         wc_data = parse_wc_results()
         next_matchday = str(wc_data["next_matchday"])
-        if next_matchday != last_per_round_matchday and next_matchday != "Complete":
+        last_completed = str(wc_data["last_completed_matchday"])
+        last_tagged = _last_per_round_completed_matchday()
+
+        if last_completed != "0" and last_completed != last_tagged and next_matchday != "Complete":
             log.info(
-                "Matchday boundary: %s → %s; per-round roster refit.",
-                last_per_round_matchday, next_matchday,
+                "Round fully complete: %s → %s; per-round roster refit for matchday=%s.",
+                last_tagged, last_completed, next_matchday,
             )
-            _safe_per_round_refit(df, matchday=next_matchday)
+            _safe_per_round_refit(df, matchday=next_matchday, completed_matchday=last_completed)
         else:
             log.info(
-                "No matchday boundary change (matchday=%s) — inference only.",
-                next_matchday,
+                "No completed round advance "
+                "(last_completed=%s, tagged=%s, next=%s) — inference only.",
+                last_completed, last_tagged, next_matchday,
             )
         _run_inference_for_all_modes()
         _safe_monitoring_step()

@@ -7,6 +7,7 @@ import pytest
 from src.pipeline.trigger import (
     VALID_MODES,
     _find_latest_run_manifest,
+    _last_per_round_completed_matchday,
     _last_per_round_refit_matchday,
     _load_manifest_hashes,
     _load_slugs,
@@ -586,21 +587,73 @@ def test_last_per_round_matchday_returns_zero_when_tag_absent(mocker):
 
 
 # ---------------------------------------------------------------------------
+# B.3 — _last_per_round_completed_matchday
+# ---------------------------------------------------------------------------
+
+def test_last_per_round_completed_matchday_returns_zero_when_alias_absent(mocker):
+    """Pre-A.10 or alias missing → '0'."""
+    import mlflow
+
+    mocker.patch("src.models.mlflow_utils.setup_mlflow")
+    mock_client = MagicMock()
+    mock_client.get_model_version_by_alias.side_effect = (
+        mlflow.exceptions.MlflowException("alias not found")
+    )
+    mocker.patch("mlflow.tracking.MlflowClient", return_value=mock_client)
+
+    assert _last_per_round_completed_matchday() == "0"
+
+
+def test_last_per_round_completed_matchday_returns_tag_when_present(mocker):
+    """Tag present → returns the stored label."""
+    mocker.patch("src.models.mlflow_utils.setup_mlflow")
+    mock_mv = MagicMock(run_id="run-tagged")
+    mock_client = MagicMock()
+    mock_client.get_model_version_by_alias.return_value = mock_mv
+    mock_client.get_run.return_value.data.tags = {"per_round_last_completed_matchday": "1"}
+    mocker.patch("mlflow.tracking.MlflowClient", return_value=mock_client)
+
+    assert _last_per_round_completed_matchday() == "1"
+
+
+def test_last_per_round_completed_matchday_returns_zero_when_tag_absent(mocker):
+    """Alias exists but tag missing → '0' (stale run like v16)."""
+    mocker.patch("src.models.mlflow_utils.setup_mlflow")
+    mock_mv = MagicMock(run_id="run-stale")
+    mock_client = MagicMock()
+    mock_client.get_model_version_by_alias.return_value = mock_mv
+    mock_client.get_run.return_value.data.tags = {"per_round_refit_matchday": "2"}
+    mocker.patch("mlflow.tracking.MlflowClient", return_value=mock_client)
+
+    assert _last_per_round_completed_matchday() == "0"
+
+
+# ---------------------------------------------------------------------------
 # B.3 — dispatch: WC boundary-gated path
 # ---------------------------------------------------------------------------
 
+def _wc_mock(next_matchday, last_completed_matchday="0"):
+    """Build a parse_wc_results mock return value with required keys."""
+    return {
+        "next_matchday": next_matchday,
+        "last_completed_matchday": last_completed_matchday,
+        "group_results": {},
+        "ko_results": {},
+        "finished_fixtures": [],
+    }
+
+
 def test_dispatch_wc_boundary_fires_per_round_refit(mocker):
-    """WC mode: matchday advanced → per-round refit fires, frozen never refits."""
+    """WC mode: round fully complete → per-round refit fires, frozen never refits."""
     mocker.patch("src.models.data_split.load_gold", return_value=MagicMock(__len__=lambda s: 200))
     mocker.patch("src.models.mlflow_utils.setup_mlflow")
     mocker.patch("src.models.mlflow_utils.get_latest_production_run_id", return_value="prod_run")
-    # post-A.10: last refit was matchday "1", now matchday "2"
-    mocker.patch(
-        "src.pipeline.trigger._last_per_round_refit_matchday", return_value="1",
-    )
+    mocker.patch("src.pipeline.trigger._last_per_round_refit_matchday", return_value="1")
+    # last_completed_matchday="1" has not yet been tagged (tagged="0") → refit fires
+    mocker.patch("src.pipeline.trigger._last_per_round_completed_matchday", return_value="0")
     mocker.patch(
         "src.inference.features.parse_wc_results",
-        return_value={"next_matchday": 2, "group_results": {}, "ko_results": {}, "finished_fixtures": []},
+        return_value=_wc_mock(next_matchday=2, last_completed_matchday="1"),
     )
     mock_per_round = mocker.patch("src.models.pipeline.run_per_round_refit")
     mock_champ_refit = mocker.patch("src.models.pipeline.run_champion_refit")
@@ -609,23 +662,23 @@ def test_dispatch_wc_boundary_fires_per_round_refit(mocker):
 
     dispatch_training_or_inference(mode="auto")
 
-    mock_per_round.assert_called_once_with(mocker.ANY, matchday="2")
+    mock_per_round.assert_called_once_with(mocker.ANY, matchday="2", completed_matchday="1")
     mock_champ_refit.assert_not_called()
     assert mock_inference.call_count == 2
     mock_monitor.assert_called_once()
 
 
 def test_dispatch_wc_no_boundary_skips_refit(mocker):
-    """WC mode: matchday unchanged → no refit, inference only."""
+    """WC mode: no round completed yet → no refit, inference only."""
     mocker.patch("src.models.data_split.load_gold", return_value=MagicMock(__len__=lambda s: 200))
     mocker.patch("src.models.mlflow_utils.setup_mlflow")
     mocker.patch("src.models.mlflow_utils.get_latest_production_run_id", return_value="prod_run")
-    mocker.patch(
-        "src.pipeline.trigger._last_per_round_refit_matchday", return_value="2",
-    )
+    mocker.patch("src.pipeline.trigger._last_per_round_refit_matchday", return_value="1")
+    # No round completed yet (MD1 in progress)
+    mocker.patch("src.pipeline.trigger._last_per_round_completed_matchday", return_value="0")
     mocker.patch(
         "src.inference.features.parse_wc_results",
-        return_value={"next_matchday": 2, "group_results": {}, "ko_results": {}, "finished_fixtures": []},
+        return_value=_wc_mock(next_matchday=2, last_completed_matchday="0"),
     )
     mock_per_round = mocker.patch("src.models.pipeline.run_per_round_refit")
     mock_inference = mocker.patch("src.inference.run.run_inference_and_simulation", return_value="inf")
@@ -639,16 +692,15 @@ def test_dispatch_wc_no_boundary_skips_refit(mocker):
 
 
 def test_dispatch_wc_complete_skips_refit(mocker):
-    """WC mode: tournament Complete → no refit even though matchday changed."""
+    """WC mode: tournament Complete → no refit even if a round was completed."""
     mocker.patch("src.models.data_split.load_gold", return_value=MagicMock(__len__=lambda s: 200))
     mocker.patch("src.models.mlflow_utils.setup_mlflow")
     mocker.patch("src.models.mlflow_utils.get_latest_production_run_id", return_value="prod_run")
-    mocker.patch(
-        "src.pipeline.trigger._last_per_round_refit_matchday", return_value="SF",
-    )
+    mocker.patch("src.pipeline.trigger._last_per_round_refit_matchday", return_value="SF")
+    mocker.patch("src.pipeline.trigger._last_per_round_completed_matchday", return_value="SF")
     mocker.patch(
         "src.inference.features.parse_wc_results",
-        return_value={"next_matchday": "Complete", "group_results": {}, "ko_results": {}, "finished_fixtures": []},
+        return_value=_wc_mock(next_matchday="Complete", last_completed_matchday="Final"),
     )
     mock_per_round = mocker.patch("src.models.pipeline.run_per_round_refit")
     mock_inference = mocker.patch("src.inference.run.run_inference_and_simulation", return_value="inf")
@@ -665,12 +717,11 @@ def test_dispatch_per_round_refit_failure_does_not_propagate(mocker):
     mocker.patch("src.models.data_split.load_gold", return_value=MagicMock(__len__=lambda s: 200))
     mocker.patch("src.models.mlflow_utils.setup_mlflow")
     mocker.patch("src.models.mlflow_utils.get_latest_production_run_id", return_value="prod_run")
-    mocker.patch(
-        "src.pipeline.trigger._last_per_round_refit_matchday", return_value="1",
-    )
+    mocker.patch("src.pipeline.trigger._last_per_round_refit_matchday", return_value="1")
+    mocker.patch("src.pipeline.trigger._last_per_round_completed_matchday", return_value="0")
     mocker.patch(
         "src.inference.features.parse_wc_results",
-        return_value={"next_matchday": "R32", "group_results": {}, "ko_results": {}, "finished_fixtures": []},
+        return_value=_wc_mock(next_matchday="R32", last_completed_matchday="3"),
     )
     mocker.patch(
         "src.models.pipeline.run_per_round_refit",
@@ -681,6 +732,50 @@ def test_dispatch_per_round_refit_failure_does_not_propagate(mocker):
 
     # Must not raise; inference continues
     dispatch_training_or_inference(mode="auto")
+    assert mock_inference.call_count == 2
+
+
+def test_dispatch_wc_no_double_fire(mocker):
+    """WC mode: round already tagged as completed → no re-fire on same round."""
+    mocker.patch("src.models.data_split.load_gold", return_value=MagicMock(__len__=lambda s: 200))
+    mocker.patch("src.models.mlflow_utils.setup_mlflow")
+    mocker.patch("src.models.mlflow_utils.get_latest_production_run_id", return_value="prod_run")
+    mocker.patch("src.pipeline.trigger._last_per_round_refit_matchday", return_value="2")
+    # "1" is already tagged as completed on the current champion_per_round
+    mocker.patch("src.pipeline.trigger._last_per_round_completed_matchday", return_value="1")
+    mocker.patch(
+        "src.inference.features.parse_wc_results",
+        return_value=_wc_mock(next_matchday=2, last_completed_matchday="1"),
+    )
+    mock_per_round = mocker.patch("src.models.pipeline.run_per_round_refit")
+    mock_inference = mocker.patch("src.inference.run.run_inference_and_simulation", return_value="inf")
+    mocker.patch("src.monitoring.monitor.run_monitoring_step")
+
+    dispatch_training_or_inference(mode="auto")
+
+    mock_per_round.assert_not_called()
+    assert mock_inference.call_count == 2
+
+
+def test_dispatch_wc_stale_v16_fires_on_md1_complete(mocker):
+    """Stale v16 (no per_round_last_completed_matchday tag → '0') + MD1 all done → fires."""
+    mocker.patch("src.models.data_split.load_gold", return_value=MagicMock(__len__=lambda s: 200))
+    mocker.patch("src.models.mlflow_utils.setup_mlflow")
+    mocker.patch("src.models.mlflow_utils.get_latest_production_run_id", return_value="prod_run")
+    # v16 has per_round_refit_matchday="2" but no per_round_last_completed_matchday
+    mocker.patch("src.pipeline.trigger._last_per_round_refit_matchday", return_value="2")
+    mocker.patch("src.pipeline.trigger._last_per_round_completed_matchday", return_value="0")
+    mocker.patch(
+        "src.inference.features.parse_wc_results",
+        return_value=_wc_mock(next_matchday=2, last_completed_matchday="1"),
+    )
+    mock_per_round = mocker.patch("src.models.pipeline.run_per_round_refit")
+    mock_inference = mocker.patch("src.inference.run.run_inference_and_simulation", return_value="inf")
+    mocker.patch("src.monitoring.monitor.run_monitoring_step")
+
+    dispatch_training_or_inference(mode="auto")
+
+    mock_per_round.assert_called_once_with(mocker.ANY, matchday="2", completed_matchday="1")
     assert mock_inference.call_count == 2
 
 

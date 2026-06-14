@@ -27,6 +27,12 @@ logger = logging.getLogger(__name__)
 
 _UPCOMING_STATUSES: Final[frozenset[str]] = frozenset({"NS", "TBD"})
 FINISHED_STATUSES: Final[frozenset[str]] = frozenset({"FT", "AET", "PEN"})
+# Statuses that mean a fixture will never be played; excluded from scheduled counts.
+_CANCELLED_STATUSES: Final[frozenset[str]] = frozenset({"CANC", "PST", "WO", "AWD", "ABD"})
+
+# Ordered sequence of matchday labels used to determine the last completed round.
+# Ordered from earliest to latest; "0" sentinel is never returned by _round_to_matchday_label.
+_MATCHDAY_ORDER: Final[tuple[str, ...]] = ("1", "2", "3", "R32", "R16", "QF", "SF", "Final")
 
 # Maps lowercase API-Football round prefix → offset to add to the in-round match number
 # to get the internal wc2026.json match number.
@@ -261,17 +267,28 @@ def parse_wc_results(
       - group_results: dict[(home, away), (home_goals, away_goals)]
       - ko_results:    dict[match_num, {home, away, home_goals, away_goals, decided_by}]
       - next_matchday: int (1/2/3 for group stage) or str stage name for KO
+      - last_completed_matchday: str label of the last fully-played round ("0" if none)
+      - finished_fixtures: list of dicts for all finished WC fixtures
     """
     fixture_files = sorted(fixtures_dir.glob("*/fixtures.json"))
     if not fixture_files:
         logger.warning("No fixtures.json files found for WC results parsing.")
-        return {"group_results": {}, "ko_results": {}, "next_matchday": 1, "finished_fixtures": []}
+        return {
+            "group_results": {},
+            "ko_results": {},
+            "next_matchday": 1,
+            "last_completed_matchday": "0",
+            "finished_fixtures": [],
+        }
 
     id_to_name = _load_api_id_to_canonical(mapping_path)
     group_results: dict[tuple[str, str], tuple[int, int]] = {}
     ko_results: dict[int, dict] = {}
     finished_fixtures: list[dict] = []
     max_group_matchday: int = 0
+    # Per-round counts for completion detection (keyed by _round_to_matchday_label).
+    scheduled_per_round: dict[str, int] = {}
+    finished_per_round: dict[str, int] = {}
 
     for fp in fixture_files:
         with open(fp) as f:
@@ -280,14 +297,24 @@ def parse_wc_results(
         for entry in data.get("response", []):
             fixture = entry.get("fixture", {})
             status = fixture.get("status", {}).get("short", "")
-            if status not in FINISHED_STATUSES:
-                continue
 
+            # League/season filter applies to all statuses.
             league = entry.get("league", {})
             if league.get("id") != 1:
                 continue
             season = league.get("season")
             if season not in _WC_SEASONS:
+                continue
+
+            round_str: str = league.get("round", "")
+            round_label = _round_to_matchday_label(round_str)
+
+            # Count all non-cancelled WC fixtures as "scheduled" for this round.
+            if status not in _CANCELLED_STATUSES and round_label is not None:
+                scheduled_per_round[round_label] = scheduled_per_round.get(round_label, 0) + 1
+
+            # Only finished fixtures contribute to results and rolling features.
+            if status not in FINISHED_STATUSES:
                 continue
 
             teams = entry.get("teams", {})
@@ -304,7 +331,6 @@ def parse_wc_results(
                 continue
             home_goals, away_goals = int(hg_raw), int(ag_raw)
 
-            round_str: str = league.get("round", "")
             is_ko = not round_str.lower().startswith("group")
             finished_fixtures.append({
                 "fixture_id": fixture.get("id"),
@@ -317,6 +343,9 @@ def parse_wc_results(
                 "round": round_str,
             })
             round_lower = round_str.lower()
+
+            if round_label is not None:
+                finished_per_round[round_label] = finished_per_round.get(round_label, 0) + 1
 
             if round_lower.startswith("group"):
                 # e.g. "Group A - 2"
@@ -342,7 +371,7 @@ def parse_wc_results(
                                 }
                         break
 
-    # Derive what stage comes next (for logging/display)
+    # Derive what stage comes next (for logging/display).
     if ko_results:
         ko_nums = set(ko_results.keys())
         if 103 in ko_nums:
@@ -362,16 +391,33 @@ def parse_wc_results(
     else:
         next_matchday = 1
 
+    # Derive last fully-completed matchday: highest round where every scheduled
+    # fixture has finished.  Stop at the first round that is still in progress
+    # or hasn't started yet (scheduled == 0).
+    last_completed_matchday: str = "0"
+    for label in _MATCHDAY_ORDER:
+        sched = scheduled_per_round.get(label, 0)
+        if sched == 0:
+            break  # round not started yet
+        done = finished_per_round.get(label, 0)
+        if done >= sched:
+            last_completed_matchday = label
+        else:
+            break  # round in progress
+
     logger.info(
-        "WC results locked: %d group matches, %d KO matches, next stage: %s",
+        "WC results locked: %d group matches, %d KO matches, next stage: %s, "
+        "last completed round: %s",
         len(group_results),
         len(ko_results),
         next_matchday,
+        last_completed_matchday,
     )
     return {
         "group_results": group_results,
         "ko_results": ko_results,
         "next_matchday": next_matchday,
+        "last_completed_matchday": last_completed_matchday,
         "finished_fixtures": finished_fixtures,
     }
 

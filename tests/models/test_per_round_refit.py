@@ -112,7 +112,7 @@ class TestRunPerRoundRefit:
         mocks = self._apply_patches(mocker)
         self._standard_setup(mocks)
 
-        run_per_round_refit(_make_df(), matchday="2")
+        run_per_round_refit(_make_df(), matchday="2", completed_matchday="1")
 
         # promote_to_production must be called exactly once with champion_per_round
         mocks["promote_to_production"].assert_called_once_with(
@@ -131,7 +131,7 @@ class TestRunPerRoundRefit:
             return mv
         mocks["register_model"].side_effect = _register
 
-        run_per_round_refit(_make_df(), matchday="R32")
+        run_per_round_refit(_make_df(), matchday="R32", completed_matchday="3")
 
         register_calls = mocks["register_model"].call_args_list
         shadow_calls = [c for c in register_calls if c.kwargs.get("model_name") == SHADOW_MODEL_NAME]
@@ -147,12 +147,13 @@ class TestRunPerRoundRefit:
         mocks = self._apply_patches(mocker)
         self._standard_setup(mocks)
 
-        run_per_round_refit(_make_df(), matchday="QF")
+        run_per_round_refit(_make_df(), matchday="QF", completed_matchday="R32")
 
         for c in mocks["start_run"].call_args_list:
             tags = c.kwargs.get("tags", {})
             assert tags.get("cadence_mode") == "per_round"
             assert tags.get("per_round_refit_matchday") == "QF"
+            assert tags.get("per_round_last_completed_matchday") == "R32"
 
     def test_all_models_produce_run_ids(self, mocker):
         from src.models.config import EXPERIMENT_MODELS
@@ -172,7 +173,7 @@ class TestRunPerRoundRefit:
             return ctx
         mocks["start_run"].side_effect = _start_run_factory
 
-        result = run_per_round_refit(_make_df(), matchday="1")
+        result = run_per_round_refit(_make_df(), matchday="2", completed_matchday="1")
 
         assert len(result) == len(EXPERIMENT_MODELS)
 
@@ -186,7 +187,7 @@ class TestRunPerRoundRefit:
         mocks["make_splits"].return_value = _mock_splits()
         mocks["_fit_with_timeout"].side_effect = TimeoutError("timed out")
 
-        result = run_per_round_refit(_make_df(), matchday="1")
+        result = run_per_round_refit(_make_df(), matchday="2", completed_matchday="1")
 
         assert result == {}
         mocks["promote_to_production"].assert_not_called()
@@ -202,7 +203,7 @@ class TestRunPerRoundRefit:
         mocks["make_splits"].return_value = _mock_splits()
         mocks["_fit_with_timeout"].side_effect = RuntimeError("kaboom")
 
-        result = run_per_round_refit(_make_df(), matchday="SF")
+        result = run_per_round_refit(_make_df(), matchday="SF", completed_matchday="QF")
 
         assert result == {}
 
@@ -219,7 +220,7 @@ class TestRunPerRoundRefit:
         mocks["_fit_with_timeout"].return_value = MagicMock()
         _setup_start_run(mocks["start_run"])
 
-        result = run_per_round_refit(_make_df(), matchday="3")
+        result = run_per_round_refit(_make_df(), matchday="3", completed_matchday="2")
 
         # Only champion fitted (no shadow metadata for others)
         assert "xgboost" in result
