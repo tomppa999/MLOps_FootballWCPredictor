@@ -26,7 +26,7 @@ Matches played: [fill]
 
 Pipeline:
 - Both modes logged inference artifacts? **Y** (pre-kickoff C.9 pass; Gold 6945 rows).
-- `champion_frozen` run_id used: `4f6ce4f0808b43fcb68d4acf10c5f1a8` (per_round inference: `5272ce72261043228b1455b0a06ed5cb`).
+- `champion_frozen` run_id used: `5f5a313ad5c14199aef0a791d2e4041a` (v15, xgboost, gold_row_count=6945; `4f6ce4f0808b43fcb68d4acf10c5f1a8` was the inference cycle run_id, not the champion model run_id) (per_round inference: `5272ce72261043228b1455b0a06ed5cb`).
 - `champion_per_round` refit fired at MD1 boundary? [fill — fires on first settled results, 0 → 1 boundary]
   - New `champion_per_round` run_id after refit: [fill]
   - Gold rows at refit time: [fill]
