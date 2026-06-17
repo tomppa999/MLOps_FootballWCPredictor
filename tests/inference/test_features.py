@@ -679,10 +679,14 @@ class TestDeriveSnapshotMetadata:
         assert meta["total_matches_completed"] == 0
 
     def test_group_stage_after_md1(self):
+        # MD1 partially in progress: 1 of 24 matches done.
+        # matchday_label advances to "2" immediately (next_matchday logic),
+        # but the in-progress round is still "1" so count should be 1.
         meta = derive_snapshot_metadata({
             "group_results": {("France", "Germany"): (2, 1)},
             "ko_results": {},
             "next_matchday": 2,
+            "last_completed_matchday": "0",
             "finished_fixtures": [
                 {
                     "round": "Group A - 1",
@@ -692,10 +696,12 @@ class TestDeriveSnapshotMetadata:
             ],
         })
         assert meta["matchday_label"] == "2"
-        assert meta["matches_completed_in_matchday"] == 0
+        assert meta["matches_completed_in_matchday"] == 1
         assert meta["total_matches_completed"] == 1
 
     def test_partial_matchday_progress(self):
+        # MD1 in progress (1 done), MD2 not yet started.
+        # in-progress round = "1" (last_completed="0"), count = 1 MD1 fixture.
         meta = derive_snapshot_metadata({
             "group_results": {
                 ("France", "Germany"): (2, 1),
@@ -703,22 +709,26 @@ class TestDeriveSnapshotMetadata:
             },
             "ko_results": {},
             "next_matchday": 2,
+            "last_completed_matchday": "0",
             "finished_fixtures": [
                 {"round": "Group A - 1", "home_team": "France", "away_team": "Germany"},
-                {"round": "Group B - 2", "home_team": "Brazil", "away_team": "Argentina"},
+                {"round": "Group A - 1", "home_team": "Brazil", "away_team": "Argentina"},
             ],
         })
         assert meta["matchday_label"] == "2"
-        assert meta["matches_completed_in_matchday"] == 1
+        assert meta["matches_completed_in_matchday"] == 2
         assert meta["total_matches_completed"] == 2
 
     def test_ko_stage_r16(self):
+        # R32 fully complete, R16 not yet started.
+        # in-progress round = "R16" (last_completed="R32"), count = 0 R16 fixtures.
         meta = derive_snapshot_metadata({
             "group_results": {},
             "ko_results": {
                 90: {"home": "France", "away": "Germany", "home_goals": 2, "away_goals": 1},
             },
             "next_matchday": "R16",
+            "last_completed_matchday": "R32",
             "finished_fixtures": [
                 {"round": "Round of 32 - 3", "home_team": "France", "away_team": "Germany"},
             ],

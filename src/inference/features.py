@@ -455,7 +455,12 @@ def derive_snapshot_metadata(wc_results: dict) -> dict[str, str | int]:
 
     Returns:
         matchday_label: round currently being predicted (from ``next_matchday``).
-        matches_completed_in_matchday: finished fixtures in that round so far.
+        matches_completed_in_matchday: finished fixtures in the currently
+            in-progress round (the round immediately after
+            ``last_completed_matchday``). This differs from ``matchday_label``
+            while a round is partially done: e.g. with 16/24 MD1 matches
+            settled, ``matchday_label="2"`` but the in-progress round is "1"
+            and ``matches_completed_in_matchday=16``.
         total_matches_completed: monotonic count of all locked group + KO matches.
     """
     matchday_label = str(wc_results.get("next_matchday", 1))
@@ -463,10 +468,24 @@ def derive_snapshot_metadata(wc_results: dict) -> dict[str, str | int]:
     ko_results = wc_results.get("ko_results", {})
     total_matches_completed = len(group_results) + len(ko_results)
 
+    # Determine the in-progress round: immediately after last_completed_matchday
+    # in _MATCHDAY_ORDER.  Falls back to matchday_label when the sentinel "0"
+    # maps to an unknown position or the order is exhausted.
+    last_completed = str(wc_results.get("last_completed_matchday", "0"))
+    if last_completed == "0":
+        in_progress_label: str = "1"
+    elif last_completed in _MATCHDAY_ORDER:
+        idx = _MATCHDAY_ORDER.index(last_completed)
+        in_progress_label = (
+            _MATCHDAY_ORDER[idx + 1] if idx + 1 < len(_MATCHDAY_ORDER) else matchday_label
+        )
+    else:
+        in_progress_label = matchday_label
+
     matches_completed_in_matchday = 0
     for fixture in wc_results.get("finished_fixtures", []):
         label = _round_to_matchday_label(fixture.get("round", ""))
-        if label == matchday_label:
+        if label == in_progress_label:
             matches_completed_in_matchday += 1
 
     return {
