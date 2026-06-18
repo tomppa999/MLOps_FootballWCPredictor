@@ -309,7 +309,10 @@ def parse_wc_results(
       - last_completed_matchday: str label of the last fully-played round ("0" if none)
       - finished_fixtures: list of dicts for all finished WC fixtures
     """
-    fixture_files = sorted(fixtures_dir.glob("*/fixtures.json"))
+    # Newest window first so that when the same fixture_id appears in multiple
+    # windows (e.g. status "1H" in an older window, "FT" in the latest),
+    # the most-recent status wins and the stale entry is skipped by seen_fixture_ids.
+    fixture_files = sorted(fixtures_dir.glob("*/fixtures.json"), reverse=True)
     if not fixture_files:
         logger.warning("No fixtures.json files found for WC results parsing.")
         return {

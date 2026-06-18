@@ -694,6 +694,36 @@ class TestParseWcResults:
         assert len(result["finished_fixtures"]) == 1
         assert len(result["group_results"]) == 1
 
+    def test_newer_window_status_beats_stale_older_window(self, tmp_path):
+        """Newer window's FT beats older window's in-progress status for same fixture_id.
+
+        Real scenario: a fixture is ingested as '1H' (in progress) in an earlier
+        window and then as 'FT' in a later window.  The FT must win so that
+        last_completed_matchday advances correctly.
+        """
+        fixtures_dir = tmp_path / "fixtures"
+        mapping = tmp_path / "mapping.csv"
+        _write_team_mapping(mapping, [
+            {"name": "France", "api_id": 2},
+            {"name": "Germany", "api_id": 25},
+        ])
+        # Older window: fixture still in progress
+        _write_finished_fixture(fixtures_dir, {
+            "id": 1, "status": "1H",
+            "league_id": 1, "round": "Group A - 1",
+            "home_id": 2, "home_goals": None, "away_id": 25, "away_goals": None,
+        }, window="2026-06-15_2026-06-17")
+        # Newer window: same fixture_id now finished
+        _write_finished_fixture(fixtures_dir, {
+            "id": 1, "status": "FT",
+            "league_id": 1, "round": "Group A - 1",
+            "home_id": 2, "home_goals": 2, "away_id": 25, "away_goals": 1,
+        }, window="2026-06-16_2026-06-18")
+        result = parse_wc_results(fixtures_dir, mapping, _expected_per_round={"1": 1})
+        assert result["last_completed_matchday"] == "1"
+        assert len(result["finished_fixtures"]) == 1
+        assert result["finished_fixtures"][0]["home_goals"] == 2
+
 
 # ---------------------------------------------------------------------------
 # derive_snapshot_metadata
