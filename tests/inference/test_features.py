@@ -562,11 +562,11 @@ class TestParseWcResults:
             "league_id": 1, "round": "Group A - 1",
             "home_id": 2, "home_goals": None, "away_id": 25, "away_goals": None,
         })
-        result = parse_wc_results(fixtures_dir, mapping)
+        result = parse_wc_results(fixtures_dir, mapping, _expected_per_round={"1": 2})
         assert result["last_completed_matchday"] == "0"
 
     def test_round_fully_complete_last_completed_equals_label(self, tmp_path):
-        """All scheduled fixtures finished → last_completed_matchday = '1'."""
+        """All expected fixtures finished → last_completed_matchday = '1'."""
         fixtures_dir = tmp_path / "fixtures"
         mapping = tmp_path / "mapping.csv"
         _write_team_mapping(mapping, [
@@ -583,11 +583,11 @@ class TestParseWcResults:
             "league_id": 1, "round": "Group B - 1",
             "home_id": 2, "home_goals": 2, "away_id": 25, "away_goals": 2,
         })
-        result = parse_wc_results(fixtures_dir, mapping)
+        result = parse_wc_results(fixtures_dir, mapping, _expected_per_round={"1": 2})
         assert result["last_completed_matchday"] == "1"
 
     def test_cancelled_fixtures_excluded_from_scheduled(self, tmp_path):
-        """Cancelled fixture does not count as scheduled; only the FT one does."""
+        """CANC fixture does not count as finished; 1 FT meets expected=1 → complete."""
         fixtures_dir = tmp_path / "fixtures"
         mapping = tmp_path / "mapping.csv"
         _write_team_mapping(mapping, [
@@ -604,8 +604,7 @@ class TestParseWcResults:
             "league_id": 1, "round": "Group A - 1",
             "home_id": 2, "home_goals": None, "away_id": 25, "away_goals": None,
         })
-        result = parse_wc_results(fixtures_dir, mapping)
-        # 1 scheduled (FT only; CANC excluded), 1 finished → complete
+        result = parse_wc_results(fixtures_dir, mapping, _expected_per_round={"1": 1})
         assert result["last_completed_matchday"] == "1"
 
     def test_earlier_round_complete_later_in_progress(self, tmp_path):
@@ -633,7 +632,7 @@ class TestParseWcResults:
             "league_id": 1, "round": "Group B - 2",
             "home_id": 2, "home_goals": None, "away_id": 25, "away_goals": None,
         })
-        result = parse_wc_results(fixtures_dir, mapping)
+        result = parse_wc_results(fixtures_dir, mapping, _expected_per_round={"1": 1, "2": 2})
         assert result["last_completed_matchday"] == "1"
 
     def test_ko_round_fully_complete_last_completed_equals_ko_label(self, tmp_path):
@@ -657,8 +656,43 @@ class TestParseWcResults:
             "league_id": 1, "round": "Round of 32 - 1",
             "home_id": 2, "home_goals": 2, "away_id": 25, "away_goals": 0,
         })
-        result = parse_wc_results(fixtures_dir, mapping)
+        result = parse_wc_results(
+            fixtures_dir, mapping,
+            _expected_per_round={"1": 1, "2": 1, "3": 1, "R32": 1},
+        )
         assert result["last_completed_matchday"] == "R32"
+
+    def test_duplicate_fixture_ids_across_seasons_are_deduplicated(self, tmp_path):
+        """Same fixture_id appearing under season 2025 and 2026 is counted once.
+
+        API-Football returns WC fixtures under both season values for cross-year
+        tournaments.  Without deduplication, scheduled_per_round and
+        finished_per_round are inflated, breaking last_completed_matchday and
+        matches_completed_in_matchday.
+        """
+        fixtures_dir = tmp_path / "fixtures"
+        mapping = tmp_path / "mapping.csv"
+        _write_team_mapping(mapping, [
+            {"name": "France", "api_id": 2},
+            {"name": "Germany", "api_id": 25},
+        ])
+        # Same fixture (id=1) under season 2026
+        _write_finished_fixture(fixtures_dir, {
+            "id": 1, "status": "FT", "season": 2026,
+            "league_id": 1, "round": "Group A - 1",
+            "home_id": 2, "home_goals": 1, "away_id": 25, "away_goals": 0,
+        })
+        # Same fixture (id=1) again under season 2025 — duplicate
+        _write_finished_fixture(fixtures_dir, {
+            "id": 1, "status": "FT", "season": 2025,
+            "league_id": 1, "round": "Group A - 1",
+            "home_id": 2, "home_goals": 1, "away_id": 25, "away_goals": 0,
+        })
+        result = parse_wc_results(fixtures_dir, mapping, _expected_per_round={"1": 1})
+        # Only 1 unique fixture — finished=1, expected=1 → round complete
+        assert result["last_completed_matchday"] == "1"
+        assert len(result["finished_fixtures"]) == 1
+        assert len(result["group_results"]) == 1
 
 
 # ---------------------------------------------------------------------------

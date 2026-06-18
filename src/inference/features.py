@@ -27,8 +27,6 @@ logger = logging.getLogger(__name__)
 
 _UPCOMING_STATUSES: Final[frozenset[str]] = frozenset({"NS", "TBD"})
 FINISHED_STATUSES: Final[frozenset[str]] = frozenset({"FT", "AET", "PEN"})
-# Statuses that mean a fixture will never be played; excluded from scheduled counts.
-_CANCELLED_STATUSES: Final[frozenset[str]] = frozenset({"CANC", "PST", "WO", "AWD", "ABD"})
 
 # Ordered sequence of matchday labels used to determine the last completed round.
 # Ordered from earliest to latest; "0" sentinel is never returned by _round_to_matchday_label.
@@ -253,15 +251,56 @@ def generate_wc_group_fixtures(config_path: Path = _WC2026_CONFIG_PATH) -> pd.Da
     return df
 
 
+def _load_expected_matches_per_round(
+    config_path: Path = _WC2026_CONFIG_PATH,
+) -> dict[str, int]:
+    """Return the expected number of matches per round label from the tournament config.
+
+    Used instead of counting ``scheduled`` fixtures from the API, which is
+    unreliable because API-Football returns stale NS entries for the same
+    match under both season 2025 and season 2026 with *different* fixture_ids
+    — making fixture_id deduplication insufficient.
+    """
+    try:
+        with open(config_path) as f:
+            config = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        logger.warning("Could not load tournament config from %s — expected counts unavailable.", config_path)
+        return {}
+
+    expected: dict[str, int] = {}
+
+    n_groups = len(config.get("groups", {}))
+    for md in config.get("group_matchdays", []):
+        label = str(md["matchday"])
+        expected[label] = n_groups * len(md["pairs"])
+
+    r32_count = len(config.get("r32_matches", []))
+    if r32_count:
+        expected["R32"] = r32_count
+
+    for match in config.get("ko_bracket", []):
+        stage = match.get("stage", "")
+        if stage in ("R16", "QF", "SF", "Final"):
+            expected[stage] = expected.get(stage, 0) + 1
+
+    return expected
+
+
 def parse_wc_results(
     fixtures_dir: Path = _FIXTURES_DIR,
     mapping_path: Path = _TEAM_MAPPING_PATH,
+    _expected_per_round: dict[str, int] | None = None,
 ) -> dict:
     """Parse finished WC 2026 fixtures from Bronze and return locked results.
 
     Scans all fixtures.json files, filters for league_id==1 (FIFA World Cup)
     and statuses in FINISHED_STATUSES, then separates group-stage matches
     from KO matches.
+
+    Args:
+        _expected_per_round: override expected match counts per round label.
+            Only for testing — production uses counts from wc2026.json.
 
     Returns a dict with:
       - group_results: dict[(home, away), (home_goals, away_goals)]
@@ -281,14 +320,19 @@ def parse_wc_results(
             "finished_fixtures": [],
         }
 
+    if _expected_per_round is None:
+        _expected_per_round = _load_expected_matches_per_round()
+
     id_to_name = _load_api_id_to_canonical(mapping_path)
     group_results: dict[tuple[str, str], tuple[int, int]] = {}
     ko_results: dict[int, dict] = {}
     finished_fixtures: list[dict] = []
     max_group_matchday: int = 0
-    # Per-round counts for completion detection (keyed by _round_to_matchday_label).
-    scheduled_per_round: dict[str, int] = {}
+    # Counts only finished fixtures per round (for completion detection).
     finished_per_round: dict[str, int] = {}
+    # Deduplicate by fixture_id across fixture files (API-Football returns WC
+    # fixtures under both season 2025 and season 2026 for cross-year tournaments).
+    seen_fixture_ids: set[int] = set()
 
     for fp in fixture_files:
         with open(fp) as f:
@@ -306,12 +350,14 @@ def parse_wc_results(
             if season not in _WC_SEASONS:
                 continue
 
+            fixture_id = fixture.get("id")
+            if fixture_id is not None and fixture_id in seen_fixture_ids:
+                continue
+            if fixture_id is not None:
+                seen_fixture_ids.add(fixture_id)
+
             round_str: str = league.get("round", "")
             round_label = _round_to_matchday_label(round_str)
-
-            # Count all non-cancelled WC fixtures as "scheduled" for this round.
-            if status not in _CANCELLED_STATUSES and round_label is not None:
-                scheduled_per_round[round_label] = scheduled_per_round.get(round_label, 0) + 1
 
             # Only finished fixtures contribute to results and rolling features.
             if status not in FINISHED_STATUSES:
@@ -391,16 +437,18 @@ def parse_wc_results(
     else:
         next_matchday = 1
 
-    # Derive last fully-completed matchday: highest round where every scheduled
-    # fixture has finished.  Stop at the first round that is still in progress
-    # or hasn't started yet (scheduled == 0).
+    # Derive last fully-completed matchday: highest round where finished count
+    # meets the expected count from the tournament config.  Using config-derived
+    # expected counts instead of API scheduled counts avoids inflation from stale
+    # NS entries that API-Football returns with different fixture_ids across
+    # season 2025 and 2026, which fixture_id deduplication cannot catch.
     last_completed_matchday: str = "0"
     for label in _MATCHDAY_ORDER:
-        sched = scheduled_per_round.get(label, 0)
-        if sched == 0:
-            break  # round not started yet
+        expected = _expected_per_round.get(label, 0)
+        if expected == 0:
+            break  # round not in config or not started
         done = finished_per_round.get(label, 0)
-        if done >= sched:
+        if done >= expected:
             last_completed_matchday = label
         else:
             break  # round in progress
