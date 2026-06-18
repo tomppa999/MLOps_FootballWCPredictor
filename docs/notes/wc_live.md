@@ -22,14 +22,14 @@ and end-of-matchday summaries.
 
 ## Matchday 1 — Group Stage Round 1 (Jun 11–12)
 
-Matches played: [fill]
+Matches played: 24
 
 Pipeline:
 - Both modes logged inference artifacts? **Y** (pre-kickoff C.9 pass; Gold 6945 rows).
 - `champion_frozen` run_id used: `5f5a313ad5c14199aef0a791d2e4041a` (v15, xgboost, gold_row_count=6945; `4f6ce4f0808b43fcb68d4acf10c5f1a8` was the inference cycle run_id, not the champion model run_id) (per_round inference: `5272ce72261043228b1455b0a06ed5cb`).
-- `champion_per_round` refit fired at MD1 boundary? [fill — fires on first settled results, 0 → 1 boundary]
-  - New `champion_per_round` run_id after refit: [fill]
-  - Gold rows at refit time: [fill]
+- `champion_per_round` refit fired at MD1 boundary? **Y** — fired Jun 18 after all 24 MD1 fixtures reached FT. Image `20260618b` with the three `parse_wc_results` fixes enabled the gate to see `last_completed_matchday = "1"` (previously stuck at "0").
+  - New `champion_per_round` run_id after refit: `c522bd72cd274889829d06f10165b76e`
+  - Gold rows at refit time: 6969
 - Any failures or anomalies: **DagsHub maintenance outage on go-live day** (~09:46–~19:5x UTC). Git + artifact service down: crashed the first C.9 `inference_only` run at `git push`, then blocked all artifact reads/writes (HTTP 500 on `artifacts/list` and download, for every run). Re-ran C.9 successfully after git recovered; dashboard/artifact access restored once the `mlflow-artifacts` proxy came back. Freeze stayed intact throughout (Gold unchanged at 6945 rows, run metadata healthy, aliases correct).
 - **Jun 12: post-Match-1 inference cycle crashed** — duplicate `fixture_id` when `wc_results_to_gold_rows` returned Match 1's result as a stub while the nightly pipeline had already landed it in Gold. `pd.concat` produced two rows with the same `fixture_id`; `add_days_since_last_match` then set a non-unique index, corrupting feature output. Fixed in commit `b8f9c5a6` (deduplication guard in `run.py` + defensive `drop_duplicates` in `temporal_features.py`), deployed as image `20260612a`. First successful monitoring cycle ran after Match 2. Post-fix: pipeline auto-commits resumed normally (multiple `data: auto-update pipeline 2026-06-12` commits confirm stable hourly cycles).
 - **Jun 12: `champion_per_round` refitted prematurely (v16 / local v8)** — two compounding causes: (1) the frozen champion run (v15/v7) had no `per_round_refit_matchday` tag, so `_last_per_round_refit_matchday()` defaulted to `"0"`; (2) `next_matchday` advances to `"2"` as soon as the *first* group-stage match settles (`max_group_matchday + 1` logic in `features.py`), not after all 24 MD1 games are done (12 groups × 2). Combined: condition `"2" != "0"` fired on the first `auto`-mode pipeline run after Match 1 settled, retraining on only 6946 Gold rows (+1 vs frozen). **For MD1 analysis: use `champion_frozen` predictions for both cadence modes** — v16 is a premature artefact and carries no meaningful new information.
@@ -37,7 +37,26 @@ Pipeline:
 - **Jun 14: monitoring efficiency improvement (image `20260614b`)** — monitoring now skips MLflow re-logging when the settled match count is unchanged since the last cycle (gate queries `n_scored_matches` from the most recent monitoring run; fails safe to "log anyway" if DagsHub is unreachable), and per-match metric writes are batched into a single `log_batch` call instead of one HTTP request per metric. Reduces the monitoring phase from ~12 min to <1 s on no-change ticks. See commit `b814beaf`.
 
 Observations:
-- First 2 matches scored across all 8 models × 2 cadence modes. Match 1 (MX 2–0 SA): all team-aware models correct direction (p_home 71–79%), RF and SARIMAX best RPS (~0.024–0.027). Match 2 (KOR 2–1 CZE): near-coin-flip, ridge/sarimax overestimated Czechia (λ_a ≈ 1.40 vs actual 1 goal), RF best (RPS 0.256). `mean_rate_poisson` non-competitive on Match 1 (RPS 0.267 — no team-strength signal), trivially middle-of-pack on the coin-flip Match 2. Cumulative RPS after 2 matches: RF 0.140, XGB 0.154, negbin_glm 0.163 — all well clear of the 0.235 naive floor. No alert window breach possible yet (need 24 scored matches). Frozen and per_round predictions are identical (cadence not yet diverged; `champion_per_round` refit has not fired).
+
+MD1 leaderboard — all 24 matches, `per_round` cadence (frozen identical):
+
+| Model             | Mean RPS ↑ | Mean RMSE | Mean NLL |
+|-------------------|------------|-----------|----------|
+| ridge             | **0.2074** | 0.9218    | 3.027    |
+| xgboost           | 0.2077     | 0.9812    | 3.111    |
+| random_forest     | 0.2089     | 0.9789    | 3.089    |
+| poisson_glm       | 0.2131     | 0.9576    | 3.061    |
+| bayesian_poisson  | 0.2142     | 0.9625    | 3.063    |
+| negbin_glm        | 0.2170     | 0.9699    | 3.074    |
+| **mean_rate (floor)** | 0.2181 | 0.9901 | 3.253    |
+| sarimax           | 0.2208     | 0.9530    | 3.034    |
+
+- No alert window breach — all 7 team-aware models finished below the naive floor (0.218). First 24-match alert window now active.
+- RPS spread is narrow (ridge 0.207 to sarimax 0.221); ridge leads on RPS but has the best RMSE too. Sarimax trails on RPS despite a low NLL — the draw penalty lands harder for it.
+- Worst match: CIV 1–0 ECU — models had Ivory Coast as heavy underdogs (p_home ~0.13); sarimax RPS 0.663, negbin 0.596. GHA 1–0 PAN similar (RF/negbin ~0.54–0.55). Both genuine upsets for the WC format.
+- Best match: GER 7–1 CUR — negbin RPS 0.008, poisson_glm 0.012; correctly priced dominant favorite at p_home ~0.85–0.88.
+- SARIMAX anomaly: λ_away = 1e-06 for ESP vs CPV — degenerate near-zero rate (numerically clipped). No crash but flagged as reliability concern for high-asymmetry fixtures.
+- Frozen and per_round predictions identical throughout all of MD1. Divergence begins MD2 (per_round refit fired Jun 18, new `champion_per_round` run_id `c522bd72...`).
 
 ---
 
@@ -46,9 +65,9 @@ Observations:
 Matches played: [fill]
 
 Pipeline:
-- Both modes logged? Y/N
-- per_round refit fired? Y/N. New run_id:
-- Any failures:
+- Both modes logged? **Y** — frozen @ 14:01 UTC, per_round @ 14:09 UTC; Gold 6969 rows, 24 MD1 matches settled.
+- per_round refit fired? N/A — MD2 boundary refit fires only after all 24 MD2 fixtures settle. Current: 0/24.
+- Any failures: None. First clean dual-mode run since `20260618b` deployment.
 
 Observations:
 -
