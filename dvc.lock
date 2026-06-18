@@ -5,9 +5,9 @@ stages:
     deps:
     - path: data/raw
       hash: md5
-      md5: fa40a39546c3bc7d266e75140fff391f.dir
-      size: 32959428
-      nfiles: 8089
+      md5: cfdb0ddb32b525eb0157eddc4f93c0c4.dir
+      size: 32963354
+      nfiles: 8090
     - path: src/silver/
       hash: md5
       md5: 479f03c67f1afcc49827a012fcda0582.dir
@@ -16,16 +16,16 @@ stages:
     outs:
     - path: data/silver
       hash: md5
-      md5: c6143adcc243f55498c31be3cec5c362.dir
-      size: 1050651
+      md5: f034dbddf3e56a93fddc7a98ab18e6e4.dir
+      size: 1050911
       nfiles: 10
   gold:
     cmd: python -m src.gold.build_gold
     deps:
     - path: data/silver
       hash: md5
-      md5: c6143adcc243f55498c31be3cec5c362.dir
-      size: 1050651
+      md5: f034dbddf3e56a93fddc7a98ab18e6e4.dir
+      size: 1050911
       nfiles: 10
     - path: src/gold/
       hash: md5
@@ -35,6 +35,6 @@ stages:
     outs:
     - path: data/gold
       hash: md5
-      md5: 457392083148710aeda7a8c327fd5a57.dir
-      size: 508613
+      md5: 7a338730cd94e0ba90a6460f7fcfdf25.dir
+      size: 508646
       nfiles: 1
