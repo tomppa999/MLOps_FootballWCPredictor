@@ -1,7 +1,7 @@
 {
-  "run_id": "3073f4988648462aa77fd3a3614d830e",
+  "run_id": "9c96aac2580f49a6a166ab52e3c9483e",
   "n_sims": 10000,
-  "champion_run_id": "e8e7b193e6fd454586ecd36b1586e7b7",
-  "champion_model_name": "ridge",
-  "inference_timestamp": "2026-06-11T19:25:54.387955+00:00"
+  "champion_run_id": "5f5a313ad5c14199aef0a791d2e4041a",
+  "champion_model_name": "xgboost",
+  "inference_timestamp": "2026-06-22T16:06:17.197651+00:00"
 }
