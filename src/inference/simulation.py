@@ -100,6 +100,49 @@ def load_tournament_config(path: Path = TOURNAMENT_CONFIG_PATH) -> dict:
         return json.load(f)
 
 
+def _ko_match_rates(
+    home_team: str,
+    away_team: str,
+    venue: str,
+    rate_lookup: dict[tuple[str, str], tuple[float, float]],
+    venue_country: dict[str, str],
+    host_nations: set[str],
+) -> tuple[float, float]:
+    """Return ``(lambda_h, lambda_a)`` oriented to the bracket slots.
+
+    Home advantage is already baked into ``rate_lookup`` at prediction time:
+    each host's home-oriented prediction is stored with the host as
+    ``home_team`` (``is_neutral=False``).  This picks the correct stored rate
+    for the home-advantaged team and maps each team's rate onto its bracket
+    slot — with NO swap, so the host never inherits the opponent's rate.
+
+    - Exactly one host in the match -> that host is home-advantaged.
+    - Two hosts -> the venue host (``venue_country[venue]``) is home-advantaged;
+      if the venue is not one of the two, fall back to the bracket ``home_team``
+      (documented approximation).
+    - Zero hosts -> neutral; use the stored ``(home_team, away_team)`` rate.
+    """
+    hosts_in_match = [t for t in (home_team, away_team) if t in host_nations]
+
+    advantaged: str | None
+    if len(hosts_in_match) == 1:
+        advantaged = hosts_in_match[0]
+    elif len(hosts_in_match) == 2:
+        venue_host = venue_country.get(venue)
+        advantaged = venue_host if venue_host in hosts_in_match else home_team
+    else:
+        advantaged = None
+
+    if advantaged is None:
+        return rate_lookup.get((home_team, away_team), (1.2, 1.2))
+
+    other = away_team if advantaged == home_team else home_team
+    adv_rate, other_rate = rate_lookup.get((advantaged, other), (1.2, 1.2))
+    if advantaged == home_team:
+        return adv_rate, other_rate
+    return other_rate, adv_rate
+
+
 def _resolve_ko_match(
     lambda_h: float,
     lambda_a: float,
@@ -445,6 +488,7 @@ def simulate_tournament(
             match_num = m["match"]
             home_slot = m["home"]
             away_slot = m["away"]
+            venue = m.get("venue", "")
 
             if locked_ko_results and match_num in locked_ko_results:
                 locked = locked_ko_results[match_num]
@@ -467,8 +511,10 @@ def simulate_tournament(
 
             ko_pairing_counts["R32"][tuple(sorted((home_team, away_team)))] += 1
             ko_slot_pairing_counts.setdefault(match_num, Counter())[(home_team, away_team)] += 1
-            rates = rate_lookup.get((home_team, away_team), (1.2, 1.2))
-            hg, ag, _ = _resolve_ko_match(rates[0], rates[1], rng)
+            lh, la = _ko_match_rates(
+                home_team, away_team, venue, rate_lookup, venue_country, host_nations
+            )
+            hg, ag, _ = _resolve_ko_match(lh, la, rng)
             winner = home_team if hg > ag else away_team
             r32_winners[match_num] = winner
 
@@ -510,13 +556,9 @@ def simulate_tournament(
             ko_pairing_counts[stage][tuple(sorted((home_team, away_team)))] += 1
             ko_slot_pairing_counts.setdefault(match_num, Counter())[(home_team, away_team)] += 1
 
-            rates = rate_lookup.get((home_team, away_team), (1.2, 1.2))
-            lh, la = rates
-
-            venue_host = venue_country.get(venue)
-            if venue_host and venue_host in host_nations:
-                if away_team == venue_host:
-                    lh, la = la, lh
+            lh, la = _ko_match_rates(
+                home_team, away_team, venue, rate_lookup, venue_country, host_nations
+            )
 
             hg, ag, _ = _resolve_ko_match(lh, la, rng)
             winner = home_team if hg > ag else away_team

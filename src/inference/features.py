@@ -135,11 +135,14 @@ def generate_all_wc_pairings(
     config_path: Path = _WC2026_CONFIG_PATH,
     reference_date: pd.Timestamp | None = None,
 ) -> pd.DataFrame:
-    """Generate all C(48,2) = 1128 ordered team pairings for rate prediction.
+    """Generate the C(48,2) = 1128 team pairings for rate prediction.
 
-    Every pair appears once as (home, away); the simulation mirrors rates for
-    the reverse direction automatically.  All matches use WC-level context
-    features (neutral venue, tier 1).
+    Most pairs appear once as (home, away) and the simulation mirrors rates
+    for the reverse direction automatically.  Host-vs-host pairs are emitted
+    in BOTH orientations (each host as ``home_team``) so that the venue host's
+    home-advantaged rate is available regardless of bracket slot — with the
+    three 2026 hosts that adds 3 extra rows (1131 total).  All matches use
+    WC-level context features (neutral venue, tier 1).
 
     When *reference_date* is given the pairings use that date so that
     ``build_inference_features`` rolling lookups (``date_utc < match_date``)
@@ -153,18 +156,10 @@ def generate_all_wc_pairings(
         logger.warning("Expected 48 WC teams, got %d", len(teams))
 
     base_date = reference_date if reference_date is not None else pd.Timestamp("2026-06-11")
-    rows: list[dict] = []
-    for team_a, team_b in combinations(sorted(teams), 2):
-        # When a host nation is involved, place it in home_team so that the
-        # is_neutral=False override (applied later) gives the model's learned
-        # home advantage to the correct team.
-        if team_b in WC_2026_HOSTS and team_a not in WC_2026_HOSTS:
-            home, away = team_b, team_a
-        else:
-            home, away = team_a, team_b
 
-        rows.append({
-            "fixture_id": f"wc2026_pair_{team_a}_{team_b}",
+    def _row(home: str, away: str) -> dict:
+        return {
+            "fixture_id": f"wc2026_pair_{home}_{away}",
             "date_utc": base_date,
             "home_team": home,
             "away_team": away,
@@ -174,7 +169,28 @@ def generate_all_wc_pairings(
             "competition_tier": 1,
             "is_knockout": False,
             "is_neutral": True,
-        })
+        }
+
+    rows: list[dict] = []
+    for team_a, team_b in combinations(sorted(teams), 2):
+        a_host = team_a in WC_2026_HOSTS
+        b_host = team_b in WC_2026_HOSTS
+
+        if a_host and b_host:
+            # Host-vs-host: home advantage is positional, so a single stored
+            # row would only carry one host's home-oriented rate. Emit BOTH
+            # orientations (each host as home_team) so the simulation can
+            # recover the venue host's true home rate. The is_neutral=False
+            # override (applied below) attaches the boost to each home_team.
+            rows.append(_row(team_a, team_b))
+            rows.append(_row(team_b, team_a))
+        elif b_host:
+            # Exactly one host (team_b): place it in home_team so the
+            # is_neutral=False override gives the host its home advantage.
+            rows.append(_row(team_b, team_a))
+        else:
+            # Non-host pair, or host is already team_a — keep alphabetical.
+            rows.append(_row(team_a, team_b))
 
     df = pd.DataFrame(rows)
     df["date_utc"] = pd.to_datetime(df["date_utc"])

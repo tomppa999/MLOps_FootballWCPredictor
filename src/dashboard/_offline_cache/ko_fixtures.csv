@@ -1,32 +1,32 @@
 match_num,stage,home_team,away_team,status,home_goals,away_goals,decided_by,pairing_frequency
-73,R32,South Korea,Switzerland,predicted,,,,0.4635
-74,R32,Germany,Paraguay,predicted,,,,0.4917
-75,R32,Netherlands,Morocco,predicted,,,,0.4801
-76,R32,Brazil,Japan,predicted,,,,0.3529
-77,R32,France,Sweden,predicted,,,,0.5177
-78,R32,Ivory Coast,Norway,predicted,,,,0.4686
-79,R32,Mexico,Scotland,predicted,,,,0.524
-80,R32,England,DR Congo,predicted,,,,0.2485
-81,R32,United States,Bosnia and Herzegovina,predicted,,,,0.5391
-82,R32,Egypt,Czechia,predicted,,,,0.1049
-83,R32,Portugal,Croatia,predicted,,,,0.386
-84,R32,Spain,Austria,predicted,,,,0.5027
-85,R32,Canada,Iran,predicted,,,,0.1523
-86,R32,Argentina,Cape Verde,predicted,,,,0.4665
-87,R32,Colombia,Ghana,predicted,,,,0.3139
-88,R32,Australia,Belgium,predicted,,,,0.4119
-89,R16,Germany,France,predicted,,,,0.4035
-90,R16,South Korea,Netherlands,predicted,,,,0.1484
-91,R16,Brazil,Norway,predicted,,,,0.1824
-92,R16,Mexico,England,predicted,,,,0.4477
-93,R16,Croatia,Spain,predicted,,,,0.2272
-94,R16,United States,Egypt,predicted,,,,0.1863
-95,R16,Argentina,Australia,predicted,,,,0.2875
-96,R16,Canada,Colombia,predicted,,,,0.1787
-97,QF,France,Netherlands,predicted,,,,0.1054
-98,QF,Spain,United States,predicted,,,,0.1466
-99,QF,Brazil,England,predicted,,,,0.1496
-100,QF,Argentina,Colombia,predicted,,,,0.2443
-101,SF,France,United States,predicted,,,,0.0765
-102,SF,England,Argentina,predicted,,,,0.1264
-103,Final,United States,Argentina,predicted,,,,0.0486
+73,R32,South Africa,Canada,predicted,,,,1.0
+74,R32,Germany,Paraguay,predicted,,,,0.4596
+75,R32,Netherlands,Morocco,predicted,,,,0.6853
+76,R32,Brazil,Japan,predicted,,,,0.5361
+77,R32,France,Sweden,predicted,,,,0.3965
+78,R32,Ivory Coast,Norway,predicted,,,,0.6422
+79,R32,Mexico,Scotland,predicted,,,,0.2716
+80,R32,England,DR Congo,predicted,,,,0.276
+81,R32,United States,Bosnia and Herzegovina,predicted,,,,0.9989
+82,R32,Egypt,South Korea,predicted,,,,0.5006
+83,R32,Portugal,Croatia,predicted,,,,0.4228
+84,R32,Spain,Austria,predicted,,,,0.5578
+85,R32,Switzerland,Algeria,predicted,,,,0.3633
+86,R32,Argentina,Cape Verde,predicted,,,,0.5804
+87,R32,Colombia,Ghana,predicted,,,,0.5488
+88,R32,Australia,Belgium,predicted,,,,0.4117
+89,R16,Germany,France,predicted,,,,0.4308
+90,R16,Canada,Morocco,predicted,,,,0.3438
+91,R16,Brazil,Norway,predicted,,,,0.3715
+92,R16,Mexico,England,predicted,,,,0.4006
+93,R16,Portugal,Spain,predicted,,,,0.264
+94,R16,United States,South Korea,predicted,,,,0.2894
+95,R16,Argentina,Australia,predicted,,,,0.3461
+96,R16,Switzerland,Colombia,predicted,,,,0.3611
+97,QF,France,Canada,predicted,,,,0.1323
+98,QF,Spain,United States,predicted,,,,0.1591
+99,QF,Brazil,England,predicted,,,,0.1818
+100,QF,Argentina,Colombia,predicted,,,,0.3029
+101,SF,France,United States,predicted,,,,0.0967
+102,SF,England,Argentina,predicted,,,,0.129
+103,Final,France,Argentina,predicted,,,,0.0604

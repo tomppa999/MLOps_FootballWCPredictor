@@ -208,9 +208,13 @@ class TestGenerateWcGroupFixtures:
 
 
 class TestGenerateAllWcPairings:
-    def test_generates_1128_pairings(self):
+    def test_generates_1131_pairings(self):
+        # C(48, 2) = 1128 unique pairs, plus 3 extra rows because each of the
+        # C(3, 2) = 3 host-vs-host pairs is emitted in both orientations.
         result = generate_all_wc_pairings()
-        assert len(result) == 1128
+        assert len(result) == 1131
+        unique_pairs = {frozenset((h, a)) for h, a in zip(result["home_team"], result["away_team"])}
+        assert len(unique_pairs) == 1128
 
     def test_all_48_teams_present(self):
         result = generate_all_wc_pairings()

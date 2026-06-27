@@ -278,6 +278,14 @@ def _score_one_match(
         )
         return []
 
+    # Host-vs-host pairs are predicted in both orientations (each host as
+    # home_team). Prefer the row that matches the actual home side so each
+    # model is scored once against its genuine home-oriented prediction;
+    # single-orientation pairs are unaffected and fall back to _orient_lambdas.
+    oriented = pred_subset[pred_subset["home_team"] == home_a]
+    if not oriented.empty:
+        pred_subset = oriented
+
     actual_h = int(match["actual_h"])
     actual_a = int(match["actual_a"])
     actual_outcome = int(match["actual_outcome"])

@@ -1,7 +1,7 @@
 {
-  "run_id": "9c96aac2580f49a6a166ab52e3c9483e",
+  "run_id": "7b54f23771c443a786cbd87711f06706",
   "n_sims": 10000,
   "champion_run_id": "5f5a313ad5c14199aef0a791d2e4041a",
   "champion_model_name": "xgboost",
-  "inference_timestamp": "2026-06-22T16:06:17.197651+00:00"
+  "inference_timestamp": "2026-06-25T08:06:59.792880+00:00"
 }
