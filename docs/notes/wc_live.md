@@ -159,6 +159,19 @@ Pipeline:
 - Bracket configuration: which 8 third-placers advanced? [fill] — note if any
   unusual configuration affects the bracket unpredictably.
 - Any failures:
+- **Jun 29: KO results never locked + KO refits mislabeled "R32" (fix, image `20260629a`).**
+  Root cause: API-Football labels KO rounds without an in-round number ("Round of 32",
+  not "Round of 32 - 1"), but `parse_wc_results`'s KO branch needed a numeric suffix to
+  build a slot key, so `ko_results` stayed empty the whole KO stage. Two symptoms:
+  (1) `simulate_tournament` never pinned real KO winners → bracket re-simulated from the
+  post-group state every cycle (RQ2); (2) `next_matchday` (derived from `ko_results`)
+  stuck at "R32" → every KO per_round refit was tagged "R32" and reused the R32 seed.
+  - **Fix:** key locked KO results by team-set (`frozenset({home, away})`) + stage label;
+    derive `next_matchday` from `last_completed_matchday` (R32→R16→…→Final); sim and
+    `_build_ko_fixtures` look up by resolved team-set (fall back to simulation on a miss);
+    dashboard shows the locked next round + locked/score badges. Refit gate, monitoring,
+    Gold unaffected; only the one already-logged mid-R32 cycle stays unlocked (regenerable
+    offline from DVC). Deployed before the next R32 match so remaining KO rounds lock live.
 
 Observations:
 -
