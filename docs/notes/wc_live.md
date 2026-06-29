@@ -99,18 +99,39 @@ MD2 leaderboard — single table (all 48 = cumulative MD1+MD2; MD2 = last 24), s
 
 ---
 
-## Matchday 3 — Group Stage Round 3 (~Jun 23–25)
+## Matchday 3 — Group Stage Round 3 (Jun 24–28)
 
-Matches played: [fill]
+Matches played: 24 (Switzerland 2–1 Canada through Algeria 3–3 Austria / Jordan 1–3 Argentina, Jun 24–28).
 
 Pipeline:
-- Both modes logged? Y/N
-- per_round refit fired? Y/N. New run_id:
-- AFCON/format effect: unusual draw frequency on matchday 3 (gaming third-place
-  qualification math)? Note if observed.
-- Any failures:
+- Both modes logged? **Y** — all 72 settled matches scored in both artifacts (frozen 575 rows, per_round 574; the deficits are isolated dropped rows, see below).
+- per_round refit fired? **N/A for the MD3 boundary** — the MD3 *predictions* are backed by the **MD2-boundary** champion refit. The MD3-boundary refit (after all 24 MD3 fixtures settle, last kickoff Jun 28) feeds **R32**, not MD3. New run_id: [fill from MLflow once R32 inference runs].
+- AFCON/format effect: **6 of 24 draws** (Japan 1–1 Sweden, Paraguay 0–0 Australia, Cape Verde 0–0 Saudi Arabia, Egypt 1–1 Iran, Colombia 0–0 Portugal, Algeria 3–3 Austria) — exactly the ~1/4 base rate for 24 games, so **no evidence of final-day draw-gaming / third-place hedging** this round (the three 0–0s notwithstanding). Outcome mix 9 home / 9 away / 6 draw, more balanced than MD2's 13/6/5.
+- **Any failures: `ridge` dropped from one per_round inference cycle (data-completeness anomaly).** The per_round `ridge` row is missing for Colombia 0–0 Portugal (`1489419`) and DR Congo 3–1 Uzbekistan (`1539013`), both Jun 27, both served by the single per_round inference run `ed64fbfac5ed487ca222cf0a9d2c938d`. Every other model is present for those matches, and the frozen run for the same fixtures (`0facdde2…`) has `ridge` fine — so `ridge` itself is healthy (present for the other 70 per_round matches). Root cause: `run_prediction_all_models` runs each shadow in an isolated child process with a 120 s timeout (`_safe_shadow_predict`); on timeout / non-zero exit / no output it logs a warning and **silently drops the model** from that cycle's `predictions_all_models.csv`. The child's `load_shadow_model` does a DagsHub MLflow resolve+download, so a transient DagsHub stall in `ridge`'s load window blows the budget for `ridge` alone. This is the *only* code path that can omit a model from the artifact — `logging.py` writes `predictions_all_models.csv` verbatim (no dropna / dedup). Same anomaly *class* as MD2's dropped `mean_rate_poisson` row (Portugal 1–1 DR Congo) — single-cycle, single-model holes from the silent shadow-skip path, not corruption. Consequence: `ridge` MD3 = 22 matches (overall 70), everyone else 24/72; never-refit shadow so still identical across modes on the 22 common matches. Trigger confirmed from Cloud Logging: `WARNING Shadow prediction: ridge exceeded 120s — skipping` — a transient DagsHub stall during the ridge shadow load (setup_mlflow + model download) blew the child-process budget in that one per-round cycle. Visibility fix (post-tournament, not mid-flight): raise these skips to ERROR / emit a per-cycle model-count so a missing shadow alerts instead of going unnoticed.
 
 Observations:
+
+MD3 leaderboard — single table sorted by MD3 mean RPS. Convention as in MD2: **per_round shown for all models** (the per_round column is correct for every model); `xgboost` carries a separate **frozen** line (the only clean frozen↔per_round contrast, via the `champion_*` aliases). Frozen values for the other roster shadows (`poisson_glm`, `bayesian_poisson`, `mean_rate_poisson`) are still collapsed onto the per_round artifact by the shadow-resolution bug and are deferred to the post-tournament offline reconstruction; the four never-refit shadows (`sarimax`, `negbin_glm`, `ridge`, `random_forest`) are identical across modes by design. "Overall" = cumulative across all 72 settled matches (MD1 per_round shadow rows carry the premature-v16 residue, so cumulative shadow numbers are slightly soft; MD3-only columns are clean).
+
+| Model                       | Overall RPS | MD3 RPS    | Overall RMSE | MD3 RMSE   | Overall NLL | MD3 NLL   |
+|-----------------------------|-------------|------------|--------------|------------|-------------|-----------|
+| sarimax                     | 0.1620      | **0.1322** | 0.9447       | 0.9285     | 2.917       | 2.949     |
+| bayesian_poisson            | 0.1622      | 0.1323     | 0.9571       | **0.9207** | 2.954       | **2.927** |
+| negbin_glm                  | 0.1656      | 0.1331     | 0.9581       | 0.9262     | 2.965       | 2.943     |
+| poisson_glm                 | 0.1618      | 0.1335     | 0.9663       | 0.9217     | 2.978       | 2.937     |
+| ridge (n=22)                | 0.1599      | 0.1377     | **0.9429**   | 0.9295     | 2.938       | 2.975     |
+| xgboost (per-round)         | **0.1583**  | 0.1381     | 0.9669       | 0.9303     | 2.970       | 2.944     |
+| random_forest               | 0.1595      | 0.1382     | 0.9681       | 0.9451     | 2.962       | 2.975     |
+| xgboost (frozen)            | 0.1609      | 0.1395     | 0.9648       | 0.9282     | 2.973       | 2.959     |
+| mean_rate (floor)           | 0.2308      | 0.2344     | 1.1295       | 1.1374     | 3.340       | 3.320     |
+
+- **The refit's edge shrank to ~1%.** The only valid frozen↔per_round contrast (xgboost): per_round beat frozen on RPS (0.1381 vs 0.1395, ~1.0%) and on NLL (2.944 vs 2.959, ~0.5%), but was marginally worse on RMSE (0.9303 vs 0.9282, ~0.2%). All three gaps are tiny over just 24 matches — within MD3 noise. The metrics are not an outcome-vs-rate split: **RPS** scores the W/D/L outcome, while **NLL and RMSE are both goal-count metrics**. NLL (Poisson log-score) and RMSE (point error of λ vs realized goals) need not move together — NLL is convex and asymmetric (penalizes under-pricing high-scoring games steeply), RMSE is symmetric and linear — so a refit can win the high-information matches on NLL while slightly overshooting λ elsewhere on RMSE. This differs from MD2, where only RPS improved and both NLL and RMSE were flat-to-worse; the RPS gain itself fell from ~5% (MD2) to ~1% (MD3).
+- **Champion did not lead MD3.** On per_round MD3 RPS, four cheaper models (sarimax, bayesian_poisson, negbin_glm, poisson_glm) beat xgboost, reversing MD2 where the refit pushed xgboost to 1st. xgboost still leads cumulative Overall RPS (0.1583). The cadence advantage is matchday-dependent and small — a useful RQ1 nuance.
+- **MD3 was another predictable slate on average.** Round mean RPS (per_round, team-aware): 0.214 (MD1) → 0.149 (MD2) → 0.148 (MD3). Despite genuine upsets, favorites mostly delivered.
+- **Worst matches (mean team-aware RPS, per_round):** South Africa 1–0 South Korea (0.512), Ecuador 2–1 Germany (0.307), DR Congo 3–1 Uzbekistan (0.252), Turkey 3–2 USA (0.234), Japan 1–1 Sweden (0.203). Two heavy-favorite upsets (Germany, South Korea both lost) plus the recurring unpriced low-scoring/level games — same failure mode flagged in MD1 and MD2.
+- **Best matches (per_round):** Jordan 1–3 Argentina (0.007), Tunisia 1–3 Netherlands (0.020), Panama 0–2 England (0.026), New Zealand 1–5 Belgium (0.028), Croatia 2–1 Ghana (0.036) — dominant favorites priced correctly.
+- **Alert window (rolling 24 = exactly MD3):** all 7 team-aware models well under the 0.235 naive floor in both modes — no breach. `mean_rate_poisson` printed 0.2344, essentially *on* the floor (and above its 0.229 holdout baseline); the floor behaved as designed with a healthy ~0.10 RPS gap to the team-aware models.
+- **SARIMAX degenerate-λ streak broke.** No near-zero (≤1e-5) `lambda` in any MD3 fixture — the first matchday without the clipping anomaly after MD1 (ESP–CPV) and MD2 (ESP–KSA). No high-asymmetry Spain fixture this round, consistent with the earlier "2 of 2 Spain games" pattern; keep tracking.
 - **Jun 27: host-advantage scramble bug in tournament simulation (forecast-only).**
   Home advantage is already baked into predictions: `generate_all_wc_pairings` puts the
   host in `home_team` and `override_neutral_for_2026_hosts` sets `is_neutral=False`, so
@@ -240,3 +261,38 @@ Steps (run with D.1, after the Final, alongside the frozen-shadow rebuild):
 4. Discard pre-fix host-path bracket/advancement figures; regenerate thesis plots.
 5. Combine into the single D.1 pass with the frozen-shadow reconstruction.
 6. Prereq: per-cycle prediction DVC history retained (shared with frozen-shadow TODO).
+
+### TODO — backfill dropped per-round `ridge` rows (data completeness)
+
+Why: the silent shadow-skip path (`_safe_shadow_predict` → DagsHub load timeout) dropped
+`ridge` from one per-round inference cycle (`ed64fbfac5ed487ca222cf0a9d2c938d`), leaving 2
+holes in the per_round monitoring artifact: Colombia 0–0 Portugal (`1489419`) and DR Congo
+3–1 Uzbekistan (`1539013`), both Jun 27 (see MD3 pipeline note). **Not** covered by the
+frozen-shadow reconstruction above — that rebuilds *frozen* rows for the 3 contaminated
+roster shadows, whereas these are *per_round* rows for `ridge`, a never-refit shadow the
+reconstruction explicitly leaves untouched. List separately so it isn't missed.
+
+Steps (fold into the single D.1 pass — same mechanics and prereq as the frozen-shadow rebuild):
+1. Resolve the per_round `ridge` shadow version that cycle `ed64fbfac5…` would have loaded
+   (never-refit ⇒ same version as every other `ridge` row, so deterministic).
+2. Rebuild the pre-kickoff feature rows for the 2 fixtures from the DVC-versioned Gold
+   snapshot of that cycle (strict `inference_timestamp < kickoff`).
+3. Predict, recompute RPS / NLL / RMSE_h / RMSE_a, backfill the 2 rows; `ridge` then reads
+   24/72 like the others. (The frozen `mean_rate_poisson` MD1 hole — Portugal 1–1 DR Congo —
+   is already handled: cadence-invariant, back-filled from per_round, and recomputed anyway
+   by the frozen-shadow rebuild.)
+4. Prereq: per-cycle Gold/DVC history retained (shared with the two TODOs above).
+
+### Decision — silent shadow-skip: document, do NOT build a fix
+
+The hole above comes from `run_prediction_all_models` silently dropping a shadow on
+transient DagsHub load failure (warning only). The natural mitigations — in-cycle retry on
+the shadow load/predict child, ERROR-level logging, and a per-cycle model-count completeness
+check — are **preventive only**: they pay off on *future* inference cycles. The pipeline
+retires at the end of the tournament, so there are no future cycles to protect and **no code
+change will be shipped** (not mid-tournament, not after). Capture it instead as thesis prose:
+- Chapter 3 (threats to validity) / Chapter 6 (limitations + further work): the dual-mode
+  inference layer trades completeness for resilience (one bad shadow can't kill a cycle), at
+  the cost of silent per-cycle holes; recommended hardening = retry + loud logging + a
+  per-cycle completeness alert. Converts the finding into write-up value without engineering
+  on a shelved pipeline.

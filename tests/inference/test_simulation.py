@@ -356,6 +356,24 @@ def _make_all_pairs_predictions() -> pd.DataFrame:
     ])
 
 
+def _group_lock(t0: str, t1: str, t2: str, t3: str) -> dict[tuple[str, str], tuple[int, int]]:
+    """Locked group results producing a strict ranking t0 > t1 > t2 > t3.
+
+    Matches the toy-config matchday pairings, so after locking the group the
+    1st/2nd-place slots resolve deterministically to ``t0`` / ``t1`` every sim.
+    Needed because team-set KO locking only fires when both feeding slots
+    resolve to the exact teams in the locked frozenset.
+    """
+    return {
+        (t0, t1): (1, 0),  # MD1: t0 beats t1
+        (t2, t3): (1, 0),  # MD1: t2 beats t3
+        (t0, t2): (1, 0),  # MD2: t0 beats t2
+        (t3, t1): (0, 1),  # MD2: t1 beats t3
+        (t3, t0): (0, 1),  # MD3: t0 beats t3
+        (t1, t2): (1, 0),  # MD3: t1 beats t2
+    }
+
+
 class TestSimulateTournament:
     def test_returns_advancement_dataframe(self, tmp_path):
         config_path = _make_toy_config(tmp_path)
@@ -450,15 +468,22 @@ class TestSimulateTournament:
         assert final_total == n_sims
 
     def test_locked_ko_pairing_has_frequency_one(self, tmp_path):
-        """A locked R32 match should appear with frequency 1.0 for that pairing."""
+        """A locked R32 match should appear with frequency 1.0 for that pairing.
+
+        Team-set locking requires both feeding slots to be deterministic, so
+        group A (1A=T1) and group C (2C=T10) are both locked.  Match 73 is
+        "1A vs 2C", so the locked frozenset({T1, T10}) fires every sim.
+        """
         config_path = _make_toy_config(tmp_path)
         locked_group = {
-            ("T1", "T2"): (3, 0), ("T3", "T4"): (1, 1),
-            ("T1", "T3"): (2, 0), ("T4", "T2"): (0, 2),
-            ("T4", "T1"): (0, 1), ("T2", "T3"): (1, 2),
+            **_group_lock("T1", "T2", "T3", "T4"),    # 1A=T1
+            **_group_lock("T9", "T10", "T11", "T12"),  # 2C=T10
         }
         locked_ko = {
-            73: {"home": "T1", "away": "T9", "home_goals": 2, "away_goals": 0, "decided_by": "FT"}
+            frozenset({"T1", "T10"}): {
+                "home": "T1", "away": "T10", "home_goals": 2, "away_goals": 0,
+                "decided_by": "FT", "stage": "R32",
+            }
         }
         n_sims = 25
         result = simulate_tournament(
@@ -470,7 +495,7 @@ class TestSimulateTournament:
             locked_ko_results=locked_ko,
         )
         kp = result["ko_pairings"]
-        pair = tuple(sorted(("T1", "T9")))
+        pair = tuple(sorted(("T1", "T10")))
         row = kp[(kp["stage"] == "R32") & (kp["team_a"] == pair[0]) & (kp["team_b"] == pair[1])]
         assert len(row) == 1
         assert row.iloc[0]["count"] == n_sims
@@ -507,12 +532,14 @@ class TestSimulateTournament:
         """A fully locked R32 slot must have exactly one pairing with frequency 1.0."""
         config_path = _make_toy_config(tmp_path)
         locked_group = {
-            ("T1", "T2"): (3, 0), ("T3", "T4"): (1, 1),
-            ("T1", "T3"): (2, 0), ("T4", "T2"): (0, 2),
-            ("T4", "T1"): (0, 1), ("T2", "T3"): (1, 2),
+            **_group_lock("T1", "T2", "T3", "T4"),    # 1A=T1
+            **_group_lock("T9", "T10", "T11", "T12"),  # 2C=T10
         }
         locked_ko = {
-            73: {"home": "T1", "away": "T9", "home_goals": 2, "away_goals": 0, "decided_by": "FT"}
+            frozenset({"T1", "T10"}): {
+                "home": "T1", "away": "T10", "home_goals": 2, "away_goals": 0,
+                "decided_by": "FT", "stage": "R32",
+            }
         }
         n_sims = 25
         result = simulate_tournament(
@@ -527,7 +554,7 @@ class TestSimulateTournament:
         slot = ksp[ksp["match_num"] == 73]
         assert len(slot) == 1
         assert slot.iloc[0]["home_team"] == "T1"
-        assert slot.iloc[0]["away_team"] == "T9"
+        assert slot.iloc[0]["away_team"] == "T10"
         assert slot.iloc[0]["count"] == n_sims
         assert abs(slot.iloc[0]["frequency"] - 1.0) < 1e-9
 
@@ -667,38 +694,32 @@ class TestSimulateTournamentLockedGroup:
 
 
 class TestSimulateTournamentLockedKO:
-    # Group-A locks that guarantee T1=1st, T2=2nd every sim.
-    _GROUP_A_LOCKED: dict[tuple[str, str], tuple[int, int]] = {
-        ("T1", "T2"): (3, 0),
-        ("T3", "T4"): (1, 1),
-        ("T1", "T3"): (2, 0),
-        ("T4", "T2"): (0, 2),
-        ("T4", "T1"): (0, 1),
-        ("T2", "T3"): (1, 2),
-    }
-    # Group-B locks that guarantee T5=1st, T6=2nd every sim.
-    _GROUP_B_LOCKED: dict[tuple[str, str], tuple[int, int]] = {
-        ("T5", "T6"): (3, 0),
-        ("T7", "T8"): (1, 1),
-        ("T5", "T7"): (2, 0),
-        ("T8", "T6"): (0, 2),
-        ("T8", "T5"): (0, 1),
-        ("T6", "T7"): (1, 2),
-    }
+    """Team-set-keyed KO locking.
+
+    ``locked_ko_results`` is keyed by ``frozenset({home, away})``.  The lock
+    only fires once a slot resolves (via _resolve_slot / ko_winners) to those
+    exact teams, so the feeding groups must be locked to make the team-set
+    deterministic.  This couples locking to slot resolution by design.
+    """
 
     def test_locked_r32_winner_always_advances_to_r16(self, tmp_path):
-        """Locking an R32 match should make its winner advance to R16 in 100% of sims.
+        """Locking an R32 match makes its winner advance to R16 in 100% of sims.
 
-        We also lock group A so T1 is deterministically the 1A slot, ensuring T1
-        only appears in one R32 match (match 73) across all sims.
+        Groups A and C are locked so match 73 ("1A vs 2C") resolves to T1 vs T10
+        every sim, letting the team-set lock fire deterministically.
         """
         config_path = _make_toy_config(tmp_path)
         predictions = _make_all_pairs_predictions()
 
-        # R32 match 73 in the toy config is "1A vs 2C"
-        # With group A locked, T1 is always 1A.
+        locked_group = {
+            **_group_lock("T1", "T2", "T3", "T4"),    # 1A=T1
+            **_group_lock("T9", "T10", "T11", "T12"),  # 2C=T10
+        }
         locked_ko = {
-            73: {"home": "T1", "away": "T9", "home_goals": 2, "away_goals": 0, "decided_by": "FT"}
+            frozenset({"T1", "T10"}): {
+                "home": "T1", "away": "T10", "home_goals": 2, "away_goals": 0,
+                "decided_by": "FT", "stage": "R32",
+            }
         }
 
         result = simulate_tournament(
@@ -706,7 +727,7 @@ class TestSimulateTournamentLockedKO:
             n_sims=30,
             config_path=config_path,
             seed=0,
-            locked_group_results=self._GROUP_A_LOCKED,
+            locked_group_results=locked_group,
             locked_ko_results=locked_ko,
         )
         adv = result["advancement"]
@@ -715,31 +736,77 @@ class TestSimulateTournamentLockedKO:
             f"T1 should reach R16 in 100% of sims, got {t1_row['p_r16']}"
         )
 
-    def test_locked_ko_winner_propagates_through_bracket(self, tmp_path):
-        """When an R32 match is locked, the winner is deterministically in R16.
+    def test_locked_ko_chain_propagates_through_bracket(self, tmp_path):
+        """A locked R32 -> R16 chain propagates deterministically.
 
-        Group B is also locked so T5 is always 1B (only in match 73 slot "1A"
-        substituted here as 1B for the toy bracket).
+        Match 73 (1A vs 2C) -> T1; match 74 (1B vs 2D) -> T5; both R32 winners.
+        R16 match 89 is "W73 vs W74" = T1 vs T5; locking that team-set sends T1
+        to the QF in 100% of sims.
         """
         config_path = _make_toy_config(tmp_path)
         predictions = _make_all_pairs_predictions()
 
-        # Toy config match 74: "1B vs 2D". Lock group B so T5=1B always.
+        locked_group = {
+            **_group_lock("T1", "T2", "T3", "T4"),       # 1A=T1
+            **_group_lock("T5", "T6", "T7", "T8"),       # 1B=T5
+            **_group_lock("T9", "T10", "T11", "T12"),    # 2C=T10
+            **_group_lock("T13", "T14", "T15", "T16"),   # 2D=T14
+        }
         locked_ko = {
-            74: {"home": "T5", "away": "T13", "home_goals": 1, "away_goals": 0, "decided_by": "FT"}
+            frozenset({"T1", "T10"}): {
+                "home": "T1", "away": "T10", "home_goals": 2, "away_goals": 0,
+                "decided_by": "FT", "stage": "R32",
+            },
+            frozenset({"T5", "T14"}): {
+                "home": "T5", "away": "T14", "home_goals": 1, "away_goals": 0,
+                "decided_by": "FT", "stage": "R32",
+            },
+            frozenset({"T1", "T5"}): {
+                "home": "T1", "away": "T5", "home_goals": 2, "away_goals": 1,
+                "decided_by": "FT", "stage": "R16",
+            },
         }
 
         result = simulate_tournament(
             predictions,
-            n_sims=50,
+            n_sims=40,
             config_path=config_path,
             seed=1,
-            locked_group_results=self._GROUP_B_LOCKED,
+            locked_group_results=locked_group,
             locked_ko_results=locked_ko,
         )
         adv = result["advancement"]
-        t5_row = adv[adv["team"] == "T5"].iloc[0]
-        assert t5_row["p_r16"] == 1.0
+        t1_row = adv[adv["team"] == "T1"].iloc[0]
+        assert t1_row["p_r16"] == 1.0
+        assert t1_row["p_qf"] == 1.0
+
+    def test_unmatched_team_set_still_simulates(self, tmp_path):
+        """A locked team-set that never occurs in any KO slot must not break the sim.
+
+        T1 and T2 share group A, so they can never meet in a KO round; the lock
+        never fires and the bracket is simulated normally (slot resolution stays
+        intact, no crash).
+        """
+        config_path = _make_toy_config(tmp_path)
+        predictions = _make_all_pairs_predictions()
+
+        locked_ko = {
+            frozenset({"T1", "T2"}): {
+                "home": "T1", "away": "T2", "home_goals": 3, "away_goals": 0,
+                "decided_by": "FT", "stage": "R32",
+            }
+        }
+
+        result = simulate_tournament(
+            predictions,
+            n_sims=20,
+            config_path=config_path,
+            seed=3,
+            locked_ko_results=locked_ko,
+        )
+        adv = result["advancement"]
+        assert len(adv) == 48
+        assert abs(adv["p_winner"].sum() - 1.0) < 0.15
 
 
 # ---------------------------------------------------------------------------
@@ -749,23 +816,21 @@ class TestSimulateTournamentLockedKO:
 
 class TestSimulateTournamentPartialLocks:
     def test_partial_group_and_ko_lock(self, tmp_path):
-        """Locking all group-A matches plus R32 match 73 gives T1 p_r16==1.0
+        """Locking groups A+C plus R32 match 73's team-set gives T1 p_r16==1.0
         while leaving all other groups and KO matches fully stochastic."""
         config_path = _make_toy_config(tmp_path)
         predictions = _make_all_pairs_predictions()
 
-        # Lock all 6 group A matches so T1 is always 1A (9 pts)
+        # Lock groups A and C so match 73 ("1A vs 2C") = T1 vs T10 every sim.
         locked_group = {
-            ("T1", "T2"): (3, 0),
-            ("T3", "T4"): (1, 1),
-            ("T1", "T3"): (2, 0),
-            ("T4", "T2"): (0, 2),
-            ("T4", "T1"): (0, 1),
-            ("T2", "T3"): (1, 2),
+            **_group_lock("T1", "T2", "T3", "T4"),    # 1A=T1
+            **_group_lock("T9", "T10", "T11", "T12"),  # 2C=T10
         }
-        # Lock R32 match 73 (1A vs 2C) with T1 winning
         locked_ko = {
-            73: {"home": "T1", "away": "T9", "home_goals": 2, "away_goals": 1, "decided_by": "FT"}
+            frozenset({"T1", "T10"}): {
+                "home": "T1", "away": "T10", "home_goals": 2, "away_goals": 1,
+                "decided_by": "FT", "stage": "R32",
+            }
         }
 
         result = simulate_tournament(

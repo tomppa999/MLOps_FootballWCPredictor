@@ -344,6 +344,26 @@ def _write_finished_fixture(
     fp.write_text(json.dumps({"response": response}))
 
 
+def _write_round_results(fixtures_dir: Path, mapping: Path, rounds: list[str]) -> None:
+    """Write one finished FT fixture per round string (distinct fixture ids).
+
+    Used to drive ``last_completed_matchday`` / ``next_matchday`` through a
+    sequence of fully-completed rounds.  Every fixture is France vs Germany;
+    only the round string varies (results are deduplicated by team-set/round,
+    which is irrelevant for the matchday-progression assertions).
+    """
+    _write_team_mapping(mapping, [
+        {"name": "France", "api_id": 2},
+        {"name": "Germany", "api_id": 25},
+    ])
+    for i, rnd in enumerate(rounds):
+        _write_finished_fixture(fixtures_dir, {
+            "id": 500 + i, "status": "FT", "league_id": 1, "round": rnd,
+            "home_id": 2, "home_name": "France", "home_goals": 1,
+            "away_id": 25, "away_name": "Germany", "away_goals": 0,
+        })
+
+
 # ---------------------------------------------------------------------------
 # parse_wc_results
 # ---------------------------------------------------------------------------
@@ -414,8 +434,13 @@ class TestParseWcResults:
         result = parse_wc_results(fixtures_dir, mapping)
         assert len(result["group_results"]) == 0
 
-    def test_ko_match_maps_to_correct_match_number(self, tmp_path):
-        """'Round of 32 - 1' should map to internal match_num 73 (offset 72 + 1)."""
+    def test_ko_match_unnumbered_keyed_by_team_set(self, tmp_path):
+        """API-Football sends KO rounds without a number ('Round of 32').
+
+        The locked result must be keyed by ``frozenset({home, away})`` and
+        carry its ``stage`` label, rather than requiring a numeric suffix to
+        build an internal match number.
+        """
         fixtures_dir = tmp_path / "fixtures"
         mapping = tmp_path / "mapping.csv"
         _write_team_mapping(mapping, [
@@ -424,14 +449,20 @@ class TestParseWcResults:
         ])
         _write_finished_fixture(fixtures_dir, {
             "id": 10, "status": "FT",
-            "league_id": 1, "round": "Round of 32 - 1",
-            "home_id": 2, "home_goals": 2,
-            "away_id": 25, "away_goals": 0,
+            "league_id": 1, "round": "Round of 32",
+            "home_id": 2, "home_name": "France", "home_goals": 2,
+            "away_id": 25, "away_name": "Germany", "away_goals": 0,
         })
         result = parse_wc_results(fixtures_dir, mapping)
-        assert 73 in result["ko_results"]
-        assert result["ko_results"][73]["home"] == "France"
-        assert result["ko_results"][73]["away_goals"] == 0
+        key = frozenset({"France", "Germany"})
+        assert key in result["ko_results"]
+        entry = result["ko_results"][key]
+        assert entry["home"] == "France"
+        assert entry["away"] == "Germany"
+        assert entry["home_goals"] == 2
+        assert entry["away_goals"] == 0
+        assert entry["stage"] == "R32"
+        assert entry["decided_by"] == "FT"
 
     def test_mixed_group_and_ko_results(self, tmp_path):
         fixtures_dir = tmp_path / "fixtures"
@@ -448,13 +479,16 @@ class TestParseWcResults:
             "home_id": 2, "home_goals": 1, "away_id": 25, "away_goals": 1,
         })
         _write_finished_fixture(fixtures_dir, {
-            "id": 2, "status": "AET", "league_id": 1, "round": "Round of 16 - 2",
-            "home_id": 6, "home_goals": 2, "away_id": 26, "away_goals": 1,
+            "id": 2, "status": "AET", "league_id": 1, "round": "Round of 16",
+            "home_id": 6, "home_name": "Brazil", "home_goals": 2,
+            "away_id": 26, "away_name": "Argentina", "away_goals": 1,
         })
         result = parse_wc_results(fixtures_dir, mapping)
         assert len(result["group_results"]) == 1
-        assert 90 in result["ko_results"]   # offset 88 + 2
-        assert result["ko_results"][90]["decided_by"] == "AET"
+        key = frozenset({"Brazil", "Argentina"})
+        assert key in result["ko_results"]
+        assert result["ko_results"][key]["stage"] == "R16"
+        assert result["ko_results"][key]["decided_by"] == "AET"
 
     def test_next_matchday_after_group_md1(self, tmp_path):
         fixtures_dir = tmp_path / "fixtures"
@@ -470,19 +504,63 @@ class TestParseWcResults:
         result = parse_wc_results(fixtures_dir, mapping)
         assert result["next_matchday"] == 2
 
-    def test_next_matchday_after_r32(self, tmp_path):
+    def test_next_matchday_r16_after_r32_complete(self, tmp_path):
+        """R32 fully complete → next stage is R16 (derived from last_completed)."""
         fixtures_dir = tmp_path / "fixtures"
         mapping = tmp_path / "mapping.csv"
-        _write_team_mapping(mapping, [
-            {"name": "France", "api_id": 2},
-            {"name": "Germany", "api_id": 25},
-        ])
-        _write_finished_fixture(fixtures_dir, {
-            "id": 5, "status": "FT", "league_id": 1, "round": "Round of 32 - 3",
-            "home_id": 2, "home_goals": 1, "away_id": 25, "away_goals": 0,
-        })
-        result = parse_wc_results(fixtures_dir, mapping)
+        _write_round_results(
+            fixtures_dir, mapping,
+            ["Group A - 1", "Group A - 2", "Group A - 3", "Round of 32"],
+        )
+        result = parse_wc_results(
+            fixtures_dir, mapping,
+            _expected_per_round={"1": 1, "2": 1, "3": 1, "R32": 1},
+        )
+        assert result["last_completed_matchday"] == "R32"
         assert result["next_matchday"] == "R16"
+
+    def test_next_matchday_final_after_sf_complete(self, tmp_path):
+        """SF fully complete → next stage is Final."""
+        fixtures_dir = tmp_path / "fixtures"
+        mapping = tmp_path / "mapping.csv"
+        _write_round_results(
+            fixtures_dir, mapping,
+            [
+                "Group A - 1", "Group A - 2", "Group A - 3",
+                "Round of 32", "Round of 16", "Quarter-finals", "Semi-finals",
+            ],
+        )
+        result = parse_wc_results(
+            fixtures_dir, mapping,
+            _expected_per_round={
+                "1": 1, "2": 1, "3": 1,
+                "R32": 1, "R16": 1, "QF": 1, "SF": 1,
+            },
+        )
+        assert result["last_completed_matchday"] == "SF"
+        assert result["next_matchday"] == "Final"
+
+    def test_next_matchday_complete_after_final(self, tmp_path):
+        """Final played → tournament Complete."""
+        fixtures_dir = tmp_path / "fixtures"
+        mapping = tmp_path / "mapping.csv"
+        _write_round_results(
+            fixtures_dir, mapping,
+            [
+                "Group A - 1", "Group A - 2", "Group A - 3",
+                "Round of 32", "Round of 16", "Quarter-finals",
+                "Semi-finals", "Final",
+            ],
+        )
+        result = parse_wc_results(
+            fixtures_dir, mapping,
+            _expected_per_round={
+                "1": 1, "2": 1, "3": 1,
+                "R32": 1, "R16": 1, "QF": 1, "SF": 1, "Final": 1,
+            },
+        )
+        assert result["last_completed_matchday"] == "Final"
+        assert result["next_matchday"] == "Complete"
 
     def test_no_fixtures_dir_returns_empty(self, tmp_path):
         result = parse_wc_results(tmp_path / "nonexistent", tmp_path / "mapping.csv")

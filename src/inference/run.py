@@ -119,10 +119,14 @@ def _simulate_roster(
 
 
 def _build_ko_fixtures(
-    locked_ko: dict[int, dict],
+    locked_ko: dict[frozenset, dict],
     ko_slot_pairings: "pd.DataFrame | None",
 ) -> pd.DataFrame:
     """Build a champion-only ko_fixtures DataFrame (one row per KO match slot).
+
+    ``locked_ko`` is keyed by ``frozenset({home, away})`` (see parse_wc_results);
+    each entry carries its ``stage``.  A modal slot is matched to a locked result
+    by the team-set of its (home, away) pair.
 
     For locked slots: status='locked', actual score, pairing_frequency=1.0.
     For predicted slots: status='predicted', modal (home, away) from
@@ -130,11 +134,13 @@ def _build_ko_fixtures(
     """
     if ko_slot_pairings is None or ko_slot_pairings.empty:
         # No simulation results available; populate only locked fixtures.
+        # frozenset keys aren't orderable, so iterate values and read the
+        # stage from the stored entry (match_num is unknown without a sim).
         rows = []
-        for match_num, res in sorted(locked_ko.items()):
+        for res in locked_ko.values():
             rows.append({
-                "match_num": match_num,
-                "stage": "Unknown",
+                "match_num": None,
+                "stage": res.get("stage", "Unknown"),
                 "home_team": res["home"],
                 "away_team": res["away"],
                 "status": "locked",
@@ -154,8 +160,8 @@ def _build_ko_fixtures(
     )
     for _, m_row in modal.iterrows():
         match_num = int(m_row["match_num"])
-        if match_num in locked_ko:
-            res = locked_ko[match_num]
+        res = locked_ko.get(frozenset({m_row["home_team"], m_row["away_team"]}))
+        if res is not None:
             rows.append({
                 "match_num": match_num,
                 "stage": m_row["stage"],

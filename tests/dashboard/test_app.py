@@ -8,8 +8,26 @@ import pytest
 from src.dashboard.app import (
     _apply_completed_result,
     _completed_results_lookup,
+    _ko_is_locked,
+    _next_round_stage,
     resolve_ko_fixtures,
 )
+
+
+def _ko_record(stage: str, status: str, **overrides) -> dict:
+    """Build a KO fixture record matching the _build_ko_fixtures schema."""
+    rec = {
+        "match_num": overrides.get("match_num", 1),
+        "stage": stage,
+        "home_team": overrides.get("home_team", "A"),
+        "away_team": overrides.get("away_team", "B"),
+        "status": status,
+        "home_goals": overrides.get("home_goals"),
+        "away_goals": overrides.get("away_goals"),
+        "decided_by": overrides.get("decided_by", ""),
+        "pairing_frequency": overrides.get("pairing_frequency", 1.0),
+    }
+    return rec
 
 
 def _make_ko_fixtures() -> pd.DataFrame:
@@ -278,3 +296,76 @@ class TestResolveKoFixtures:
         by_match = {r["match_num"]: r for r in result}
         assert by_match[49]["pairing_frequency"] == pytest.approx(1.0)
         assert by_match[65]["pairing_frequency"] == pytest.approx(0.38)
+
+
+class TestKoIsLocked:
+    """Threshold is 0.999 (inclusive): determined pairings log freq 1.0."""
+
+    def test_status_locked_is_locked(self):
+        # A played slot is locked regardless of pairing_frequency.
+        assert _ko_is_locked({"status": "locked", "pairing_frequency": 0.5}) is True
+
+    def test_frequency_one_is_locked(self):
+        assert _ko_is_locked({"status": "predicted", "pairing_frequency": 1.0}) is True
+
+    def test_low_frequency_not_locked(self):
+        assert _ko_is_locked({"status": "predicted", "pairing_frequency": 0.38}) is False
+
+    # Edge case 1: exactly at the 0.999 threshold -> locked (>= is inclusive).
+    def test_frequency_at_threshold_is_locked(self):
+        assert _ko_is_locked({"status": "predicted", "pairing_frequency": 0.999}) is True
+
+    # Edge case 2: just below the 0.999 threshold -> not locked.
+    def test_frequency_just_below_threshold_not_locked(self):
+        assert _ko_is_locked({"status": "predicted", "pairing_frequency": 0.9989}) is False
+
+    def test_missing_frequency_not_locked(self):
+        # Non-played slot with no pairing_frequency must not read as locked.
+        assert _ko_is_locked({"status": "predicted", "pairing_frequency": None}) is False
+
+
+class TestNextRoundStage:
+    def test_empty_returns_none(self):
+        assert _next_round_stage([]) is None
+
+    def test_all_played_returns_none(self):
+        fixtures = [
+            _ko_record("R32", "locked"),
+            _ko_record("R16", "locked"),
+        ]
+        assert _next_round_stage(fixtures) is None
+
+    def test_earliest_unplayed_stage(self):
+        # R32 fully played, R16 still has an unplayed match -> R16.
+        fixtures = [
+            _ko_record("R16", "predicted"),
+            _ko_record("R32", "locked"),
+        ]
+        assert _next_round_stage(fixtures) == "R16"
+
+    def test_partially_played_stage_is_still_next(self):
+        # Earliest stage with >=1 unplayed match wins, even if mid-round.
+        fixtures = [
+            _ko_record("R32", "locked"),
+            _ko_record("R32", "predicted"),
+            _ko_record("R16", "predicted"),
+        ]
+        assert _next_round_stage(fixtures) == "R32"
+
+    def test_advances_when_stage_fully_played(self):
+        # R32 and R16 fully played -> QF.
+        fixtures = [
+            _ko_record("R32", "locked"),
+            _ko_record("R16", "locked"),
+            _ko_record("QF", "predicted"),
+        ]
+        assert _next_round_stage(fixtures) == "QF"
+
+    def test_respects_stage_order_not_list_order(self):
+        # QF/SF appear before R32 in the list; R32 unplayed must still win.
+        fixtures = [
+            _ko_record("QF", "predicted"),
+            _ko_record("SF", "predicted"),
+            _ko_record("R32", "predicted"),
+        ]
+        assert _next_round_stage(fixtures) == "R32"

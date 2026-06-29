@@ -357,7 +357,7 @@ def simulate_tournament(
     config_path: Path = TOURNAMENT_CONFIG_PATH,
     seed: int | None = None,
     locked_group_results: dict[tuple[str, str], tuple[int, int]] | None = None,
-    locked_ko_results: dict[int, dict] | None = None,
+    locked_ko_results: dict[frozenset, dict] | None = None,
 ) -> dict[str, Any]:
     """Run n_sims full 2026 WC tournament simulations.
 
@@ -371,9 +371,12 @@ def simulate_tournament(
         seed: random seed for reproducibility.
         locked_group_results: (home, away) -> (home_goals, away_goals) for finished
             group matches.  Passed read-only to each _simulate_group() call.
-        locked_ko_results: match_num -> {home, away, home_goals, away_goals, decided_by}
-            for finished KO matches.  Checked once per match per sim before any Poisson
-            draw; locked matches skip _resolve_ko_match() entirely.
+        locked_ko_results: frozenset({home, away}) ->
+            {home, away, home_goals, away_goals, decided_by, stage} for finished KO
+            matches.  Each KO slot is resolved to its two teams first, then looked
+            up by that team-set; a match locks only when its resolved teams match a
+            stored entry (otherwise it is simulated), so locking depends on slot
+            resolution and degrades gracefully to a simulated match.
 
     Returns:
         Dict with:
@@ -490,14 +493,9 @@ def simulate_tournament(
             away_slot = m["away"]
             venue = m.get("venue", "")
 
-            if locked_ko_results and match_num in locked_ko_results:
-                locked = locked_ko_results[match_num]
-                ko_pairing_counts["R32"][tuple(sorted((locked["home"], locked["away"])))] += 1
-                ko_slot_pairing_counts.setdefault(match_num, Counter())[(locked["home"], locked["away"])] += 1
-                winner = locked["home"] if locked["home_goals"] > locked["away_goals"] else locked["away"]
-                r32_winners[match_num] = winner
-                continue
-
+            # Resolve the slot to concrete teams first; locked KO results are
+            # keyed by the team-set, so we can only look them up after we know
+            # who plays this slot.
             home_team = _resolve_slot(
                 home_slot, group_results, third_by_group, third_slot_map, match_num
             )
@@ -507,6 +505,18 @@ def simulate_tournament(
 
             if home_team is None or away_team is None:
                 r32_winners[match_num] = home_team or away_team or "Unknown"
+                continue
+
+            locked = (
+                locked_ko_results.get(frozenset({home_team, away_team}))
+                if locked_ko_results
+                else None
+            )
+            if locked is not None:
+                ko_pairing_counts["R32"][tuple(sorted((locked["home"], locked["away"])))] += 1
+                ko_slot_pairing_counts.setdefault(match_num, Counter())[(locked["home"], locked["away"])] += 1
+                winner = locked["home"] if locked["home_goals"] > locked["away_goals"] else locked["away"]
+                r32_winners[match_num] = winner
                 continue
 
             ko_pairing_counts["R32"][tuple(sorted((home_team, away_team)))] += 1
@@ -531,8 +541,25 @@ def simulate_tournament(
             stage = ko_match["stage"]
             venue = ko_match.get("venue", "")
 
-            if locked_ko_results and match_num in locked_ko_results:
-                locked = locked_ko_results[match_num]
+            home_ref = ko_match["home_from"]
+            away_ref = ko_match["away_from"]
+
+            # Resolve the feeding winners first so the team-set lock can be
+            # looked up (locked_ko_results is keyed by frozenset({home, away})).
+            home_team = ko_winners.get(int(home_ref[1:]))
+            away_team = ko_winners.get(int(away_ref[1:]))
+
+            if home_team is None or away_team is None:
+                winner = home_team or away_team or "Unknown"
+                ko_winners[match_num] = winner
+                continue
+
+            locked = (
+                locked_ko_results.get(frozenset({home_team, away_team}))
+                if locked_ko_results
+                else None
+            )
+            if locked is not None:
                 ko_pairing_counts[stage][tuple(sorted((locked["home"], locked["away"])))] += 1
                 ko_slot_pairing_counts.setdefault(match_num, Counter())[(locked["home"], locked["away"])] += 1
                 winner = locked["home"] if locked["home_goals"] > locked["away_goals"] else locked["away"]
@@ -540,17 +567,6 @@ def simulate_tournament(
                 next_stage = stage_map.get(stage)
                 if next_stage and winner in advancement_counts:
                     advancement_counts[winner][next_stage] += 1
-                continue
-
-            home_ref = ko_match["home_from"]
-            away_ref = ko_match["away_from"]
-
-            home_team = ko_winners.get(int(home_ref[1:]))
-            away_team = ko_winners.get(int(away_ref[1:]))
-
-            if home_team is None or away_team is None:
-                winner = home_team or away_team or "Unknown"
-                ko_winners[match_num] = winner
                 continue
 
             ko_pairing_counts[stage][tuple(sorted((home_team, away_team)))] += 1

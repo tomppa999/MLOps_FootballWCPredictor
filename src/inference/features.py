@@ -32,15 +32,15 @@ FINISHED_STATUSES: Final[frozenset[str]] = frozenset({"FT", "AET", "PEN"})
 # Ordered from earliest to latest; "0" sentinel is never returned by _round_to_matchday_label.
 _MATCHDAY_ORDER: Final[tuple[str, ...]] = ("1", "2", "3", "R32", "R16", "QF", "SF", "Final")
 
-# Maps lowercase API-Football round prefix → offset to add to the in-round match number
-# to get the internal wc2026.json match number.
-# R32: matches 73–88, R16: 89–96, QF: 97–100, SF: 101–102, Final: 103
-_KO_ROUND_TO_OFFSET: Final[dict[str, int]] = {
-    "round of 32": 72,
-    "round of 16": 88,
-    "quarter-finals": 96,
-    "semi-finals": 100,
-    "final": 102,
+# Maps a fully-completed KO round to the stage that comes next.  Drives
+# ``next_matchday`` for the knockout phase (and the per-round refit seed),
+# independent of how many KO matches have been parsed.
+_KO_NEXT: Final[dict[str, str]] = {
+    "R32": "R16",
+    "R16": "QF",
+    "QF": "SF",
+    "SF": "Final",
+    "Final": "Complete",
 }
 
 _FIXTURES_DIR: Final[Path] = Path("data/raw/api_football/fixtures")
@@ -320,7 +320,11 @@ def parse_wc_results(
 
     Returns a dict with:
       - group_results: dict[(home, away), (home_goals, away_goals)]
-      - ko_results:    dict[match_num, {home, away, home_goals, away_goals, decided_by}]
+      - ko_results:    dict[frozenset({home, away}),
+                            {home, away, home_goals, away_goals, decided_by, stage}]
+            KO rounds arrive unnumbered from API-Football (e.g. "Round of 32"),
+            so locked KO matches are keyed by team-set rather than an internal
+            match number; the round is recorded as ``stage`` ("R32".."Final").
       - next_matchday: int (1/2/3 for group stage) or str stage name for KO
       - last_completed_matchday: str label of the last fully-played round ("0" if none)
       - finished_fixtures: list of dicts for all finished WC fixtures
@@ -344,7 +348,7 @@ def parse_wc_results(
 
     id_to_name = _load_api_id_to_canonical(mapping_path)
     group_results: dict[tuple[str, str], tuple[int, int]] = {}
-    ko_results: dict[int, dict] = {}
+    ko_results: dict[frozenset, dict] = {}
     finished_fixtures: list[dict] = []
     max_group_matchday: int = 0
     # Counts only finished fixtures per round (for completion detection).
@@ -420,41 +424,23 @@ def parse_wc_results(
                 if len(parts) == 2 and parts[1].isdigit():
                     max_group_matchday = max(max_group_matchday, int(parts[1]))
             else:
-                # KO match — map round string to internal match number
-                for stage_key, offset in _KO_ROUND_TO_OFFSET.items():
-                    if round_lower.startswith(stage_key):
-                        parts = round_str.rsplit(" - ", 1)
-                        if len(parts) == 2 and parts[1].isdigit():
-                            match_num = offset + int(parts[1])
-                            if match_num not in ko_results:
-                                ko_results[match_num] = {
-                                    "home": home_name,
-                                    "away": away_name,
-                                    "home_goals": home_goals,
-                                    "away_goals": away_goals,
-                                    "decided_by": status,
-                                }
-                        break
-
-    # Derive what stage comes next (for logging/display).
-    if ko_results:
-        ko_nums = set(ko_results.keys())
-        if 103 in ko_nums:
-            next_matchday: int | str = "Complete"
-        elif ko_nums & {101, 102}:
-            next_matchday = "Final"
-        elif ko_nums & set(range(97, 101)):
-            next_matchday = "SF"
-        elif ko_nums & set(range(89, 97)):
-            next_matchday = "QF"
-        else:
-            next_matchday = "R16"
-    elif max_group_matchday >= 3:
-        next_matchday = "R32"
-    elif max_group_matchday > 0:
-        next_matchday = max_group_matchday + 1
-    else:
-        next_matchday = 1
+                # KO match — key by team-set. API-Football sends KO rounds
+                # without an in-round number (e.g. "Round of 32"), so we can't
+                # rely on a numeric suffix; the simulation looks results up by
+                # the teams that resolve into each slot. _round_to_matchday_label
+                # tolerates both numbered and unnumbered round strings.
+                stage = _round_to_matchday_label(round_str)
+                if stage is not None:
+                    key = frozenset({home_name, away_name})
+                    if key not in ko_results:
+                        ko_results[key] = {
+                            "home": home_name,
+                            "away": away_name,
+                            "home_goals": home_goals,
+                            "away_goals": away_goals,
+                            "decided_by": status,
+                            "stage": stage,
+                        }
 
     # Derive last fully-completed matchday: highest round where finished count
     # meets the expected count from the tournament config.  Using config-derived
@@ -471,6 +457,19 @@ def parse_wc_results(
             last_completed_matchday = label
         else:
             break  # round in progress
+
+    # Derive what stage comes next (for logging/display + per-round refit seed).
+    # KO progression is derived from the last fully-completed round rather than
+    # from KO match keys, so it advances R32→R16→QF→SF→Final→Complete even when
+    # KO rounds arrive unnumbered (team-set keyed) from API-Football.
+    if last_completed_matchday in _KO_NEXT:
+        next_matchday: int | str = _KO_NEXT[last_completed_matchday]
+    elif max_group_matchday >= 3:
+        next_matchday = "R32"  # group fully done, KO not yet complete
+    elif max_group_matchday > 0:
+        next_matchday = max_group_matchday + 1
+    else:
+        next_matchday = 1
 
     logger.info(
         "WC results locked: %d group matches, %d KO matches, next stage: %s, "

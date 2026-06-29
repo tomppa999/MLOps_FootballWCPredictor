@@ -6,7 +6,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.inference.run import _seed_from_timestamp, run_inference_and_simulation
+from src.inference.run import (
+    _build_ko_fixtures,
+    _seed_from_timestamp,
+    run_inference_and_simulation,
+)
 from src.models.config import EXPERIMENT_MODELS
 
 
@@ -106,6 +110,68 @@ def _make_sim_results() -> dict:
         }]),
         "n_sims": 100,
     }
+
+
+class TestBuildKoFixtures:
+    """_build_ko_fixtures consumes team-set-keyed locked_ko (frozenset keys)."""
+
+    def test_no_sim_uses_team_set_values_and_stage(self):
+        """With no simulation pairings, locked fixtures are emitted from the
+        team-set values, reading stage from the stored field (match_num=None)."""
+        locked_ko = {
+            frozenset({"France", "Germany"}): {
+                "home": "France", "away": "Germany",
+                "home_goals": 2, "away_goals": 1,
+                "decided_by": "FT", "stage": "R32",
+            }
+        }
+        df = _build_ko_fixtures(locked_ko, None)
+        assert len(df) == 1
+        row = df.iloc[0]
+        assert row["status"] == "locked"
+        assert row["stage"] == "R32"
+        assert row["home_team"] == "France"
+        assert row["away_team"] == "Germany"
+        assert row["home_goals"] == 2
+        assert row["away_goals"] == 1
+        assert row["match_num"] is None
+        assert row["pairing_frequency"] == 1.0
+
+    def test_modal_slot_locked_by_team_set(self):
+        """A modal slot whose (home, away) team-set is locked is emitted as
+        status='locked' with the actual score and pairing_frequency=1.0."""
+        locked_ko = {
+            frozenset({"France", "Germany"}): {
+                "home": "France", "away": "Germany",
+                "home_goals": 3, "away_goals": 1,
+                "decided_by": "FT", "stage": "R32",
+            }
+        }
+        ko_slot_pairings = pd.DataFrame([{
+            "stage": "R32", "match_num": 73,
+            "home_team": "France", "away_team": "Germany",
+            "count": 100, "frequency": 1.0,
+        }])
+        df = _build_ko_fixtures(locked_ko, ko_slot_pairings)
+        row = df[df["match_num"] == 73].iloc[0]
+        assert row["status"] == "locked"
+        assert row["home_goals"] == 3
+        assert row["away_goals"] == 1
+        assert row["decided_by"] == "FT"
+        assert row["pairing_frequency"] == 1.0
+
+    def test_modal_slot_predicted_when_team_set_not_locked(self):
+        """An unlocked modal slot stays predicted with its observed frequency."""
+        ko_slot_pairings = pd.DataFrame([{
+            "stage": "R32", "match_num": 73,
+            "home_team": "Brazil", "away_team": "Spain",
+            "count": 80, "frequency": 0.8,
+        }])
+        df = _build_ko_fixtures({}, ko_slot_pairings)
+        row = df[df["match_num"] == 73].iloc[0]
+        assert row["status"] == "predicted"
+        assert row["home_goals"] is None
+        assert abs(row["pairing_frequency"] - 0.8) < 1e-9
 
 
 class TestSeedFromTimestamp:

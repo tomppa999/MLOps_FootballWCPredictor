@@ -6,9 +6,6 @@ Run with:
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -28,11 +25,13 @@ except ModuleNotFoundError:
         load_latest_monitoring_results,
     )
 
-TOURNAMENT_CONFIG_PATH = Path("data/tournament/wc2026.json")
-
 _KO_STAGE_ORDER = {"R32": 0, "R16": 1, "QF": 2, "SF": 3, "Final": 4}
 _KO_STAGE_LABELS = {"R32": "Round of 32", "R16": "Round of 16", "QF": "Quarter-finals",
                     "SF": "Semi-finals", "Final": "Final"}
+
+# Determined pairings log a pairing_frequency of 1.0; treat near-1.0 values as
+# locked too. 0.999 is inclusive, so 0.9989-style values stay "predicted".
+_LOCKED_PAIRING_THRESHOLD = 0.999
 
 
 def _format_percentage_columns(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
@@ -175,39 +174,39 @@ def resolve_ko_fixtures(ko_fixtures_df: pd.DataFrame) -> list[dict]:
     return df.to_dict(orient="records")
 
 
+def _ko_is_locked(fix: dict) -> bool:
+    """Return True when a KO slot is settled (played, or a determined pairing).
+
+    A slot is locked once it carries a real score (``status == "locked"``) or
+    once its pairing is effectively certain (``pairing_frequency`` at/above
+    ``_LOCKED_PAIRING_THRESHOLD``; determined pairings log exactly 1.0).
+    """
+    if fix.get("status") == "locked":
+        return True
+    freq = fix.get("pairing_frequency")
+    return freq is not None and float(freq) >= _LOCKED_PAIRING_THRESHOLD
+
+
+def _next_round_stage(ko_fixtures: list[dict]) -> str | None:
+    """Return the earliest KO stage (by ``_KO_STAGE_ORDER``) still to be played.
+
+    A match counts as played only once its slot is locked with a real score
+    (``status == "locked"``); determined-but-unplayed pairings (status
+    ``"predicted"``, even at pairing_frequency 1.0) still count as not-yet-played
+    so the upcoming round surfaces. Returns None when every KO match is played
+    or there are no fixtures.
+    """
+    unplayed_stages = {
+        fix["stage"] for fix in ko_fixtures if fix.get("status") != "locked"
+    }
+    if not unplayed_stages:
+        return None
+    return min(unplayed_stages, key=lambda s: _KO_STAGE_ORDER.get(s, 99))
+
+
 # ---------------------------------------------------------------------------
 # View C: Match predictions (actual tournament fixtures)
 # ---------------------------------------------------------------------------
-
-def _load_tournament_fixtures() -> pd.DataFrame:
-    """Build a DataFrame of actual group-stage fixtures from wc2026.json.
-
-    Returns columns: group, matchday, home_team, away_team.
-    """
-    with TOURNAMENT_CONFIG_PATH.open() as f:
-        config = json.load(f)
-
-    groups: dict[str, list[str]] = config["groups"]
-    matchdays_cfg = config.get("group_matchdays", [])
-    if not matchdays_cfg:
-        matchdays_cfg = [
-            {"matchday": 1, "pairs": [[0, 1], [2, 3]]},
-            {"matchday": 2, "pairs": [[0, 2], [3, 1]]},
-            {"matchday": 3, "pairs": [[3, 0], [1, 2]]},
-        ]
-
-    rows: list[dict] = []
-    for group_letter, teams in groups.items():
-        for md in matchdays_cfg:
-            for h_idx, a_idx in md["pairs"]:
-                rows.append({
-                    "group": group_letter,
-                    "matchday": md["matchday"],
-                    "home_team": teams[h_idx],
-                    "away_team": teams[a_idx],
-                })
-    return pd.DataFrame(rows)
-
 
 def _lookup_prediction(
     pred_df: pd.DataFrame,
@@ -399,70 +398,37 @@ def view_match_predictions(
         "Upcoming matches show the latest live prediction."
     )
 
-    fixtures = _load_tournament_fixtures()
     completed = _completed_results_lookup(monitoring_df, champion_model_name)
+    ko_fixtures = resolve_ko_fixtures(ko_fixtures_df)
+    next_stage = _next_round_stage(ko_fixtures)
 
-    records: list[dict] = []
-    for _, fix in fixtures.iterrows():
-        pred = _lookup_prediction(pred_df, fix["home_team"], fix["away_team"])
-        row = {
-            "group": fix["group"],
-            "matchday": fix["matchday"],
-            "home_team": fix["home_team"],
-            "away_team": fix["away_team"],
-            "lambda_h": pred["lambda_h"] if pred else None,
-            "lambda_a": pred["lambda_a"] if pred else None,
-            "p_home": pred["p_home"] if pred else 0.0,
-            "p_draw": pred["p_draw"] if pred else 0.0,
-            "p_away": pred["p_away"] if pred else 0.0,
-        }
-        records.append(_apply_completed_result(row, completed))
-
-    result_df = pd.DataFrame(records)
-
-    matchdays = sorted(result_df["matchday"].unique())
-    md_options = ["All"] + [f"MD {int(m)}" for m in matchdays]
-    selected_md_label = st.radio("Matchday", options=md_options, horizontal=True)
-
-    groups = sorted(result_df["group"].unique())
-    selected_group = st.sidebar.selectbox("Filter by group", options=["All"] + groups)
-
-    display_df = result_df.copy()
-    if selected_md_label != "All":
-        md_num = int(selected_md_label.split()[-1])
-        display_df = display_df[display_df["matchday"] == md_num]
-    if selected_group != "All":
-        display_df = display_df[display_df["group"] == selected_group]
-
-    display_df = display_df.sort_values(["group", "matchday"]).reset_index(drop=True)
-
-    for group in sorted(display_df["group"].unique()):
-        st.subheader(f"Group {group}")
-        gdf = display_df[display_df["group"] == group]
-        _build_match_bar(gdf)
-
-    with st.expander("Raw data"):
-        base_cols = ["group", "matchday", "home_team", "away_team",
-                     "lambda_h", "lambda_a", "p_home", "p_draw", "p_away"]
-        raw = display_df[base_cols].copy()
-        raw.columns = ["Group", "MD", "Home", "Away", "xG Home", "xG Away",
-                       "P(H) %", "P(D) %", "P(A) %"]
-        if "actual_h" in display_df.columns:
-            raw["Score"] = display_df.apply(
-                lambda r: (
-                    f"{int(r['actual_h'])}–{int(r['actual_a'])}"
-                    if r.get("played") and r.get("actual_h") is not None
-                    else ""
-                ),
-                axis=1,
-            )
-        st.dataframe(raw, use_container_width=True)
+    if not ko_fixtures:
+        st.info("Knockout fixtures are not available yet.")
+    elif next_stage is None:
+        st.success("All knockout matches have been played — the tournament is complete.")
+    else:
+        st.subheader(f"Next round: {_KO_STAGE_LABELS.get(next_stage, next_stage)}")
+        next_records: list[dict] = []
+        for fix in ko_fixtures:
+            if fix["stage"] != next_stage:
+                continue
+            pred = _lookup_prediction(pred_df, fix["home_team"], fix["away_team"])
+            row = {
+                "home_team": fix["home_team"],
+                "away_team": fix["away_team"],
+                "lambda_h": pred["lambda_h"] if pred else None,
+                "lambda_a": pred["lambda_a"] if pred else None,
+                "p_home": pred["p_home"] if pred else 0.0,
+                "p_draw": pred["p_draw"] if pred else 0.0,
+                "p_away": pred["p_away"] if pred else 0.0,
+            }
+            next_records.append(_apply_completed_result(row, completed))
+        _build_match_bar(pd.DataFrame(next_records))
 
     # KO fixtures section
-    if ko_fixtures_df is not None and not ko_fixtures_df.empty:
+    if ko_fixtures:
         st.divider()
         st.subheader("Knockout stage")
-        ko_fixtures = resolve_ko_fixtures(ko_fixtures_df)
         stage_groups: dict[str, list[dict]] = {}
         for fix in ko_fixtures:
             stage_groups.setdefault(fix["stage"], []).append(fix)
@@ -473,13 +439,20 @@ def view_match_predictions(
             for fix in stage_groups[stage_key]:
                 pred = _lookup_prediction(pred_df, fix["home_team"], fix["away_team"])
                 status_badge = (
-                    "🔒 Locked" if fix["status"] == "locked"
+                    "🔒 Locked" if _ko_is_locked(fix)
                     else f"🔮 Predicted ({fix['pairing_frequency']:.0%})"
+                )
+                h, a = fix.get("home_goals"), fix.get("away_goals")
+                score = (
+                    f"{int(h)}–{int(a)}"
+                    if fix.get("status") == "locked" and pd.notna(h) and pd.notna(a)
+                    else ""
                 )
                 ko_records.append({
                     "status": status_badge,
                     "home_team": fix["home_team"],
                     "away_team": fix["away_team"],
+                    "score": score,
                     "lambda_h": pred["lambda_h"] if pred else None,
                     "lambda_a": pred["lambda_a"] if pred else None,
                     "p_home": round(pred["p_home"] if pred else 0.0, 1),
@@ -487,7 +460,7 @@ def view_match_predictions(
                     "p_away": round(pred["p_away"] if pred else 0.0, 1),
                 })
             ko_df = pd.DataFrame(ko_records)
-            ko_df.columns = ["Status", "Home", "Away", "xG Home", "xG Away",
+            ko_df.columns = ["Status", "Home", "Away", "Score", "xG Home", "xG Away",
                               "P(H) %", "P(D) %", "P(A) %"]
             st.dataframe(ko_df, use_container_width=True)
         st.caption(
