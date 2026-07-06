@@ -16,4 +16,4 @@ Python code rules:
 - Avoid notebooks for production pipeline logic.
 - Do not introduce hidden global state.
 - Prefer deterministic behavior where possible.
-- Use the conda environment called modelops
+- Execution environment (conda `modelops`) is enforced globally by `env.mdc`.

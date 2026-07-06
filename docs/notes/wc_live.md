@@ -150,15 +150,15 @@ MD3 leaderboard — single table sorted by MD3 mean RPS. Convention as in MD2: *
 
 ---
 
-## Round of 32 (~Jun 27 – Jul 2)
+## Round of 32 (Jun 28 – Jul 4)
 
-Matches played: [fill]
+Matches played: 16 (South Africa 0–1 Canada through Colombia 1–0 Ghana, Jun 28 – Jul 4).
 
 Pipeline:
-- per_round refit fired at R32 boundary? Y/N. New run_id:
-- Bracket configuration: which 8 third-placers advanced? [fill] — note if any
-  unusual configuration affects the bracket unpredictably.
-- Any failures:
+- Both modes logged? **Y** — all 16 R32 matches scored in both artifacts (per_round 128 rows = 8 × 16; frozen 127; deficit is a single dropped `random_forest` row, see below).
+- per_round refit fired at R32 boundary? **N/A for R32 predictions** — R32 predictions are backed by the **MD3-boundary** champion refit (fires after all 24 MD3 fixtures settle). The R32-boundary refit fires after all 16 R32 matches settle (last kickoff Jul 4 01:30 UTC) and feeds **R16**, not R32. New run_id: [fill from MLflow].
+- Bracket configuration: 16 winners advance to R16 as expected; no unusual routing observed in the settled results.
+- **Any failures: `random_forest` dropped from one frozen inference cycle (data-completeness anomaly, silent-shadow-skip class).** Missing frozen row: Ivory Coast 1–2 Norway (`1564789`, Jun 30). Every other model is present for that match, and the per_round row for `random_forest` on the same fixture is fine (present for all 16 R32 matches). Same failure mode and root cause as MD2's `mean_rate_poisson` (Portugal 1–1 DR Congo) and MD3's `ridge` (Colombia 0–0 Portugal, DR Congo 3–1 Uzbekistan) — a transient DagsHub stall in one child-process shadow-load window blew the 120 s budget in `_safe_shadow_predict`, and the artifact silently omits that model for that cycle. Never-refit shadow ⇒ cadence-invariant on the 15 common R32 matches (0/15 RPS or λ differ vs per_round), so the frozen row is back-fillable from per_round; add to the D.1 backfill list. Consequence: `random_forest` frozen R32 = 15 matches, per_round = 16; cumulative overall frozen = 87, per_round = 88. No mid-flight fix (see "Decision — silent shadow-skip" in Post-tournament).
 - **Jun 29: KO results never locked + KO refits mislabeled "R32" (fix, image `20260629a`).**
   Root cause: API-Football labels KO rounds without an in-round number ("Round of 32",
   not "Round of 32 - 1"), but `parse_wc_results`'s KO branch needed a numeric suffix to
@@ -172,9 +172,63 @@ Pipeline:
     dashboard shows the locked next round + locked/score badges. Refit gate, monitoring,
     Gold unaffected; only the one already-logged mid-R32 cycle stays unlocked (regenerable
     offline from DVC). Deployed before the next R32 match so remaining KO rounds lock live.
+- **Jun 30: WC scheduler left paused → 3 R32 inference cycles missed (RQ2 gap, no code fix).**
+  Root cause: operational, not code. `wc-pipeline-trigger` (the hourly WC Cloud Scheduler
+  job) was paused around the Jun 29 `20260629a` deploy/verification and **not resumed**, so
+  the every-hour `auto` cadence stopped firing. (Initial `gcloud scheduler jobs resume
+  daily-pipeline-trigger …` failed `NOT_FOUND` — wrong job name; the live WC job is
+  `wc-pipeline-trigger`, the daily one stays paused during the tournament.) Discovered Jun 30
+  ~09:0x UTC: the dashboard match view + tournament probabilities did not reflect the prior
+  evening's R32 results.
+  - **Matches settled during the off-window (3):** Japan–Brazil, Germany–Paraguay (4–5),
+    Netherlands–Morocco (3–4). The 3 missed cycles map to 3 intermediate locked states the
+    live cadence would have snapshotted:
+    1. pre-Japan–Brazil (none of the three locked);
+    2. Japan–Brazil locked / pre-Germany–Paraguay;
+    3. Germany–Paraguay locked / pre-Netherlands–Morocco.
+  - **RQ2 cost:** the catch-up cycle locks all three results at once, so three per-match
+    entropy-resolution steps collapse into a single jump in the advancement-entropy
+    trajectory. It is a **uniform gap across every (model × cadence_mode) trajectory** (not a
+    per-model contamination): the curve loses the points that isolate each match's information.
+  - **Not affected:** RQ1/monitoring — `_select_pre_kickoff_run` just falls back to the most
+    recent snapshot strictly before each kickoff (no leakage; all-pairs λ barely depend on
+    other teams' results). The R32 per-round refit gate is unaffected (it only fires after
+    *all* R32 fixtures settle). Because the pipeline was off, **Gold/Bronze never mutated in
+    the window** — the current DVC-versioned Gold is the exact pre-off-window base state, a
+    clean no-op that makes reconstruction faithful.
+  - **Resolution (Jun 30):** `gcloud scheduler jobs resume wc-pipeline-trigger --location
+    europe-west1`, then one manual catch-up execution (`gcloud scheduler jobs run
+    wc-pipeline-trigger …` / `gcloud run jobs execute wc-mlops-trigger …`) to lock all three
+    results and refresh predictions/monitoring/probabilities live.
+  - **Offline reconstruction (D.1, NOT mid-tournament):** see Post-tournament TODO. Mid-R32
+    cycles are deterministic (`simulation_seed = _seed_from_string("R32")` for every cycle
+    while R32 is in progress), so rebuilding the 3 intermediate locked sets by kickoff cutoff
+    and re-running both cadence modes reproduces the missing snapshots bit-identically.
 
 Observations:
--
+
+R32 leaderboard — single table sorted by R32 mean RPS. Same convention as MD2/MD3: **per_round shown for all models** (the per_round column is correct for every model); `xgboost` carries a separate **frozen** line (the only clean frozen↔per_round contrast, via the `champion_*` aliases — 16/16 R32 matches differ on both RPS and λ). Frozen values for the 3 refit-eligible roster shadows (`poisson_glm`, `bayesian_poisson`, `mean_rate_poisson`) are still collapsed onto the per_round artifact by the shadow-resolution bug and are deferred to the post-tournament offline reconstruction; the four never-refit shadows (`sarimax`, `negbin_glm`, `ridge`, `random_forest`) are byte-identical across modes by design (verified: 0/16 RPS or λ diffs across cadences for all seven shadows). "Overall" = cumulative across all 88 settled matches (per_round column; `ridge` overall = 86, all others 88 in per_round). MD1 shadow rows still carry the premature-v16 residue so cumulative shadow numbers are slightly soft; R32-only columns are clean.
+
+| Model                       | Overall RPS | R32 RPS    | Overall RMSE | R32 RMSE   | Overall NLL | R32 NLL   |
+|-----------------------------|-------------|------------|--------------|------------|-------------|-----------|
+| random_forest               | 0.1501      | **0.1077** | 0.8949       | **0.5655** | 2.865       | **2.427** |
+| xgboost (per-round)         | **0.1496**  | 0.1105     | 0.8977       | 0.5864     | 2.881       | 2.483     |
+| sarimax                     | 0.1534      | 0.1144     | **0.8869**   | 0.6266     | 2.874       | 2.682     |
+| xgboost (frozen)            | 0.1528      | 0.1163     | 0.8977       | 0.5958     | 2.883       | 2.477     |
+| negbin_glm                  | 0.1570      | 0.1186     | 0.8905       | 0.5864     | 2.881       | 2.500     |
+| bayesian_poisson            | 0.1543      | 0.1190     | 0.8903       | 0.5896     | 2.874       | 2.512     |
+| poisson_glm                 | 0.1543      | 0.1204     | 0.8979       | 0.5905     | 2.893       | 2.508     |
+| ridge (n=86 / n=16)         | 0.1535      | 0.1256     | 0.8866       | 0.6399     | **2.873**   | 2.589     |
+| mean_rate (floor)           | 0.2329      | 0.2426     | 1.0716       | 0.8109     | 3.233       | 2.749     |
+
+- **R32 was extremely chalky.** Outcome mix was 11 home / 3 draw / 2 away — 11 of 16 favorites (home team = higher-seeded / group-winner slot) delivered. Round mean RPS (per_round, team-aware): 0.219 (MD1) → 0.137 (MD2) → 0.131 (MD3) → **0.117 (R32)**, the lowest of the tournament so far. Interpret cautiously: the KO seeding compresses the field to broadly asymmetric pairings (Argentina–Cape Verde, France–Sweden, Colombia–Ghana), and only 3 draws is well below the ~25% base rate — a fortunate slate for team-aware models, not a step-change in skill.
+- **Refit stayed net-positive on RPS, closer to a wash overall.** The only valid frozen↔per_round contrast (xgboost, 16/16 R32 matches differ): per_round beat frozen on RPS (0.1105 vs 0.1163, ~5.0%) and RMSE (0.5864 vs 0.5958, ~1.6%), but was fractionally worse on NLL (2.4829 vs 2.4771, ~0.2%). Direction reversed vs MD3, where per_round was slightly worse on RMSE and better on both RPS and NLL — consistent with the picture that outcome-calibration (RPS) is where the refit reliably wins by 1–5% per round, while the goal-rate metrics (NLL / RMSE) trade blows within a few tenths of a percent, i.e. within round-level noise on 16–24 matches.
+- **Champion did not lead R32.** On R32 RPS, `random_forest` led (0.1077, per_round) with per_round xgboost 2nd (0.1105) and frozen xgboost 4th (0.1163); `random_forest` also led on R32 RMSE (0.5655) and NLL (2.427). Same pattern as MD3 (cheaper models beat champion on the round), but xgboost still leads **cumulative Overall RPS** (per_round 0.1496 vs random_forest 0.1501, ridge 0.1535, sarimax 0.1534). Two matchdays in a row where the champion is not the round leader but retains the cumulative lead — RQ1 evidence that per_round retraining pays off *across the tournament*, not necessarily on any given round.
+- **Alert window (rolling 24 = last 8 MD3 + all 16 R32, spanning Jun 27–Jul 4):** all 7 team-aware models sit at 0.105–0.126 RPS, well under the 0.235 static naive floor — no breach. `mean_rate_poisson` printed 0.2344 on the rolling window and 0.2426 on R32-only, essentially on/above the floor (and above its 0.229 holdout baseline); the gap between the floor and the mean team-aware model widened to ~0.13 RPS on R32, the largest all tournament — cleanly reflects the "chalk-slate" effect.
+- **Worst matches (mean team-aware RPS, per_round):** Portugal 2–1 Croatia (0.205), Switzerland 2–0 Algeria (0.202), Germany 1–1 Paraguay (0.195), Mexico 2–0 Ecuador (0.188), Brazil 2–1 Japan (0.163). The recurring theme is the **narrow-favorite / close KO match** — models were fairly confident but the pairings were genuinely close (Portugal vs Croatia, Brazil vs Japan) so scores still landed far from λ. Germany 1–1 Paraguay is the same unpriced-low-scoring-draw failure mode flagged in MD1–MD3.
+- **Best matches (per_round):** Argentina 3–2 Cape Verde (0.006), Colombia 1–0 Ghana (0.015), France 3–0 Sweden (0.023), England 2–1 DR Congo (0.053), Spain 3–0 Austria (0.073), South Africa 0–1 Canada (0.094) — dominant / lopsided pairings priced correctly.
+- **SARIMAX degenerate-λ streak stays broken.** 0/16 R32 fixtures had λ ≤ 1e-5 — second consecutive round without the near-zero clipping anomaly (MD3, R32). No high-asymmetry Spain fixture on R32 either (Spain–Austria was the closest and behaved normally, λ_h ≈ 2.6, λ_a ≈ 0.4), so the "2 of 2 Spain games trigger the clip" pattern is still the operative one — keep tracking on R16.
+- **KO sample-size caveat.** R32 has 16 matches — the smallest matchday so far — so RPS/NLL/RMSE deltas of ≲0.005 (roughly all the frozen↔per_round gaps except R32 RPS) are inside round noise. Trust the sign more than the magnitude until R16 is in.
 
 ---
 
@@ -184,7 +238,39 @@ Matches played: [fill]
 
 Pipeline:
 - per_round refit fired? Y/N. New run_id:
-- Any failures:
+- **Jul 5–6: every trigger run timed out at ELO freshness check (IPv6 stall, fix image `20260706a`).**
+  Root cause: `eloratings.net` began serving an AAAA record (`2602:faa9:1008:1661:379d:50ec:ecd1:7b1a`)
+  around Jul 5. Cloud Run has no working IPv6 egress; the v6 SYN is silently dropped. Python
+  `requests` (via `urllib3.util.connection.create_connection`) tries v6 first per `getaddrinfo`,
+  waits up to the 30 s socket timeout, then falls back to v4 — so every `_download_to` in
+  `check_elo_freshness` took ~30 s instead of ~0.5 s.
+  - **Symptom:** ~244 slugs × ~30 s > 90 min Cloud Run task timeout. Every `wc-pipeline-trigger`
+    run from Jul 5 09:33 UTC onward was terminated with `Terminating task because it has reached
+    the maximum timeout of 5400 seconds.` Log fingerprint: steady 30 s cadence between
+    `INFO ELO data changed: <country>` lines; every country flagged as changed (all TSVs were
+    fetched but bytes differed from the manifest each time under the timeout-then-fallback path).
+  - **Diagnosis:** `curl` from laptop and Cloud Shell was fast (~1.0 s), ruling out site/global-GCP
+    blocking. `gcloud run jobs describe` showed no VPC connector / custom egress, ruling out routing
+    config. `curl -4` = 1.0 s vs `curl -6` = fail from Cloud Shell confirmed the AAAA is dead.
+    First slug (Afghanistan) already stalled ~30 s → not rate-limiting, matches IPv6 connect-stall
+    signature.
+  - **Fix:** module-level `urllib3.util.connection.allowed_gai_family = lambda: socket.AF_INET`
+    in `src/pipeline/trigger.py`. Restores ~0.5 s per slug → full ELO freshness back to ~2 min.
+    Deployed as image `20260706a`.
+  - **Scheduler:** `wc-pipeline-trigger` was paused during debugging (`gcloud scheduler jobs pause
+    wc-pipeline-trigger --location europe-west1`); resume after the redeploy passes one successful
+    catch-up execution.
+  - **What got lost:** the Brazil–Norway ↔ Mexico–England intermediate R16 snapshot (see
+    Post-tournament TODO). RQ1/monitoring unaffected (`_select_pre_kickoff_run` falls back to the
+    most recent snapshot strictly before each kickoff). R16 refit gate unaffected (fires only after
+    all 8 R16 fixtures settle). Gold/Bronze did not mutate during the failed windows (each run
+    died mid-freshness check, before any ingestion) — no data corruption risk; the post-fix run
+    picks up cleanly.
+  - **Thesis note (not code):** the trigger trusts Python's default `getaddrinfo` ordering and has
+    no per-request instrumentation, so a silent v6-vs-v4 issue took hours to isolate. If the
+    pipeline weren't retiring at end of tournament, hardening would be: log `response.elapsed` +
+    resolved family per HTTP call, shorter per-request timeout with concurrency, or a pre-flight
+    HEAD / `Last-Modified` fast path.
 
 Observations:
 -
@@ -262,7 +348,10 @@ Reconstruction steps (run after the Final, do NOT touch the live pipeline mid-to
 
 Why: the sim swapped already-correct host-home rates (scramble bug, see MD3 Jun 27),
 invalidating host-path advancement probabilities and the RQ2 Shannon-entropy trajectories
-built from them. Per-match predictions, RQ1/RQ3, monitoring, Gold are clean.
+built from them. Per-match predictions, RQ1/RQ3, monitoring, Gold are clean. Also folds in
+the one already-logged mid-R32 cycle that stayed unlocked under the Jun 29 KO-results
+locking bug (fixed live in `20260629a`): replaying that cycle through the corrected sim
+with locked KO results in step 2 regenerates its bracket bit-identically from DVC.
 
 Steps (run with D.1, after the Final, alongside the frozen-shadow rebuild):
 1. Confirm swap deletion + venue-aware orientation + host-vs-host dual-orientation merged
@@ -275,26 +364,79 @@ Steps (run with D.1, after the Final, alongside the frozen-shadow rebuild):
 5. Combine into the single D.1 pass with the frozen-shadow reconstruction.
 6. Prereq: per-cycle prediction DVC history retained (shared with frozen-shadow TODO).
 
-### TODO — backfill dropped per-round `ridge` rows (data completeness)
+### TODO — backfill dropped never-refit shadow rows (data completeness)
 
-Why: the silent shadow-skip path (`_safe_shadow_predict` → DagsHub load timeout) dropped
-`ridge` from one per-round inference cycle (`ed64fbfac5ed487ca222cf0a9d2c938d`), leaving 2
-holes in the per_round monitoring artifact: Colombia 0–0 Portugal (`1489419`) and DR Congo
-3–1 Uzbekistan (`1539013`), both Jun 27 (see MD3 pipeline note). **Not** covered by the
-frozen-shadow reconstruction above — that rebuilds *frozen* rows for the 3 contaminated
-roster shadows, whereas these are *per_round* rows for `ridge`, a never-refit shadow the
-reconstruction explicitly leaves untouched. List separately so it isn't missed.
+Why: the silent shadow-skip path (`_safe_shadow_predict` → DagsHub load timeout) has now
+dropped a never-refit shadow from **three** inference cycles across the tournament, one per
+matchday since MD2:
+
+- **MD3 per_round `ridge`** — cycle `ed64fbfac5ed487ca222cf0a9d2c938d`; 2 holes: Colombia
+  0–0 Portugal (`1489419`) and DR Congo 3–1 Uzbekistan (`1539013`), both Jun 27.
+- **R32 frozen `random_forest`** — 1 hole: Ivory Coast 1–2 Norway (`1564789`, Jun 30).
+  Never-refit ⇒ cadence-invariant, so the per_round row on the same fixture is byte-identical
+  to what frozen would have logged (verified: 0/15 RPS or λ diffs across cadences on the
+  common R32 `random_forest` rows).
+
+**Not** covered by the frozen-shadow reconstruction — that rebuilds *frozen* rows for the 3
+contaminated *refit-eligible* shadows, whereas these are dropped rows on *never-refit* shadows
+the reconstruction explicitly leaves untouched. List all instances here so nothing is missed.
 
 Steps (fold into the single D.1 pass — same mechanics and prereq as the frozen-shadow rebuild):
-1. Resolve the per_round `ridge` shadow version that cycle `ed64fbfac5…` would have loaded
-   (never-refit ⇒ same version as every other `ridge` row, so deterministic).
-2. Rebuild the pre-kickoff feature rows for the 2 fixtures from the DVC-versioned Gold
-   snapshot of that cycle (strict `inference_timestamp < kickoff`).
-3. Predict, recompute RPS / NLL / RMSE_h / RMSE_a, backfill the 2 rows; `ridge` then reads
-   24/72 like the others. (The frozen `mean_rate_poisson` MD1 hole — Portugal 1–1 DR Congo —
-   is already handled: cadence-invariant, back-filled from per_round, and recomputed anyway
-   by the frozen-shadow rebuild.)
+1. For each dropped row, resolve the shadow version that the affected cycle would have loaded
+   (never-refit ⇒ same version as every other row for that model, so deterministic).
+2. Rebuild the pre-kickoff feature row from the DVC-versioned Gold snapshot of that cycle
+   (strict `inference_timestamp < kickoff`).
+3. Predict, recompute RPS / NLL / RMSE_h / RMSE_a, and backfill:
+   - `ridge` per_round → +2 rows (MD3 = 24/24, overall = 88/88).
+   - `random_forest` frozen → +1 row (R32 = 16/16, overall = 88/88). Alternatively, copy
+     the byte-identical per_round row for the same fixture (both paths give the same result).
+   (The frozen `mean_rate_poisson` MD1 hole — Portugal 1–1 DR Congo — is already handled:
+   cadence-invariant, back-filled from per_round, and recomputed anyway by the frozen-shadow
+   rebuild.)
 4. Prereq: per-cycle Gold/DVC history retained (shared with the two TODOs above).
+
+### TODO — reconstruct missed entropy-trajectory snapshots (pipeline outages)
+
+Why: a pipeline outage collapses per-match resolution steps into a single jump in the RQ2
+advancement-entropy trajectory. Affects **every (model × cadence_mode) trajectory uniformly**;
+RQ1/monitoring and refit gates are untouched. Two cases:
+
+1. **R32 scheduler-pause gap (Jun 29–30):** `wc-pipeline-trigger` was left paused over the
+   Jun 29–30 R32 evening (see R32 pipeline note), so the hourly cadence missed 3 intermediate
+   locked states — pre-Japan–Brazil; Japan–Brazil locked / pre-Germany–Paraguay; Germany–Paraguay
+   locked / pre-Netherlands–Morocco. The Jun 30 catch-up cycle locked all three results
+   (Japan–Brazil, Germany–Paraguay 4–5, Netherlands–Morocco 3–4) at once, collapsing three
+   per-match resolution steps into one jump.
+2. **R16 IPv6-stall gap (Jul 5–6):** every trigger run from Jul 5 was killed by the 90 min task
+   timeout at the ELO freshness check (see R16 pipeline note above), so the hourly cadence
+   produced no inference cycle in the window bounded by Brazil–Norway and Mexico–England. One
+   missed snapshot: lock all matches with `kickoff <= Brazil–Norway`, re-run with
+   `simulation_seed = _seed_from_string("R16")`, insert one point at a synthetic
+   `inference_timestamp` between the two kickoffs.
+
+Reconstruction steps (fold into the single D.1 pass; do NOT touch the live pipeline). Steps
+1–3 apply per case — use each round's own KO seed and kickoff cutoffs:
+1. Establish the intermediate locked states by kickoff cutoff against the now-complete Bronze.
+   KO results are keyed by `frozenset({home, away})`, so each state is just adding/removing one
+   team-set entry from `ko_results` + `finished_fixtures`.
+   - **R32 (3 states):** (a) lock all matches with `kickoff < Japan–Brazil`; (b) add
+     Japan–Brazil; (c) add Germany–Paraguay (NED–Morocco still open).
+   - **R16 (1 state):** lock all matches with `kickoff <= Brazil–Norway` (Mexico–England still
+     open).
+2. For each state, re-run `run_inference_and_simulation(cadence_mode=...)` for both modes on
+   current code with the round's fixed seed (`_seed_from_string("R32")` or `"R16"`). R32 base
+   Gold needs no special checkout — the pipeline was off, so current DVC-versioned Gold is the
+   exact pre-off-window state. R16 base Gold is likewise unchanged (failed runs died before
+   ingestion).
+3. Take each `tournament_probabilities.csv` (per model × mode), normalise the advancement
+   vector (`p_i = adv_i / 32`, `H = -Σ p_i log p_i`), and insert the points into the trajectory
+   with synthetic `inference_timestamp`s between the respective kickoffs so they order correctly
+   in the entropy resolution curve.
+4. Before relying on this, confirm in MLflow exactly which inference cycles are missing across
+   each outage window (compare `inference_timestamp`s to the relevant kickoff times) so the
+   snapshot counts are exact and no additional gap is overlooked (R32: 3 snapshots; R16: 1
+   snapshot between Brazil–Norway and Mexico–England).
+5. Prereq: per-cycle Gold/DVC history retained (shared with the TODOs above).
 
 ### Decision — silent shadow-skip: document, do NOT build a fix
 

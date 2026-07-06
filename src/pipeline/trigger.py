@@ -17,6 +17,7 @@ import hashlib
 import json
 import logging
 import os
+import socket
 import subprocess
 import sys
 import tempfile
@@ -24,6 +25,12 @@ from datetime import date
 from pathlib import Path
 
 import requests
+import urllib3.util.connection as _urllib3_conn
+
+# Cloud Run has no working IPv6 egress; eloratings.net publishes an unreachable
+# AAAA record, so urllib3's default getaddrinfo ordering stalls ~30 s per request
+# before falling back to IPv4. Force IPv4 for all outbound HTTP in this process.
+_urllib3_conn.allowed_gai_family = lambda: socket.AF_INET
 
 from src.ingestion.fixture_status import check_fixtures_settled, find_latest_fixtures_file
 
