@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import socket
 import sys
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
@@ -16,9 +17,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
+import urllib3.util.connection as _urllib3_conn
 from dotenv import load_dotenv
 
 from src.ingestion.api_football_client import ApiFootballClient
+
+# Cloud Run has no working IPv6 egress; force IPv4 for all outbound HTTP in this process.
+_urllib3_conn.allowed_gai_family = lambda: socket.AF_INET
 
 
 DEFAULT_OUTPUT_DIR = Path("data/raw/api_football")

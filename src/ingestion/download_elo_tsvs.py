@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import os
+import socket
 import sys
 import time
 from datetime import datetime, timezone
@@ -11,6 +12,11 @@ from typing import Iterable
 
 import pandas as pd
 import requests
+import urllib3.util.connection as _urllib3_conn
+
+# Cloud Run has no working IPv6 egress; eloratings.net's AAAA record is unreachable,
+# causing a ~30 s stall per request. Force IPv4 for all outbound HTTP in this process.
+_urllib3_conn.allowed_gai_family = lambda: socket.AF_INET
 
 
 # ===== Config =====
