@@ -221,7 +221,7 @@ R32 leaderboard — single table sorted by R32 mean RPS. Same convention as MD2/
 | ridge (n=86 / n=16)         | 0.1535      | 0.1256     | 0.8866       | 0.6399     | **2.873**   | 2.589     |
 | mean_rate (floor)           | 0.2329      | 0.2426     | 1.0716       | 0.8109     | 3.233       | 2.749     |
 
-- **R32 was extremely chalky.** Outcome mix was 11 home / 3 draw / 2 away — 11 of 16 favorites (home team = higher-seeded / group-winner slot) delivered. Round mean RPS (per_round, team-aware): 0.219 (MD1) → 0.137 (MD2) → 0.131 (MD3) → **0.117 (R32)**, the lowest of the tournament so far. Interpret cautiously: the KO seeding compresses the field to broadly asymmetric pairings (Argentina–Cape Verde, France–Sweden, Colombia–Ghana), and only 3 draws is well below the ~25% base rate — a fortunate slate for team-aware models, not a step-change in skill.
+- **R32 was extremely chalky** Scored against the model's own implied favorite (mean team-aware `p_home`/`p_draw`/`p_away` argmax vs actual result): the model correctly picked the winning side in **all 13 non-draw R32 matches (13/13)**, and the 3 "misses" — Germany 1–1 Paraguay, Netherlands 1–1 Morocco, Australia 1–1 Egypt — were all draws against a *mild* implied favorite (p_fav 0.43–0.59), not a big underdog winning outright. **Zero genuine "underdog beats favorite" upsets in R32.** Round mean RPS (per_round, team-aware): 0.219 (MD1) → 0.137 (MD2) → 0.131 (MD3) → **0.117 (R32)**, the lowest of the tournament so far. Interpret cautiously: the KO seeding compresses the field to broadly asymmetric pairings (Argentina–Cape Verde, France–Sweden, Colombia–Ghana), and only 3 draws is well below the ~25% base rate — a fortunate slate for team-aware models, not a step-change in skill.
 - **Refit stayed net-positive on RPS, closer to a wash overall.** The only valid frozen↔per_round contrast (xgboost, 16/16 R32 matches differ): per_round beat frozen on RPS (0.1105 vs 0.1163, ~5.0%) and RMSE (0.5864 vs 0.5958, ~1.6%), but was fractionally worse on NLL (2.4829 vs 2.4771, ~0.2%). Direction reversed vs MD3, where per_round was slightly worse on RMSE and better on both RPS and NLL — consistent with the picture that outcome-calibration (RPS) is where the refit reliably wins by 1–5% per round, while the goal-rate metrics (NLL / RMSE) trade blows within a few tenths of a percent, i.e. within round-level noise on 16–24 matches.
 - **Champion did not lead R32.** On R32 RPS, `random_forest` led (0.1077, per_round) with per_round xgboost 2nd (0.1105) and frozen xgboost 4th (0.1163); `random_forest` also led on R32 RMSE (0.5655) and NLL (2.427). Same pattern as MD3 (cheaper models beat champion on the round), but xgboost still leads **cumulative Overall RPS** (per_round 0.1496 vs random_forest 0.1501, ridge 0.1535, sarimax 0.1534). Two matchdays in a row where the champion is not the round leader but retains the cumulative lead — RQ1 evidence that per_round retraining pays off *across the tournament*, not necessarily on any given round.
 - **Alert window (rolling 24 = last 8 MD3 + all 16 R32, spanning Jun 27–Jul 4):** all 7 team-aware models sit at 0.105–0.126 RPS, well under the 0.235 static naive floor — no breach. `mean_rate_poisson` printed 0.2344 on the rolling window and 0.2426 on R32-only, essentially on/above the floor (and above its 0.229 holdout baseline); the gap between the floor and the mean team-aware model widened to ~0.13 RPS on R32, the largest all tournament — cleanly reflects the "chalk-slate" effect.
@@ -232,12 +232,17 @@ R32 leaderboard — single table sorted by R32 mean RPS. Same convention as MD2/
 
 ---
 
-## Round of 16 (~Jul 4–7)
+## Round of 16 (Jul 4–7)
 
-Matches played: [fill]
+Matches played: 8 (Canada 0–3 Morocco through Switzerland 0–0 Colombia, Jul 4–7). All 8 R16 fixtures are settled; both monitoring artifacts now cover 96 cumulative matches (72 group + 16 R32 + 8 R16). Analyzed from the two exported monitoring snapshots (`wc2026_monitoring (16).csv` = frozen, 766 rows; `wc2026_monitoring (15).csv` = per_round, 766 rows).
 
 Pipeline:
-- per_round refit fired? Y/N. New run_id:
+- Both modes logged? **Y** — frozen 96 matches × up to 8 models, per_round 96 matches × up to 8 models; no new completeness gaps introduced this round (see anomaly check below).
+- per_round refit fired at the R32→R16 boundary (feeding R16 predictions)? **Y** — confirmed live in the artifacts, not just inferred: `xgboost` differs between frozen and per_round on **8/8 R16 matches** (both λ and RPS move on every fixture), the same clean champion-only contrast pattern as MD2/MD3/R32. Run_id: **not recoverable from the monitoring CSV export** (it only carries `inference_run_id`, i.e. the scoring cycle, not the champion model version) — pull `champion_per_round`'s version/run_id from MLflow and fill in here.
+- per_round refit fired at the R16→QF boundary (feeding QF predictions)? **Y** — fired successfully after all 8 R16 fixtures settled. New run_id: [fill from MLflow].
+- **Data completeness: no new anomalies.** The only missing rows across all 96 cumulative matches are the three already-documented silent-shadow-skip holes (`_safe_shadow_predict` timeout class), and all three are confirmed outside R16 in this export: frozen `mean_rate_poisson` missing MD1 Portugal 1–1 DR Congo (95/96); frozen `random_forest` missing R32 Ivory Coast 1–2 Norway (95/96); per_round `ridge` missing MD3 Colombia 0–0 Portugal and DR Congo 3–1 Uzbekistan (94/96). All 8 R16 matches have full 8/8 model coverage in both cadence artifacts — clean round.
+- **SARIMAX degenerate-λ streak stays broken.** 0/8 R16 fixtures had λ ≤ 1e-5 — third consecutive round (MD3, R32, R16) without the near-zero clipping anomaly. Portugal vs Spain (the round's most lopsided pairing on paper) behaved normally (λ_h ≈ 1.01, λ_a ≈ 1.53) — no extreme-asymmetry Spain fixture this round to re-test the earlier "2 of 2" pattern.
+- The Jul 5–6 IPv6 ELO-freshness stall (documented below) is the only pipeline failure this round; nothing else surfaced in the monitoring data itself.
 - **Jul 5–6: every trigger run timed out at ELO freshness check (IPv6 stall, fix image `20260706a`).**
   Root cause: `eloratings.net` began serving an AAAA record (`2602:faa9:1008:1661:379d:50ec:ecd1:7b1a`)
   around Jul 5. Cloud Run has no working IPv6 egress; the v6 SYN is silently dropped. Python
@@ -273,7 +278,30 @@ Pipeline:
     HEAD / `Last-Modified` fast path.
 
 Observations:
--
+
+R16 leaderboard (n=8 matches), sorted by R16 mean RPS. Same convention as MD2/MD3/R32: **per_round shown for all models** (correct for every model on this scoring path); `xgboost` carries a separate **frozen** line (the only clean frozen↔per_round contrast, via the `champion_*` aliases — 8/8 R16 matches differ on both RPS and λ). `poisson_glm`/`bayesian_poisson` frozen and per_round values are still byte-identical here too (shadow-resolution bug persists unchanged — 0/8 R16 rows differ for either), so their row is shown once, unlabeled, per the established convention; the three never-refit shadows still fully cadence-invariant. "Overall" = cumulative across all 96 settled matches.
+
+| Model                       | Overall RPS | R16 RPS    | Overall RMSE | R16 RMSE   | Overall NLL | R16 NLL   |
+|-----------------------------|-------------|------------|---------------|------------|--------------|-----------|
+| negbin_glm                  | 0.1559      | **0.1437** | 0.8996        | **0.9998** | 2.886        | **2.947** |
+| bayesian_poisson            | 0.1548      | 0.1600     | 0.9022        | 1.0335     | **2.882**    | 2.980     |
+| poisson_glm                 | 0.1548      | 0.1603     | 0.9090        | 1.0311     | 2.899        | 2.972     |
+| sarimax                     | 0.1545      | 0.1673     | 0.9039        | 1.0911     | 2.892        | 3.090     |
+| xgboost (frozen)            | 0.1547      | 0.1758     | 0.9149        | 1.1035     | 2.905        | 3.153     |
+| xgboost (per-round)         | **0.1523**  | 0.1821     | 0.9183        | 1.1450     | 2.908        | 3.197     |
+| ridge (n=94)                | 0.1560      | 0.1831     | 0.9040        | 1.0910     | 2.892        | 3.097     |
+| random_forest               | 0.1534      | 0.1898     | **0.9150**    | 1.1360     | 2.893        | 3.201     |
+| mean_rate (floor)           | 0.2344      | 0.2507     | 1.0742        | 1.1031     | 3.228        | 3.170     |
+
+- **R16 had only one genuine upset: Norway 2–1 Brazil.** Judged by each model's own implied favorite (highest of mean `p_home`/`p_draw`/`p_away`), Brazil was the clear favorite (p_home 0.54) and lost outright. The other winners (Morocco, England, Belgium, Spain, France, Argentina) were already the model's favorite going in — three of them (Morocco, England, Belgium) beat the tournament's co-host nation. Switzerland 0–0 Colombia was a near-even three-way call, not a favorite losing. The model picked the right side in 7 of 8 matches.
+- **The moderately elevated R16 RPS values are a symptom of tighter matchups, not more upsets.** Mean model confidence (average of the round's max(p_home, p_draw, p_away) per match) was **0.562 for R16 — the lowest of any round so far** (MD1 0.609, MD2 0.648, MD3 0.575, R32 0.592). With the eight strongest-surviving teams now paired off, several fixtures (Canada–Morocco, Mexico–England, Portugal–Spain, USA–Belgium, Switzerland–Colombia) had no dominant favorite (implied favorite probability rarely above ~0.49), so even a *correctly called* outcome scores a non-trivial RPS — there is no low-RPS outcome available when the pre-match probabilities are close to a 3-way split. Round mean RPS (per_round, team-aware, 7 models): 0.219 (MD1) → 0.149 (MD2) → 0.148 (MD3) → 0.117 (R32) → **0.169 (R16)** reflects that compression in favorite strength, with exactly one real upset behind it, not a return to an upset-prone slate.
+- **All three co-host nations were eliminated in R16** — Canada (0–3 Morocco), Mexico (2–3 England), USA (1–4 Belgium) — but, per the correction above, none of these were upsets: the models had all three as underdogs beforehand (λ favored the visitor in all three fixtures, e.g. Canada λ_h≈0.86–0.90 vs Morocco λ_a≈1.3–1.4; USA λ_h≈1.08–1.17 vs Belgium λ_a≈1.36–1.37). This is a clean data point that the per-match prediction/monitoring path is unaffected by the host-advantage **simulation** scramble bug documented under MD3 (that bug lives in `simulate_tournament`'s bracket projection, not in per-match λ or scoring).
+- **The refit's edge reversed sign on RPS this round, but the champion still leads cumulatively.** The only valid frozen↔per_round contrast (xgboost, 8/8 R16 matches differ): per_round was *worse* than frozen on R16 RPS (0.1821 vs 0.1758, **+3.6% worse**) and RMSE (1.1450 vs 1.1035, +3.8% worse) and NLL (3.197 vs 3.153, +1.4% worse) — the first round where per_round loses on every metric simultaneously. Despite that, xgboost per_round still leads cumulative **Overall RPS** (0.1523, best of all 8 models) because the MD2/MD3/R32 gains outweigh this round's dip (frozen overall is 0.1547, 4th-best). One bad round doesn't erase three good ones, but it's a genuine RQ1 data point that per-round retraining is not uniformly beneficial.
+- **Champion did not lead R16** — 4th of 8 models on frozen RPS, 6th of 8 on per_round RPS (negbin_glm, bayesian_poisson, poisson_glm and sarimax all beat it on R16-only RPS). This is the third consecutive round (MD3, R32, R16) where the champion is not the round leader, reinforcing the same RQ1 nuance: per_round retraining's payoff shows up in the cumulative trend, not reliably on any single round.
+- **Worst matches (mean team-aware RPS, per_round):** Brazil 1–2 Norway (0.446, by far the round's biggest miss — models had Brazil as a heavy favorite, λ_h≈1.7–1.9 vs λ_a≈0.9–1.0, and Norway won anyway), Mexico 2–3 England (0.199), United States 1–4 Belgium (0.176), Portugal 0–1 Spain (0.168), Canada 0–3 Morocco (0.159), Switzerland 0–0 Colombia (0.155, another unpriced low-scoring draw — same recurring failure mode as every prior round).
+- **Best matches (per_round):** Argentina 3–2 Egypt (0.018), Paraguay 0–1 France (0.036) — both correctly priced favorites, though Argentina 3–2 was a closer scoreline than the low RPS implies (outcome-only scoring rewards getting the W/D/L right regardless of margin).
+- **Alert window (rolling 24 = all 16 R32 + all 8 R16, spanning Jun 28–Jul 7):** all 7 team-aware models sit at 0.127–0.145 RPS in both modes, well under the 0.235 static naive floor — no breach. `mean_rate_poisson` printed 0.2453 on the window, comfortably above the floor and its 0.229 holdout baseline; the floor continues to behave as designed.
+- **KO sample-size caveat, now more acute.** R16 has only 8 matches — the smallest matchday yet (half of R32's 16) — so the ~3.6% frozen↔per_round RPS gap and all the round-only rankings above are well within noise for a single-round read. Trust the sign and the qualitative pattern (champion not leading recent rounds; refit's cumulative edge holding) more than the exact magnitudes until QF/SF pool more matches.
 
 ---
 
@@ -283,6 +311,29 @@ Matches played: [fill]
 
 Pipeline:
 - per_round refit fired? Y/N. New run_id:
+- **Jul 12: locked KO pen-winner bug (fix, image `20260712a`).**
+  Root cause: `simulate_tournament`'s locked-result branches resolved winners by
+  regulation/ET goals only; on a level score the away team always advanced.
+  `parse_wc_results` stored `decided_by: "PEN"` but never read
+  `teams.*.winner` or `score.penalty` (available in Bronze; Silver already
+  captures them). Switzerland 0–0 Colombia (PEN, Switzerland won) therefore
+  advanced Colombia into QF match 100 (Argentina vs Colombia), and the real
+  Argentina–Switzerland QF result could never lock (team-set key mismatch).
+  - **Why undetected until QF:** all three R32 shootouts (Germany–Paraguay,
+    Netherlands–Morocco, Australia–Egypt) were won by the away team, so the
+    away-bias tie-break happened to pick the correct winner each time.
+  - **Symptoms:** dashboard showed Colombia as Argentina's QF opponent; QF 100
+    stayed `predicted` instead of `locked`; "next round" stuck at QF; Colombia
+    wrongly alive in advancement probabilities.
+  - **Fix:** `_resolve_ko_winner` in `parse_wc_results` (goals → winner flags →
+    penalty score); `_locked_ko_winner` in `simulate_tournament` uses the
+    stored `winner` field. Regression tests cover home-side pen winner on level
+    goals.
+  - **Affected outputs:** `tournament_probabilities.csv`, `ko_pairings.csv`,
+    `ko_fixtures.csv` — **RQ2 only** (uniform across all models × both cadences
+    from first post-Switzerland–Colombia cycle through this deploy). RQ1/RQ3,
+    monitoring, Gold, refit gate clean (verified: Argentina–Switzerland QF row
+    present in monitoring artifact with correct actual score).
 
 Observations:
 -
@@ -351,7 +402,14 @@ invalidating host-path advancement probabilities and the RQ2 Shannon-entropy tra
 built from them. Per-match predictions, RQ1/RQ3, monitoring, Gold are clean. Also folds in
 the one already-logged mid-R32 cycle that stayed unlocked under the Jun 29 KO-results
 locking bug (fixed live in `20260629a`): replaying that cycle through the corrected sim
-with locked KO results in step 2 regenerates its bracket bit-identically from DVC.
+with locked KO results in step 2 regenerates its bracket bit-identically from DVC. **Also
+folds in the pen-winner bracket bug (QF pipeline note, fixed live in `20260712a`):** every
+snapshot from the first post-Switzerland–Colombia cycle (Jul 7) through the fix deploy
+contaminated `tournament_probabilities.csv`, `ko_pairings.csv`, and `ko_fixtures.csv`
+uniformly across all models × both cadences (Colombia wrongly advanced, real QF result
+unlockable). The same D.1 replay through the corrected `simulate_tournament` (same seeds,
+locked KO results) regenerates these bit-faithfully since the pen-winner fix will be in the
+replay code.
 
 Steps (run with D.1, after the Final, alongside the frozen-shadow rebuild):
 1. Confirm swap deletion + venue-aware orientation + host-vs-host dual-orientation merged

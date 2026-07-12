@@ -333,14 +333,29 @@ def _write_finished_fixture(
             "round": entry.get("round", "Group A - 1"),
         },
         "teams": {
-            "home": {"id": entry.get("home_id", 100), "name": entry.get("home_name", "France")},
-            "away": {"id": entry.get("away_id", 200), "name": entry.get("away_name", "Germany")},
+            "home": {
+                "id": entry.get("home_id", 100),
+                "name": entry.get("home_name", "France"),
+                "winner": entry.get("home_winner"),
+            },
+            "away": {
+                "id": entry.get("away_id", 200),
+                "name": entry.get("away_name", "Germany"),
+                "winner": entry.get("away_winner"),
+            },
         },
         "goals": {
             "home": entry.get("home_goals"),
             "away": entry.get("away_goals"),
         },
     })
+    if entry.get("penalty_home") is not None or entry.get("penalty_away") is not None:
+        response[-1]["score"] = {
+            "penalty": {
+                "home": entry.get("penalty_home"),
+                "away": entry.get("penalty_away"),
+            },
+        }
     fp.write_text(json.dumps({"response": response}))
 
 
@@ -463,6 +478,33 @@ class TestParseWcResults:
         assert entry["away_goals"] == 0
         assert entry["stage"] == "R32"
         assert entry["decided_by"] == "FT"
+        assert entry["winner"] == "France"
+
+    def test_ko_pen_match_home_winner_on_level_goals(self, tmp_path):
+        """PEN fixture with level goals must advance the shootout winner."""
+        fixtures_dir = tmp_path / "fixtures"
+        mapping = tmp_path / "mapping.csv"
+        _write_team_mapping(mapping, [
+            {"name": "Switzerland", "api_id": 15},
+            {"name": "Colombia", "api_id": 16},
+        ])
+        _write_finished_fixture(fixtures_dir, {
+            "id": 11, "status": "PEN",
+            "league_id": 1, "round": "Round of 16",
+            "home_id": 15, "home_name": "Switzerland", "home_goals": 0,
+            "home_winner": True,
+            "away_id": 16, "away_name": "Colombia", "away_goals": 0,
+            "away_winner": False,
+            "penalty_home": 4, "penalty_away": 3,
+        })
+        result = parse_wc_results(fixtures_dir, mapping)
+        key = frozenset({"Switzerland", "Colombia"})
+        assert key in result["ko_results"]
+        entry = result["ko_results"][key]
+        assert entry["home_goals"] == 0
+        assert entry["away_goals"] == 0
+        assert entry["decided_by"] == "PEN"
+        assert entry["winner"] == "Switzerland"
 
     def test_mixed_group_and_ko_results(self, tmp_path):
         fixtures_dir = tmp_path / "fixtures"

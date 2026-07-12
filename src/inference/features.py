@@ -303,6 +303,41 @@ def _load_expected_matches_per_round(
     return expected
 
 
+def _resolve_ko_winner(
+    home_name: str,
+    away_name: str,
+    home_goals: int,
+    away_goals: int,
+    teams: dict,
+    score: dict,
+) -> str:
+    """Resolve which team advanced from a finished KO fixture.
+
+    Resolution order: regulation/ET goals, then API ``teams.*.winner`` flags,
+    then ``score.penalty``.  The final fallback (away on a level score) matches
+    legacy locked-result behaviour for entries without explicit winner metadata.
+    """
+    if home_goals != away_goals:
+        return home_name if home_goals > away_goals else away_name
+
+    home_winner = teams.get("home", {}).get("winner")
+    away_winner = teams.get("away", {}).get("winner")
+    if home_winner is True:
+        return home_name
+    if away_winner is True:
+        return away_name
+
+    pen = score.get("penalty", {})
+    hg_pen = pen.get("home")
+    ag_pen = pen.get("away")
+    if hg_pen is not None and ag_pen is not None:
+        hg_pen, ag_pen = int(hg_pen), int(ag_pen)
+        if hg_pen != ag_pen:
+            return home_name if hg_pen > ag_pen else away_name
+
+    return away_name
+
+
 def parse_wc_results(
     fixtures_dir: Path = _FIXTURES_DIR,
     mapping_path: Path = _TEAM_MAPPING_PATH,
@@ -321,7 +356,7 @@ def parse_wc_results(
     Returns a dict with:
       - group_results: dict[(home, away), (home_goals, away_goals)]
       - ko_results:    dict[frozenset({home, away}),
-                            {home, away, home_goals, away_goals, decided_by, stage}]
+                            {home, away, home_goals, away_goals, winner, decided_by, stage}]
             KO rounds arrive unnumbered from API-Football (e.g. "Round of 32"),
             so locked KO matches are keyed by team-set rather than an internal
             match number; the round is recorded as ``stage`` ("R32".."Final").
@@ -433,11 +468,20 @@ def parse_wc_results(
                 if stage is not None:
                     key = frozenset({home_name, away_name})
                     if key not in ko_results:
+                        score_raw = entry.get("score", {})
                         ko_results[key] = {
                             "home": home_name,
                             "away": away_name,
                             "home_goals": home_goals,
                             "away_goals": away_goals,
+                            "winner": _resolve_ko_winner(
+                                home_name,
+                                away_name,
+                                home_goals,
+                                away_goals,
+                                teams,
+                                score_raw,
+                            ),
                             "decided_by": status,
                             "stage": stage,
                         }

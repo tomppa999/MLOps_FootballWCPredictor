@@ -780,6 +780,75 @@ class TestSimulateTournamentLockedKO:
         assert t1_row["p_r16"] == 1.0
         assert t1_row["p_qf"] == 1.0
 
+    def test_locked_pen_home_winner_advances_on_level_goals(self, tmp_path):
+        """Level goals + explicit winner must not default to the away team."""
+        config_path = _make_toy_config(tmp_path)
+        predictions = _make_all_pairs_predictions()
+
+        locked_group = {
+            **_group_lock("T1", "T2", "T3", "T4"),    # 1A=T1
+            **_group_lock("T9", "T10", "T11", "T12"),  # 2C=T10
+        }
+        locked_ko = {
+            frozenset({"T1", "T10"}): {
+                "home": "T1", "away": "T10", "home_goals": 0, "away_goals": 0,
+                "winner": "T1", "decided_by": "PEN", "stage": "R32",
+            }
+        }
+
+        result = simulate_tournament(
+            predictions,
+            n_sims=30,
+            config_path=config_path,
+            seed=0,
+            locked_group_results=locked_group,
+            locked_ko_results=locked_ko,
+        )
+        adv = result["advancement"]
+        t1_row = adv[adv["team"] == "T1"].iloc[0]
+        t10_row = adv[adv["team"] == "T10"].iloc[0]
+        assert t1_row["p_r16"] == 1.0
+        assert t10_row["p_r16"] == 0.0
+
+    def test_locked_pen_chain_propagates_next_round_lock(self, tmp_path):
+        """R32 PEN home winner must feed the correct team-set into the next lock."""
+        config_path = _make_toy_config(tmp_path)
+        predictions = _make_all_pairs_predictions()
+
+        locked_group = {
+            **_group_lock("T1", "T2", "T3", "T4"),       # 1A=T1
+            **_group_lock("T5", "T6", "T7", "T8"),       # 1B=T5
+            **_group_lock("T9", "T10", "T11", "T12"),    # 2C=T10
+            **_group_lock("T13", "T14", "T15", "T16"),   # 2D=T14
+        }
+        locked_ko = {
+            frozenset({"T1", "T10"}): {
+                "home": "T1", "away": "T10", "home_goals": 0, "away_goals": 0,
+                "winner": "T1", "decided_by": "PEN", "stage": "R32",
+            },
+            frozenset({"T5", "T14"}): {
+                "home": "T5", "away": "T14", "home_goals": 1, "away_goals": 0,
+                "decided_by": "FT", "stage": "R32",
+            },
+            frozenset({"T1", "T5"}): {
+                "home": "T1", "away": "T5", "home_goals": 2, "away_goals": 1,
+                "decided_by": "FT", "stage": "R16",
+            },
+        }
+
+        result = simulate_tournament(
+            predictions,
+            n_sims=40,
+            config_path=config_path,
+            seed=1,
+            locked_group_results=locked_group,
+            locked_ko_results=locked_ko,
+        )
+        adv = result["advancement"]
+        t1_row = adv[adv["team"] == "T1"].iloc[0]
+        assert t1_row["p_r16"] == 1.0
+        assert t1_row["p_qf"] == 1.0
+
     def test_unmatched_team_set_still_simulates(self, tmp_path):
         """A locked team-set that never occurs in any KO slot must not break the sim.
 

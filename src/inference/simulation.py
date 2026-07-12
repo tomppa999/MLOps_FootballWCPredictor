@@ -143,6 +143,22 @@ def _ko_match_rates(
     return other_rate, adv_rate
 
 
+def _locked_ko_winner(locked: dict[str, Any]) -> str:
+    """Return the advancing team for a locked KO result.
+
+    Prefers an explicit ``winner`` field (from ``parse_wc_results``); falls
+    back to goal comparison for legacy entries without one.
+    """
+    winner = locked.get("winner")
+    if winner is not None:
+        return winner
+    return (
+        locked["home"]
+        if locked["home_goals"] > locked["away_goals"]
+        else locked["away"]
+    )
+
+
 def _resolve_ko_match(
     lambda_h: float,
     lambda_a: float,
@@ -515,7 +531,7 @@ def simulate_tournament(
             if locked is not None:
                 ko_pairing_counts["R32"][tuple(sorted((locked["home"], locked["away"])))] += 1
                 ko_slot_pairing_counts.setdefault(match_num, Counter())[(locked["home"], locked["away"])] += 1
-                winner = locked["home"] if locked["home_goals"] > locked["away_goals"] else locked["away"]
+                winner = _locked_ko_winner(locked)
                 r32_winners[match_num] = winner
                 continue
 
@@ -562,7 +578,7 @@ def simulate_tournament(
             if locked is not None:
                 ko_pairing_counts[stage][tuple(sorted((locked["home"], locked["away"])))] += 1
                 ko_slot_pairing_counts.setdefault(match_num, Counter())[(locked["home"], locked["away"])] += 1
-                winner = locked["home"] if locked["home_goals"] > locked["away_goals"] else locked["away"]
+                winner = _locked_ko_winner(locked)
                 ko_winners[match_num] = winner
                 next_stage = stage_map.get(stage)
                 if next_stage and winner in advancement_counts:
