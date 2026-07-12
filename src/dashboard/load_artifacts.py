@@ -62,7 +62,6 @@ _MULTI_MODEL_ARTIFACTS: frozenset[str] = frozenset({
 # survives Streamlit Cloud container restarts.
 _CACHE_DIR = Path(__file__).parent / "_offline_cache"
 _META_FILE = _CACHE_DIR / "_meta.json"
-_PRETOURNAMENT_DIR = Path(__file__).parent / "_pretournament"
 
 _MONITORING_ARTIFACT_FILENAME = "wc2026_monitoring.csv"
 _MONITORING_CACHE_FILE = _CACHE_DIR / "wc2026_monitoring.csv"
@@ -282,12 +281,6 @@ def load_latest_monitoring_results(cadence_mode: str = "frozen") -> "pd.DataFram
             except Exception:
                 pass
         return None
-
-
-def load_pretournament_snapshot(name: str) -> pd.DataFrame | None:
-    """Load a committed pre-tournament snapshot CSV, or None if absent."""
-    path = _PRETOURNAMENT_DIR / f"{name}.csv"
-    return pd.read_csv(path) if path.exists() else None
 
 
 def load_group_mapping(config_path: Path | str = Path("data/tournament/wc2026.json")) -> dict[str, str]:

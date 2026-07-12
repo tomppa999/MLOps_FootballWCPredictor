@@ -13,26 +13,19 @@ import streamlit as st
 try:
     from src.dashboard.load_artifacts import (
         InferenceRunInfo,
-        load_group_mapping,
         load_latest_inference_artifacts,
         load_latest_monitoring_results,
-        load_pretournament_snapshot,
     )
 except ModuleNotFoundError:
     from load_artifacts import (  # type: ignore
         InferenceRunInfo,
-        load_group_mapping,
         load_latest_inference_artifacts,
         load_latest_monitoring_results,
-        load_pretournament_snapshot,
     )
 
 _KO_STAGE_ORDER = {"R32": 0, "R16": 1, "QF": 2, "SF": 3, "Final": 4}
 _KO_STAGE_LABELS = {"R32": "Round of 32", "R16": "Round of 16", "QF": "Quarter-finals",
                     "SF": "Semi-finals", "Final": "Final"}
-_PRETOURNAMENT_CAPTION = (
-    "Pre-tournament snapshot — frozen champion (xgboost), simulated before kickoff (Jun 2026)."
-)
 
 # Determined pairings log a pairing_frequency of 1.0; treat near-1.0 values as
 # locked too. 0.999 is inclusive, so 0.9989-style values stay "predicted".
@@ -96,60 +89,6 @@ def view_tournament_overview(tournament_df: pd.DataFrame) -> None:
     st.plotly_chart(fig, use_container_width=True)
 
     st.caption("Cells show the probability (in %) of each team reaching at least each stage.")
-
-
-# ---------------------------------------------------------------------------
-# View B: Group positions
-# ---------------------------------------------------------------------------
-
-def view_group_positions(group_df: pd.DataFrame, team_to_group: dict[str, str]) -> None:
-    st.header("Group finish probabilities")
-
-    df = group_df.copy()
-    df["group"] = df["team"].map(team_to_group)
-
-    positions = ["p_1st", "p_2nd", "p_3rd_qualify", "p_3rd_elim", "p_4th"]
-    labels = ["1st", "2nd", "3rd (Q)", "3rd (E)", "4th"]
-
-    df_long = df.melt(
-        id_vars=["team", "group"],
-        value_vars=positions,
-        var_name="position",
-        value_name="prob",
-    )
-    df_long["position_label"] = df_long["position"].map(dict(zip(positions, labels)))
-
-    groups = sorted(df_long["group"].dropna().unique())
-    for group in groups:
-        st.subheader(f"Group {group}")
-        gdf = df_long[df_long["group"] == group].copy()
-
-        order = (
-            gdf[gdf["position"] == "p_1st"]
-            .sort_values("prob", ascending=True)["team"]
-            .tolist()
-        )
-        gdf["team"] = pd.Categorical(gdf["team"], categories=order, ordered=True)
-        gdf = gdf.sort_values(["team", "position_label"])
-
-        fig = px.bar(
-            gdf,
-            x="prob",
-            y="team",
-            color="position_label",
-            orientation="h",
-            barmode="stack",
-            color_discrete_sequence=["#2ecc71", "#82e0aa", "#f9e79f", "#f0b27a", "#e74c3c"],
-            labels={"prob": "Probability", "team": "Team", "position_label": "Finish"},
-            category_orders={"position_label": labels},
-        )
-        fig.update_layout(
-            xaxis=dict(tickformat=".0%", range=[0, 1]),
-            yaxis=dict(categoryorder="array", categoryarray=order),
-            height=max(300, 70 * len(order)),
-            margin=dict(l=80, r=10, t=30, b=40),
-        )
-        st.plotly_chart(fig, use_container_width=True)
 
 
 # ---------------------------------------------------------------------------
@@ -424,45 +363,6 @@ def view_match_predictions(
 
 
 # ---------------------------------------------------------------------------
-# View D: Most common matchups
-# ---------------------------------------------------------------------------
-
-def view_common_matchups(ko_df: pd.DataFrame) -> None:
-    st.header("Most common matchups")
-
-    stages_available = sorted(ko_df["stage"].unique())
-    selected_stages = st.sidebar.multiselect(
-        "Filter by stage",
-        options=stages_available,
-        default=stages_available,
-    )
-    top_n = st.sidebar.slider("Top N matchups", min_value=5, max_value=100, value=20, step=5)
-
-    df = ko_df.copy()
-    if selected_stages:
-        df = df[df["stage"].isin(selected_stages)]
-
-    df = df.sort_values("frequency", ascending=False).head(top_n)
-    df["matchup"] = df["team_a"] + " vs " + df["team_b"]
-    df["freq_pct"] = (df["frequency"] * 100).round(1)
-
-    fig = px.bar(
-        df,
-        x="freq_pct",
-        y="matchup",
-        color="stage",
-        orientation="h",
-        labels={"freq_pct": "Frequency (%)", "matchup": "Matchup", "stage": "Stage"},
-    )
-    fig.update_layout(
-        yaxis=dict(categoryorder="total ascending"),
-        height=max(400, top_n * 28),
-        margin=dict(l=160, r=10, t=30, b=40),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-
-# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -500,16 +400,10 @@ def main() -> None:
     pred_df = data.get("predictions")
     ko_fixtures_df = data.get("ko_fixtures")
     monitoring_df = load_latest_monitoring_results()
-    pretournament_group_df = load_pretournament_snapshot("group_positions")
-    pretournament_ko_df = load_pretournament_snapshot("ko_pairings")
-
-    team_to_group = load_group_mapping()
 
     views = [
         "Tournament overview",
-        "Group positions",
         "Match predictions",
-        "Common matchups",
     ]
     view = st.sidebar.radio("View", options=views)
 
@@ -518,13 +412,7 @@ def main() -> None:
             st.warning("tournament_probabilities.csv not found.")
         else:
             view_tournament_overview(tournament_df)
-    elif view == "Group positions":
-        if pretournament_group_df is None:
-            st.warning("group_positions.csv not found.")
-        else:
-            st.caption(_PRETOURNAMENT_CAPTION)
-            view_group_positions(pretournament_group_df, team_to_group)
-    elif view == "Match predictions":
+    else:
         if pred_df is None:
             st.warning("predictions.csv not found.")
         else:
@@ -534,12 +422,6 @@ def main() -> None:
                 monitoring_df=monitoring_df,
                 champion_model_name=getattr(info, "champion_model_name", None),
             )
-    else:
-        if pretournament_ko_df is None:
-            st.warning("ko_pairings.csv not found.")
-        else:
-            st.caption(_PRETOURNAMENT_CAPTION)
-            view_common_matchups(pretournament_ko_df)
 
 
 if __name__ == "__main__":
