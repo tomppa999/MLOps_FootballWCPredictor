@@ -16,6 +16,7 @@ try:
         load_group_mapping,
         load_latest_inference_artifacts,
         load_latest_monitoring_results,
+        load_pretournament_snapshot,
     )
 except ModuleNotFoundError:
     from load_artifacts import (  # type: ignore
@@ -23,11 +24,15 @@ except ModuleNotFoundError:
         load_group_mapping,
         load_latest_inference_artifacts,
         load_latest_monitoring_results,
+        load_pretournament_snapshot,
     )
 
 _KO_STAGE_ORDER = {"R32": 0, "R16": 1, "QF": 2, "SF": 3, "Final": 4}
 _KO_STAGE_LABELS = {"R32": "Round of 32", "R16": "Round of 16", "QF": "Quarter-finals",
                     "SF": "Semi-finals", "Final": "Final"}
+_PRETOURNAMENT_CAPTION = (
+    "Pre-tournament snapshot — frozen champion (xgboost), simulated before kickoff (Jun 2026)."
+)
 
 # Determined pairings log a pairing_frequency of 1.0; treat near-1.0 values as
 # locked too. 0.999 is inclusive, so 0.9989-style values stay "predicted".
@@ -68,16 +73,8 @@ def view_tournament_overview(tournament_df: pd.DataFrame) -> None:
     display_cols = ["R32", "R16", "QF", "SF", "Final", "Winner"]
     col_to_display = dict(zip(cols, display_cols))
 
-    sort_options = {label: col for col, label in col_to_display.items()}
-    sort_by_label = st.sidebar.selectbox(
-        "Sort teams by",
-        options=list(reversed(display_cols)),
-        index=0,
-    )
-    sort_col = sort_options[sort_by_label]
-
     df = tournament_df.copy()
-    df = df.sort_values(sort_col, ascending=False).reset_index(drop=True)
+    df = df.sort_values(cols, ascending=False).reset_index(drop=True)
     df = _format_percentage_columns(df, cols)
 
     team_order = df["team"].tolist()
@@ -425,50 +422,6 @@ def view_match_predictions(
             next_records.append(_apply_completed_result(row, completed))
         _build_match_bar(pd.DataFrame(next_records))
 
-    # KO fixtures section
-    if ko_fixtures:
-        st.divider()
-        st.subheader("Knockout stage")
-        stage_groups: dict[str, list[dict]] = {}
-        for fix in ko_fixtures:
-            stage_groups.setdefault(fix["stage"], []).append(fix)
-        for stage_key in sorted(stage_groups.keys(), key=lambda s: _KO_STAGE_ORDER.get(s, 99)):
-            label = _KO_STAGE_LABELS.get(stage_key, stage_key)
-            st.markdown(f"**{label}**")
-            ko_records = []
-            for fix in stage_groups[stage_key]:
-                pred = _lookup_prediction(pred_df, fix["home_team"], fix["away_team"])
-                status_badge = (
-                    "🔒 Locked" if _ko_is_locked(fix)
-                    else f"🔮 Predicted ({fix['pairing_frequency']:.0%})"
-                )
-                h, a = fix.get("home_goals"), fix.get("away_goals")
-                score = (
-                    f"{int(h)}–{int(a)}"
-                    if fix.get("status") == "locked" and pd.notna(h) and pd.notna(a)
-                    else ""
-                )
-                ko_records.append({
-                    "status": status_badge,
-                    "home_team": fix["home_team"],
-                    "away_team": fix["away_team"],
-                    "score": score,
-                    "lambda_h": pred["lambda_h"] if pred else None,
-                    "lambda_a": pred["lambda_a"] if pred else None,
-                    "p_home": round(pred["p_home"] if pred else 0.0, 1),
-                    "p_draw": round(pred["p_draw"] if pred else 0.0, 1),
-                    "p_away": round(pred["p_away"] if pred else 0.0, 1),
-                })
-            ko_df = pd.DataFrame(ko_records)
-            ko_df.columns = ["Status", "Home", "Away", "Score", "xG Home", "xG Away",
-                              "P(H) %", "P(D) %", "P(A) %"]
-            st.dataframe(ko_df, use_container_width=True)
-        st.caption(
-            "Predicted matchups show the most likely pairing for each slot based on "
-            "independent marginal probabilities from the latest simulation run. "
-            "These are per-slot estimates and do not represent a single coherent bracket path."
-        )
-
 
 # ---------------------------------------------------------------------------
 # View D: Most common matchups
@@ -544,16 +497,13 @@ def main() -> None:
     _render_run_metadata(info)
 
     tournament_df = data.get("tournament_probabilities")
-    group_df = data.get("group_positions")
     pred_df = data.get("predictions")
-    ko_df = data.get("ko_pairings")
     ko_fixtures_df = data.get("ko_fixtures")
     monitoring_df = load_latest_monitoring_results()
+    pretournament_group_df = load_pretournament_snapshot("group_positions")
+    pretournament_ko_df = load_pretournament_snapshot("ko_pairings")
 
-    if group_df is not None:
-        team_to_group = load_group_mapping()
-    else:
-        team_to_group = {}
+    team_to_group = load_group_mapping()
 
     views = [
         "Tournament overview",
@@ -569,10 +519,11 @@ def main() -> None:
         else:
             view_tournament_overview(tournament_df)
     elif view == "Group positions":
-        if group_df is None:
+        if pretournament_group_df is None:
             st.warning("group_positions.csv not found.")
         else:
-            view_group_positions(group_df, team_to_group)
+            st.caption(_PRETOURNAMENT_CAPTION)
+            view_group_positions(pretournament_group_df, team_to_group)
     elif view == "Match predictions":
         if pred_df is None:
             st.warning("predictions.csv not found.")
@@ -584,10 +535,11 @@ def main() -> None:
                 champion_model_name=getattr(info, "champion_model_name", None),
             )
     else:
-        if ko_df is None:
+        if pretournament_ko_df is None:
             st.warning("ko_pairings.csv not found.")
         else:
-            view_common_matchups(ko_df)
+            st.caption(_PRETOURNAMENT_CAPTION)
+            view_common_matchups(pretournament_ko_df)
 
 
 if __name__ == "__main__":
