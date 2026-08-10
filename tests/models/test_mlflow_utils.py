@@ -122,6 +122,47 @@ class TestLatestVersionWithTags:
         )
         assert result is mv
 
+    @patch("src.models.mlflow_utils.mlflow.tracking.MlflowClient")
+    def test_frozen_skips_newer_per_round_version(self, mock_client_cls):
+        """Untagged frozen shadow must not resolve to a newer per_round version."""
+        mv_frozen = self._make_mv(88, "run-frozen")
+        mv_per_round = self._make_mv(116, "run-per-round")
+        mock_client = MagicMock()
+        mock_client.search_model_versions.return_value = [mv_frozen, mv_per_round]
+        mock_client.get_run.side_effect = lambda run_id: MagicMock(
+            data=MagicMock(tags={
+                "model_name": "poisson_glm",
+                **(
+                    {"cadence_mode": "per_round"}
+                    if run_id == "run-per-round"
+                    else {}
+                ),
+            }),
+        )
+        mock_client_cls.return_value = mock_client
+
+        result = _latest_version_with_tags(
+            "wc_shadow", "poisson_glm", cadence_mode="frozen",
+        )
+        assert result is mv_frozen
+
+    @patch("src.models.mlflow_utils.mlflow.tracking.MlflowClient")
+    def test_none_cadence_returns_newest_model_name_match(self, mock_client_cls):
+        mv_old = self._make_mv(1, "run-old")
+        mv_new = self._make_mv(2, "run-new")
+        mock_client = MagicMock()
+        mock_client.search_model_versions.return_value = [mv_old, mv_new]
+        mock_client.get_run.side_effect = lambda run_id: MagicMock(
+            data=MagicMock(tags={
+                "model_name": "poisson_glm",
+                "cadence_mode": "per_round" if run_id == "run-new" else "frozen",
+            }),
+        )
+        mock_client_cls.return_value = mock_client
+
+        result = _latest_version_with_tags("wc_shadow", "poisson_glm")
+        assert result is mv_new
+
 
 class TestPromoteToProduction:
     @patch("src.models.mlflow_utils.mlflow.tracking.MlflowClient")
