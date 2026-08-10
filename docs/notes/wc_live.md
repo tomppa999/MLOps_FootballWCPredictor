@@ -105,7 +105,7 @@ Matches played: 24 (Switzerland 2–1 Canada through Algeria 3–3 Austria / Jor
 
 Pipeline:
 - Both modes logged? **Y** — all 72 settled matches scored in both artifacts (frozen 575 rows, per_round 574; the deficits are isolated dropped rows, see below).
-- per_round refit fired? **N/A for the MD3 boundary** — the MD3 *predictions* are backed by the **MD2-boundary** champion refit. The MD3-boundary refit (after all 24 MD3 fixtures settle, last kickoff Jun 28) feeds **R32**, not MD3. New run_id: [fill from MLflow once R32 inference runs].
+- per_round refit fired? **N/A for the MD3 boundary** — the MD3 *predictions* are backed by the **MD2-boundary** champion refit. The MD3-boundary refit (after all 24 MD3 fixtures settle, last kickoff Jun 28) feeds **R32**, not MD3. New run_id: `4dbbaec7d20a4de0a1306b9785f86eeb` (`wc_production` v19, fired Jun 28 04:06 UTC).
 - AFCON/format effect: **6 of 24 draws** (Japan 1–1 Sweden, Paraguay 0–0 Australia, Cape Verde 0–0 Saudi Arabia, Egypt 1–1 Iran, Colombia 0–0 Portugal, Algeria 3–3 Austria) — exactly the ~1/4 base rate for 24 games, so **no evidence of final-day draw-gaming / third-place hedging** this round (the three 0–0s notwithstanding). Outcome mix 9 home / 9 away / 6 draw, more balanced than MD2's 13/6/5.
 - **Any failures: `ridge` dropped from one per_round inference cycle (data-completeness anomaly).** The per_round `ridge` row is missing for Colombia 0–0 Portugal (`1489419`) and DR Congo 3–1 Uzbekistan (`1539013`), both Jun 27, both served by the single per_round inference run `ed64fbfac5ed487ca222cf0a9d2c938d`. Every other model is present for those matches, and the frozen run for the same fixtures (`0facdde2…`) has `ridge` fine — so `ridge` itself is healthy (present for the other 70 per_round matches). Root cause: `run_prediction_all_models` runs each shadow in an isolated child process with a 120 s timeout (`_safe_shadow_predict`); on timeout / non-zero exit / no output it logs a warning and **silently drops the model** from that cycle's `predictions_all_models.csv`. The child's `load_shadow_model` does a DagsHub MLflow resolve+download, so a transient DagsHub stall in `ridge`'s load window blows the budget for `ridge` alone. This is the *only* code path that can omit a model from the artifact — `logging.py` writes `predictions_all_models.csv` verbatim (no dropna / dedup). Same anomaly *class* as MD2's dropped `mean_rate_poisson` row (Portugal 1–1 DR Congo) — single-cycle, single-model holes from the silent shadow-skip path, not corruption. Consequence: `ridge` MD3 = 22 matches (overall 70), everyone else 24/72; never-refit shadow so still identical across modes on the 22 common matches. Trigger confirmed from Cloud Logging: `WARNING Shadow prediction: ridge exceeded 120s — skipping` — a transient DagsHub stall during the ridge shadow load (setup_mlflow + model download) blew the child-process budget in that one per-round cycle. Visibility fix (post-tournament, not mid-flight): raise these skips to ERROR / emit a per-cycle model-count so a missing shadow alerts instead of going unnoticed.
 
@@ -156,7 +156,7 @@ Matches played: 16 (South Africa 0–1 Canada through Colombia 1–0 Ghana, Jun 
 
 Pipeline:
 - Both modes logged? **Y** — all 16 R32 matches scored in both artifacts (per_round 128 rows = 8 × 16; frozen 127; deficit is a single dropped `random_forest` row, see below).
-- per_round refit fired at R32 boundary? **N/A for R32 predictions** — R32 predictions are backed by the **MD3-boundary** champion refit (fires after all 24 MD3 fixtures settle). The R32-boundary refit fires after all 16 R32 matches settle (last kickoff Jul 4 01:30 UTC) and feeds **R16**, not R32. New run_id: [fill from MLflow].
+- per_round refit fired at R32 boundary? **N/A for R32 predictions** — R32 predictions are backed by the **MD3-boundary** champion refit (fires after all 24 MD3 fixtures settle). The R32-boundary refit fires after all 16 R32 matches settle (last kickoff Jul 4 01:30 UTC) and feeds **R16**, not R32. New run_id: `5e404f0cdbb94bda9d67657d02a6ead1` (`wc_production` v20, fired Jul 4 04:06 UTC).
 - Bracket configuration: 16 winners advance to R16 as expected; no unusual routing observed in the settled results.
 - **Any failures: `random_forest` dropped from one frozen inference cycle (data-completeness anomaly, silent-shadow-skip class).** Missing frozen row: Ivory Coast 1–2 Norway (`1564789`, Jun 30). Every other model is present for that match, and the per_round row for `random_forest` on the same fixture is fine (present for all 16 R32 matches). Same failure mode and root cause as MD2's `mean_rate_poisson` (Portugal 1–1 DR Congo) and MD3's `ridge` (Colombia 0–0 Portugal, DR Congo 3–1 Uzbekistan) — a transient DagsHub stall in one child-process shadow-load window blew the 120 s budget in `_safe_shadow_predict`, and the artifact silently omits that model for that cycle. Never-refit shadow ⇒ cadence-invariant on the 15 common R32 matches (0/15 RPS or λ differ vs per_round), so the frozen row is back-fillable from per_round; add to the D.1 backfill list. Consequence: `random_forest` frozen R32 = 15 matches, per_round = 16; cumulative overall frozen = 87, per_round = 88. No mid-flight fix (see "Decision — silent shadow-skip" in Post-tournament).
 - **Jun 29: KO results never locked + KO refits mislabeled "R32" (fix, image `20260629a`).**
@@ -238,8 +238,8 @@ Matches played: 8 (Canada 0–3 Morocco through Switzerland 0–0 Colombia, Jul 
 
 Pipeline:
 - Both modes logged? **Y** — frozen 96 matches × up to 8 models, per_round 96 matches × up to 8 models; no new completeness gaps introduced this round (see anomaly check below).
-- per_round refit fired at the R32→R16 boundary (feeding R16 predictions)? **Y** — confirmed live in the artifacts, not just inferred: `xgboost` differs between frozen and per_round on **8/8 R16 matches** (both λ and RPS move on every fixture), the same clean champion-only contrast pattern as MD2/MD3/R32. Run_id: **not recoverable from the monitoring CSV export** (it only carries `inference_run_id`, i.e. the scoring cycle, not the champion model version) — pull `champion_per_round`'s version/run_id from MLflow and fill in here.
-- per_round refit fired at the R16→QF boundary (feeding QF predictions)? **Y** — fired successfully after all 8 R16 fixtures settled. New run_id: [fill from MLflow].
+- per_round refit fired at the R32→R16 boundary (feeding R16 predictions)? **Y** — confirmed live in the artifacts, not just inferred: `xgboost` differs between frozen and per_round on **8/8 R16 matches** (both λ and RPS move on every fixture), the same clean champion-only contrast pattern as MD2/MD3/R32. Run_id: `5e404f0cdbb94bda9d67657d02a6ead1` (`wc_production` v20, fired Jul 4 04:06 UTC). Not recoverable from the monitoring CSV export — that only carries `inference_run_id`, i.e. the scoring cycle, not the champion model version — so this came from the registry.
+- per_round refit fired at the R16→QF boundary (feeding QF predictions)? **Y** — fired successfully after all 8 R16 fixtures settled. New run_id: `5032d46f410f473c9a1cc06baf145c80` (`wc_production` v21, fired Jul 8 00:10 UTC).
 - **Data completeness: no new anomalies.** The only missing rows across all 96 cumulative matches are the three already-documented silent-shadow-skip holes (`_safe_shadow_predict` timeout class), and all three are confirmed outside R16 in this export: frozen `mean_rate_poisson` missing MD1 Portugal 1–1 DR Congo (95/96); frozen `random_forest` missing R32 Ivory Coast 1–2 Norway (95/96); per_round `ridge` missing MD3 Colombia 0–0 Portugal and DR Congo 3–1 Uzbekistan (94/96). All 8 R16 matches have full 8/8 model coverage in both cadence artifacts — clean round.
 - **SARIMAX degenerate-λ streak stays broken.** 0/8 R16 fixtures had λ ≤ 1e-5 — third consecutive round (MD3, R32, R16) without the near-zero clipping anomaly. Portugal vs Spain (the round's most lopsided pairing on paper) behaved normally (λ_h ≈ 1.01, λ_a ≈ 1.53) — no extreme-asymmetry Spain fixture this round to re-test the earlier "2 of 2" pattern.
 - The Jul 5–6 IPv6 ELO-freshness stall (documented below) is the only pipeline failure this round; nothing else surfaced in the monitoring data itself.
@@ -305,12 +305,55 @@ R16 leaderboard (n=8 matches), sorted by R16 mean RPS. Same convention as MD2/MD
 
 ---
 
-## Quarter-finals (~Jul 10–11)
+## Quarter-finals (Jul 9–12)
 
-Matches played: [fill]
+Matches played: 4 (France 2–0 Morocco, Spain 2–1 Belgium, Norway 1–2 England, Argentina 3–1
+Switzerland; kickoffs Jul 9 20:00 – Jul 12 01:00 UTC). Cumulative settled matches: 100.
+Analyzed from the end-of-tournament monitoring snapshots (`wc2026_monitoring (19).csv` =
+per_round, `(20).csv` = frozen; 830 rows each).
 
 Pipeline:
-- per_round refit fired? Y/N. New run_id:
+- Both modes logged? **Y** — all 4 QF matches have full 8/8 model coverage in both cadence
+  artifacts. No new completeness holes this round.
+- per_round refit fired at the R16→QF boundary (feeding QF predictions)? **Y** — confirmed in
+  the artifacts: `xgboost` differs between frozen and per_round on **4/4** QF matches (λ and RPS
+  both move), the same champion-only contrast as MD2/MD3/R32/R16. Run_id:
+  `5032d46f410f473c9a1cc06baf145c80` (`wc_production` v21, fired Jul 8 00:10 UTC).
+- per_round refit fired at the QF→SF boundary (feeding SF predictions)? **Y** — fired Jul 12
+  04:06–04:26 UTC, after the last QF fixture (Argentina–Switzerland, Jul 12 01:00) settled.
+  Log confirms "4/4 models fitted (matchday=SF)": `xgboost` → `wc_production` **v22**
+  (`champion_per_round`), `poisson_glm` → `wc_shadow` **v113**, `mean_rate_poisson` → **v114**,
+  `bayesian_poisson` → **v115**. Champion run_id: `e0a1f34833a2434c98e0e68dc828ccc1`.
+- QF inference cycles (pre-kickoff run used for scoring): France–Morocco
+  `c94370d334604a25a56e04c3951de312` (frozen `c4c3f5650c804fb5afcf638cd3b442e0`); Spain–Belgium
+  `227d95ec019742b3a12e3692230f713d` (frozen `9ed6687a284b448e839c7a8606bbfb34`); Norway–England
+  `96ba2f43ee594447ae2afca1c42858d8` (frozen `0d57f911e6674eb1a8fd69ae14decf9c`);
+  Argentina–Switzerland `036cdf1e19344c7f867fcb0cfd53af4f` (frozen
+  `94d03309c191452a8bc37c361cf3816a`).
+- **QF matchday application logs are permanently lost (observability gap, not a data loss).**
+  Cloud Logging's `_Default` bucket has 30-day retention, so everything before Jul 11 06:00 UTC
+  had aged out by the time the export was taken — the Jul 10 QF matchday cycles included. Audit
+  logs survive in the 400-day `_Required` bucket, and Gold/DVC/MLflow are unaffected, so this
+  costs narrative detail only: the QF-boundary refit and the first two QF cycles cannot be
+  narrated from application logs, only inferred from the artifacts. Retention export is now
+  taken proactively (`logs/logs_qf_final.txt`, Jul 11 06:08 – Jul 20 10:31).
+- **Jul 12 02:05 UTC: hard crash — `dvc push` timed out.** "ERROR: failed to push data to the
+  cloud - 2 files failed to upload", raising `CalledProcessError` from `_run(["dvc", "push"])`
+  at `src/pipeline/trigger.py:280`, i.e. *before* the `git add` / commit gate at 281–286. That
+  cycle therefore produced no Gold snapshot on the remote and no commit. **Self-healed:** the
+  retry cycle at 02:12 pushed 9 files and committed `8df3d581` at 02:15, and because Gold is
+  cumulative (one row per match) the retry snapshot is a superset of the failed one. No match
+  rows lost; the only casualty is the point-in-time pointer for the 02:05 cycle.
+- **Jul 12 10:51 UTC: hard crash — `git push` rejected (non-fast-forward).** Different failure
+  mode, later in the same function: `dvc push` succeeded ("10 files pushed") and the local
+  commit `8d219b1` was created, then the push was rejected (`! [rejected] thesis -> thesis
+  (fetch first)` — the remote had moved ahead), raising `CalledProcessError` from
+  `_run(["git", "push"])` at `trigger.py:287`. The next cycle at 10:52 hard-resets to
+  `origin/thesis`, discarding `8d219b1`. **Net effect: the data blobs from that cycle are on the
+  DVC remote but no `dvc.lock` anywhere references them — orphaned, not missing.** Also
+  self-healed: the 11:09 retry committed `7254a5f` at 11:10. Do **not** run `dvc gc` if those
+  orphaned blobs are wanted for D.1. Hardening (post-tournament, see Post-tournament): pull
+  --rebase / retry around the push step.
 - **Jul 12: locked KO pen-winner bug (fix, image `20260712a`).**
   Root cause: `simulate_tournament`'s locked-result branches resolved winners by
   regulation/ET goals only; on a level score the away team always advanced.
@@ -336,38 +379,322 @@ Pipeline:
     present in monitoring artifact with correct actual score).
 
 Observations:
--
+
+QF leaderboard (n=4 matches), sorted by QF mean RPS. Same convention as MD2/MD3/R32/R16:
+**per_round shown for all models** (correct for every model on this scoring path); `xgboost`
+carries a separate **frozen** line (the only clean frozen↔per_round contrast, via the
+`champion_*` aliases — 4/4 QF matches differ on both RPS and λ). Frozen values for the three
+refit-eligible roster shadows (`poisson_glm`, `bayesian_poisson`, `mean_rate_poisson`) are
+still collapsed onto the per_round artifact by the shadow-resolution bug and are deferred to
+the post-tournament offline reconstruction; the four never-refit shadows are byte-identical
+across modes by design. "Overall" = cumulative across all 100 settled matches.
+
+| Model                       | Overall RPS | QF RPS     | Overall RMSE | QF RMSE    | Overall NLL | QF NLL    |
+|-----------------------------|-------------|------------|--------------|------------|-------------|-----------|
+| sarimax                     | 0.1519      | **0.0889** | 0.8800       | **0.3056** | 2.872       | 2.369     |
+| bayesian_poisson            | 0.1522      | 0.0902     | 0.8795       | 0.3356     | **2.862**   | **2.369** |
+| xgboost (per-round)         | **0.1498**  | 0.0910     | 0.8949       | 0.3319     | 2.887       | 2.393     |
+| random_forest               | 0.1510      | 0.0931     | 0.8932       | 0.3718     | 2.874       | 2.425     |
+| negbin_glm                  | 0.1534      | 0.0938     | **0.8781**   | 0.3623     | 2.866       | 2.385     |
+| poisson_glm                 | 0.1524      | 0.0951     | 0.8861       | 0.3355     | 2.878       | 2.372     |
+| xgboost (frozen)            | 0.1529      | 0.1099     | 0.8943       | 0.3994     | 2.886       | 2.435     |
+| ridge (n=98 / n=4)          | 0.1544      | 0.1161     | 0.8820       | 0.3670     | 2.873       | 2.416     |
+| mean_rate (floor)           | 0.2357      | 0.2670     | 1.0613       | 0.7500     | 3.209       | 2.774     |
+
+- **The QF was the best-predicted round of the entire tournament.** Round mean RPS (per_round,
+  team-aware): 0.161 (Group) → 0.117 (R32) → 0.169 (R16) → **0.0955 (QF)**. Every model except
+  `ridge` and the floor landed in 0.089–0.095. The models picked the winning side in **4 of 4**
+  matches, there were **zero draws**, and mean confidence recovered to 0.605 (vs R16's 0.562) —
+  the eight remaining teams re-separated into clear favorites and clear underdogs after R16's
+  compressed pairings. This is a chalk round, not a skill jump; the same caveat as R32 applies.
+- **The refit's biggest win of the tournament.** The only valid frozen↔per_round contrast
+  (xgboost, 4/4 QF matches differ): per_round beat frozen on QF RPS (0.0910 vs 0.1099,
+  **~17% better**), RMSE (0.3319 vs 0.3994, ~17%) and NLL (2.393 vs 2.435, ~1.7%) — the first
+  round where per_round wins on all three metrics simultaneously, and by the largest margin
+  seen. It reverses R16, where per_round lost on all three. On 4 matches this is noise-dominated
+  (see caveat), but it restored per_round's cumulative lead: xgboost per_round Overall RPS
+  0.1498, best of all 8 models, vs frozen 0.1529.
+- **Champion did not lead the round — again.** On QF RPS `sarimax` led (0.0889) with
+  `bayesian_poisson` 2nd (0.0902) and per_round `xgboost` 3rd (0.0910). Fourth consecutive round
+  (MD3, R32, R16, QF) where the champion is not the round leader while retaining the cumulative
+  lead. This is now a stable pattern rather than a run of noise, and the central RQ1 nuance:
+  **per-round retraining's payoff is cumulative, not per-round.**
+- **Worst match:** Spain 2–1 Belgium (mean team-aware RPS 0.124) — the closest QF on paper
+  (p_home 0.551) and the only one decided by a single goal. **Best match:** France 2–0 Morocco
+  (0.068, p_home 0.660), with Argentina 3–1 Switzerland close behind (0.080). Norway 1–2 England
+  (0.110) is notable as the one QF where the models favored the *away* side (p_away 0.574) and
+  were right.
+- **Alert window (rolling 24 = last 4 R32 + all 8 R16 + 8 group/other, ending at the QF):** all
+  7 team-aware models sit at 0.116–0.139 RPS, well under the 0.235 static naive floor — no
+  breach. `mean_rate_poisson` printed **0.2562**, above the floor and above its 0.229 holdout
+  baseline, and the ALERT fired on every cycle in both cadences (see the standing
+  naive-floor-breach note under the Final).
+- **SARIMAX degenerate-λ streak stays broken.** 0/4 QF fixtures had λ ≤ 1e-5 — fourth
+  consecutive round (MD3, R32, R16, QF) without the near-zero clipping anomaly. No
+  extreme-asymmetry Spain fixture (Spain–Belgium was λ_h ≈ 1.72 vs λ_a ≈ 1.00), so the earlier
+  "2 of 2 Spain games" pattern is still untested since MD2.
+- **KO sample-size caveat, at its most acute.** 4 matches. Treat every QF-only figure above,
+  including the headline 17% refit win, as directional only.
 
 ---
 
-## Semi-finals (~Jul 14–15)
+## Semi-finals (Jul 14–15)
 
-Matches played: [fill]
+Matches played: 2 (France 0–2 Spain, Jul 14; England 1–2 Argentina, Jul 15). Cumulative settled
+matches: 102.
 
 Pipeline:
-- per_round refit fired? Y/N. New run_id:
+- Both modes logged? **Y** — both SF matches have full 8/8 model coverage in both cadence
+  artifacts. No new completeness holes.
+- per_round refit fired at the QF→SF boundary (feeding SF predictions)? **Y** — the Jul 12
+  04:06 UTC refit documented in the QF section (`wc_production` v22; shadows v113/v114/v115).
+  Confirmed in the artifacts: `xgboost` differs across cadences on **2/2** SF matches.
+  Champion run_id: `e0a1f34833a2434c98e0e68dc828ccc1`.
+- per_round refit fired at the SF→Final boundary (feeding the Final and third-place match)?
+  **Y** — fired Jul 15 22:06–22:30 UTC, after the last SF fixture (England–Argentina, Jul 15
+  19:00) settled. Log confirms "4/4 models fitted (matchday=Final)": `xgboost` →
+  `wc_production` **v23** (`champion_per_round`), `poisson_glm` → `wc_shadow` **v116**,
+  `mean_rate_poisson` → **v117**, `bayesian_poisson` → **v118**. Shadow metadata resolved from
+  `wc_staging` at refit time: poisson_glm v49 (run `25bcb1d4e7874f16bced9a3778cc77fe`),
+  mean_rate_poisson v57 (run `bfdc135ee168442e9c31b391e38702dc`), bayesian_poisson v48 (run
+  `3ffc2cd425de4678b3888c573d9185cd`). Champion run_id:
+  `cc0d9d8626c042b9a8ba33eb0491799c`.
+- SF inference cycles: France–Spain `5f6af99760c94929bbaa3ecfb3da0427` (frozen
+  `8c7c9d5a6f4a427892fe300a409f8055`); England–Argentina `5ece23f7faa343bcb2027139f35b75e5`
+  (frozen `090b616173c745e18f512b6301a9bb28`).
+- **Three new silent shadow-skips (`_safe_shadow_predict` 120 s timeout class) — none reached
+  the artifacts.** Cloud Logging shows `WARNING Shadow prediction: <model> exceeded 120s —
+  skipping` for `negbin_glm` (Jul 13 08:15:36), `ridge` (Jul 13 08:17:36) and `random_forest`
+  (Jul 14 20:21:09). Unlike the MD2/MD3/R32 instances, **all three self-healed**: each skipped
+  cycle was followed by a successful cycle before the next kickoff, so the final monitoring
+  artifacts have full coverage for those models on every SF fixture. Verified end-to-end — the
+  only holes in either end-of-tournament artifact are the four already-documented pre-QF ones.
+  **The D.1 backfill list is therefore *not* extended by these three.** They matter as evidence
+  of frequency (6 skip events across the tournament, ~1 per round) rather than as data loss;
+  see "Decision — silent shadow-skip" below.
+- Any other failures: none. Jul 13–15 ran a clean 12 cycles/day.
 
 Observations:
--
+
+SF leaderboard (n=2 matches), sorted by SF mean RPS. Convention unchanged from the QF table.
+"Overall" = cumulative across all 102 settled matches.
+
+| Model                       | Overall RPS | SF RPS     | Overall RMSE | SF RMSE    | Overall NLL | SF NLL    |
+|-----------------------------|-------------|------------|--------------|------------|-------------|-----------|
+| random_forest               | 0.1517      | **0.1883** | 0.8865       | **0.5511** | 2.867       | **2.514** |
+| xgboost (per-round)         | **0.1507**  | 0.1920     | 0.8885       | 0.5704     | 2.880       | 2.531     |
+| sarimax                     | 0.1529      | 0.2022     | 0.8740       | 0.5740     | 2.866       | 2.569     |
+| xgboost (frozen)            | 0.1539      | 0.2030     | 0.8889       | 0.6215     | 2.880       | 2.579     |
+| negbin_glm                  | 0.1544      | 0.2039     | **0.8725**   | 0.5934     | 2.859       | 2.517     |
+| bayesian_poisson            | 0.1532      | 0.2052     | 0.8738       | 0.5891     | **2.856**   | 2.542     |
+| poisson_glm                 | 0.1535      | 0.2091     | 0.8805       | 0.5981     | 2.872       | 2.559     |
+| ridge (n=100 / n=2)         | 0.1556      | 0.2129     | 0.8764       | 0.5981     | 2.867       | 2.591     |
+| mean_rate (floor)           | 0.2363      | 0.2670     | 1.0552       | 0.7500     | 3.198       | 2.640     |
+
+- **Both semi-finals were won by the side the models did not favor at home, and RPS roughly
+  doubled.** Round mean RPS jumped from 0.0955 (QF) to **0.2019** — the second-worst round of
+  the tournament after the third-place match. France 0–2 Spain was the miss (mean RPS 0.274):
+  the models had it as a near-coin-flip leaning France (p_home 0.370 vs p_away 0.360, λ_h 1.258
+  vs λ_a 1.236) and Spain won comfortably. England 1–2 Argentina was called correctly (p_away
+  0.542, RPS 0.130). Picks: **1 of 2**.
+- **Confidence collapsed to 0.456** — the lowest of any round to that point (QF 0.605, R16
+  0.562). With four elite teams left the models had essentially no strong opinion, so even the
+  correctly-called match scored a mediocre RPS. Same structural effect flagged in R16: when the
+  predictive distribution is near a three-way split there is no low-RPS outcome available.
+- **The refit held its edge, narrowly.** xgboost per_round vs frozen (2/2 matches differ): RPS
+  0.1920 vs 0.2030 (~5.4% better), RMSE 0.5704 vs 0.6215 (~8.2%), NLL 2.531 vs 2.579 (~1.9%) —
+  per_round wins all three for the second consecutive round. Cumulative Overall RPS: per_round
+  0.1507 (best of all models) vs frozen 0.1539.
+- **Champion did not lead the round — fifth in a row.** `random_forest` led SF RPS (0.1883) and
+  also SF RMSE and NLL; per_round `xgboost` was 2nd. `random_forest` has now led three rounds
+  (R32, SF) or come top-two in most KO rounds while never leading cumulatively — worth a
+  sentence in the RQ1 write-up about cheap models being competitive round-to-round.
+- **Alert window (rolling 24, ending at the SF):** team-aware models at 0.128–0.148 RPS, all
+  well under the 0.235 floor. `mean_rate_poisson` unchanged at **0.2562** — still breaching,
+  alert still firing every cycle in both cadences.
+- **SARIMAX degenerate-λ streak stays broken** — 0/2 SF fixtures with λ ≤ 1e-5 (France–Spain
+  λ 1.364/1.324; England–Argentina λ 1.135/1.879).
+- **Sample size: 2 matches.** Every SF-only number is illustrative, not evidential.
 
 ---
 
-## Final + Third-place (~Jul 18–19)
+## Final + Third-place (Jul 18–19)
+
+Matches played: 2 (third place: France 4–6 England, Jul 18; **Final: Spain 1–0 Argentina,
+Jul 19**). Cumulative settled matches: **104 of 104 — the full tournament**.
 
 Pipeline:
-- Total refit events: [fill] (expected: 7)
-- Total inference cycles logged: [fill]
-- Total monitoring rows: [fill]
-- Any unresolved failures:
+- Both modes logged? **Y** — both matches have full 8/8 model coverage in both cadence
+  artifacts. Final monitoring cycle: Jul 20 10:27 UTC (frozen) / 10:31 UTC (per_round), both
+  reporting "Monitoring scored 830 match-model rows across 8 models".
+- per_round refit fired at the SF→Final boundary? **Y** — the Jul 15 22:06 UTC refit documented
+  in the SF section (`wc_production` v23; shadows v116/v117/v118). Confirmed in the artifacts:
+  `xgboost` differs across cadences on **2/2** matches. Champion run_id:
+  `cc0d9d8626c042b9a8ba33eb0491799c`.
+- No refit fired after the Final (no next round to feed) — v23 / v116–v118 are the terminal
+  model versions of the tournament.
+- Inference cycles: third place `bb5bd46ad52e4f289937e559d901f158` (frozen
+  `9f925cd4645f4e408265d0aa88399acd`); Final `e2c6069cd06140cdbe28b6d73320b04d` (frozen
+  `ed701cc605fa4d86a44b5f2a4447b1c8`).
+- **Total refit events: 8** (expected 7). Reconstructed from the `mean_rate_poisson` λ
+  trajectory, which changes only on a refit and covers all four roster models since the gate
+  fits them in one call: 9 distinct λ regimes = 1 pre-tournament fit + 8 refits. Seven are the
+  legitimate round-boundary refits (MD1→MD2, MD2→MD3, MD3→R32, R32→R16, R16→QF, QF→SF,
+  SF→Final); the eighth is the **premature MD1 refit of Jun 12** (documented under MD1). So
+  "expected: 7" was right for correctly-gated refits, and the surplus event is the known bug.
+
+  | Regime | λ | Matches covered | Feeds | Registry |
+  |--------|---|-----------------|-------|----------|
+  | 1 | 1.323199 | Jun 11 19:00 – Jun 12 02:00 (2) | MD1 opening | pre-tournament fit — prod v15, shadow v88–v94 |
+  | 2 | 1.323151 | Jun 12 19:00 – Jun 18 02:00 (22) | — | **premature MD1 refit** — prod v16, shadow v95–v97 |
+  | 3 | 1.324056 | Jun 18 16:00 – Jun 24 02:00 (24) | MD2 | prod v17, shadow v98–v100 |
+  | 4 | 1.324238 | Jun 24 19:00 – Jun 28 02:00 (24) | MD3 | prod v18, shadow v101–v103 |
+  | 5 | 1.325011 | Jun 28 19:00 – Jul 4 01:30 (16) | R32 | prod v19, shadow v104–v106 |
+  | 6 | 1.324982 | Jul 4 17:00 – Jul 7 20:00 (8) | R16 | prod v20, shadow v107–v109 |
+  | 7 | 1.325114 | Jul 9 20:00 – Jul 12 01:00 (4) | QF | prod v21, shadow v110–v112 |
+  | 8 | 1.325218 | Jul 14 – Jul 15 (2) | SF | prod v22, shadow v113–v115 |
+  | 9 | 1.325195 | Jul 18 – Jul 19 (2) | 3rd + Final | prod v23, shadow v116–v118 |
+
+  Champion run_ids behind each `wc_production` version: v15 `5f5a313ad5c14199aef0a791d2e4041a`,
+  v16 `b667c176418b400996e004febb9beda8`, v17 `c522bd72cd274889829d06f10165b76e`,
+  v18 `bf1a5437fe26466cb43ef59e42898f69`, v19 `4dbbaec7d20a4de0a1306b9785f86eeb`,
+  v20 `5e404f0cdbb94bda9d67657d02a6ead1`, v21 `5032d46f410f473c9a1cc06baf145c80`,
+  v22 `e0a1f34833a2434c98e0e68dc828ccc1`, v23 `cc0d9d8626c042b9a8ba33eb0491799c`.
+
+  Mapping method: no registry version carries a `matchday` tag and no aliases survive on any
+  version (`champion_per_round` included), so versions were matched to regimes by run start time
+  against each regime's match window — every refit fired hours before its window opened, and the
+  v22 (Jul 12 04:06) and v23 (Jul 15 22:06) timestamps independently match the SF and Final
+  refits already logged above. The `cadence_mode=per_round` tag first appears at prod v16 /
+  shadow v95, which is the same boundary the shadow-resolution bug turns on.
+
+- **Total inference cycles logged: 87 distinct pre-kickoff scoring cycles per cadence** (87 in
+  each artifact, i.e. 174 across both modes) across 104 matches. The Cloud Logging export
+  (Jul 11 06:08 – Jul 20 10:31) records 109 trigger cycles over its 10-day window: 8 (Jul 11,
+  partial), 11 (Jul 12, two crash-and-retry cycles), 12/day Jul 13–19, and 6 on Jul 20 before
+  the scheduler was paused.
+- **Total monitoring rows: 830 per cadence (1,660 total)** = 104 matches × 8 models − 2 dropped
+  rows per artifact. Frozen is missing `mean_rate_poisson` on MD1 Portugal 1–1 DR Congo and
+  `random_forest` on R32 Ivory Coast 1–2 Norway; per_round is missing `ridge` on the two MD3
+  Jun 27 fixtures. All four holes are pre-QF and already on the D.1 backfill list.
+- **Standing alert: `mean_rate_poisson` breached the naive floor for the rest of the
+  tournament.** The rolling-24 RPS first crossed 0.235 at match 40 (Jun 22, printing 0.2398)
+  and, after dipping back under during the chalky R32 window (0.2235), climbed monotonically
+  through the knockouts: 0.2344 → 0.2453 (R16) → **0.2562** from the QF to the end, against the
+  0.2350 static floor and a 0.2287 holdout baseline. The export alone contains **198 ALERT
+  lines** (both cadences, every cycle). **Root cause is structural, not drift:**
+  `mean_rate_poisson` predicts `lambda_h == lambda_a` for **100% of rows** (verified across all
+  104 matches, both cadences), so `p_home == p_away` always and its RPS takes only two values
+  in the whole tournament — ≈0.1365 when the match is drawn, ≈0.2670 otherwise. It carries no
+  home/host advantage and no team effects at all, so it converges on the naive predictor by
+  construction. The alert behaved exactly as designed; the finding is that the floor model and
+  the naive floor are the same thing, which is the point of having it. **No investigation
+  needed beyond this note** — but see the host-advantage TODO, since the missing home term is
+  the same defect class.
+- **Any unresolved failures: none.** Both Jul 12 crashes self-healed via retry (see QF), and no
+  crash, timeout, or shadow-skip occurred anywhere in the Jul 15–20 window. Jul 18's seven
+  quiet cycles (00:00–12:00, no monitoring output) were the rest-day early exit — "No source
+  has new data. elo_fresh=False, api_fresh=False" — not a fault.
+- **End state:** last pipeline commit `91cd6f57` ("data: auto-update pipeline 2026-07-20",
+  Jul 20 10:06:12 UTC), tagged **`wc2026-end-of-tournament`** as the fixed D.1 replay endpoint.
+  Scheduler `wc-pipeline-trigger` paused after the Jul 20 10:00 cycle.
+
+Observations:
+
+Final + third-place leaderboard (n=2 matches, treated as one block), sorted by round mean RPS.
+Convention unchanged. "Overall" = the **complete tournament**, all 104 matches.
+
+| Model                       | Overall RPS | Rnd RPS    | Overall RMSE | Rnd RMSE   | Overall NLL | Rnd NLL   |
+|-----------------------------|-------------|------------|--------------|------------|-------------|-----------|
+| mean_rate (floor)           | 0.2369      | 0.2670     | 1.0781       | 2.2500     | 3.252       | 5.981     |
+| random_forest               | 0.1542      | **0.2813** | 0.9131       | 2.2661     | 2.935       | 6.385     |
+| poisson_glm                 | 0.1561      | 0.2875     | 0.9074       | 2.2820     | 2.936       | 6.206     |
+| bayesian_poisson            | 0.1558      | 0.2879     | 0.9009       | 2.2830     | **2.922**   | 6.294     |
+| xgboost (per-round)         | **0.1534**  | 0.2936     | 0.9145       | **2.2402** | 2.945       | 6.247     |
+| sarimax                     | 0.1556      | 0.2951     | 0.9008       | 2.2687     | 2.926       | **5.988** |
+| negbin_glm                  | 0.1572      | 0.2964     | **0.8995**   | 2.2731     | 2.927       | 6.401     |
+| xgboost (frozen)            | 0.1567      | 0.2985     | 0.9157       | 2.2822     | 2.949       | 6.439     |
+| ridge (n=102 / n=2)         | 0.1586      | 0.3112     | 0.9037       | 2.2697     | 2.933       | 6.193     |
+
+- **`xgboost` (per-round) is the tournament champion on the primary metric: Overall RPS 0.1534
+  across all 104 matches**, ahead of `random_forest` (0.1542), `xgboost` frozen (0.1567),
+  `sarimax` (0.1556) and `bayesian_poisson` (0.1558). The spread across the seven team-aware
+  models is remarkably tight — 0.1534 to 0.1586, about 3% end to end — while the naive floor sits
+  at 0.2369, ~54% worse than the best model. **The headline RQ1 result is that every team-aware
+  model comfortably beat the naive floor over a full tournament, and that the differences
+  between them are small relative to that gap.**
+- **Per-round retraining won the full-tournament comparison: 0.1534 (per_round) vs 0.1567
+  (frozen), ~2.1% better on RPS** — the only clean cadence contrast in the study. Frozen was
+  also marginally worse on RMSE (0.9157 vs 0.9145) and NLL (2.949 vs 2.945). Round by round the
+  refit's RPS edge was +5% (MD2), +1% (MD3), +5% (R32), **−3.6% (R16)**, +17% (QF), +5.4% (SF),
+  +1.7% (3rd/Final): positive in six of seven rounds, but with one clear reversal and a
+  magnitude that swings wildly on small rounds. The honest summary is *a small, consistent,
+  cumulative gain, not a decisive one.*
+- **Both final-weekend matches were mispredicted, and the models were at their least confident
+  all tournament.** Third place (France 4–6 England, mean RPS 0.294): the models leaned France
+  (p_home 0.390) and it finished 4–6 — the highest-scoring match of the tournament and, at NLL
+  ≈6.0–6.4, by far the worst-fit goal count for every model (λ ≈ 1.3 per side against 10 actual
+  goals). **The Final (Spain 1–0 Argentina, mean RPS 0.293): the models marginally favored
+  Argentina (p_away 0.392 vs p_home 0.343, λ_a 1.487 vs λ_h 1.313) and Spain won.** Mean
+  confidence was 0.390 (third place) and 0.392 (Final), the two lowest of the tournament.
+  Round picks: **0 of 2**.
+- **Knockout-stage pick record: 5 of 8** (QF 4/4, SF 1/2, third place 0/1, Final 0/1). The
+  models' accuracy declined monotonically as the field narrowed and pairings tightened — which
+  is the expected behavior of a well-calibrated system, not a failure: mean confidence fell
+  0.605 → 0.456 → 0.390, so the model was *telling* us it did not know.
+- **Round mean RPS trajectory (per_round, team-aware), whole tournament:** 0.219 (MD1) → 0.149
+  (MD2) → 0.148 (MD3) → 0.117 (R32) → 0.169 (R16) → **0.0955 (QF)** → 0.202 (SF) → 0.294 (3rd)
+  → 0.293 (Final). The two extremes are both knockout rounds, which reinforces the
+  sample-size caveat: round-level RPS tracks slate difficulty (favorite/underdog separation)
+  far more than it tracks model quality.
+- **The knockout run was goal-heavy:** 28 goals in the 8 matches from the QF onward (mean 3.5
+  per match) vs a tournament mean of 2.96, with **zero draws in those 8 matches** — every KO tie
+  from the QF on was settled in regulation. This is why the goal-count metrics (NLL, RMSE)
+  degrade so sharply in the last three rounds while the outcome metric (RPS) degrades more
+  gently.
+- **SARIMAX degenerate-λ anomaly never recurred.** 0 of the 8 QF-onward fixtures had λ ≤ 1e-5;
+  the clipping was confined to MD1 (ESP–CPV) and MD2 (ESP–KSA), i.e. the two extreme-asymmetry
+  Spain group fixtures, and did not appear in any of the five subsequent rounds (MD3 through
+  the Final). Final assessment: a numerical edge case tied to very high λ asymmetry, not a
+  progressive reliability problem.
 
 ---
 
 ## Post-tournament summary
 
-Overall pipeline reliability: [fill]
-Biggest failure / surprise: [fill]
-Data completeness: [fill]% of WC matches have settled scores in Bronze
-Both modes produced complete snapshot sets? Y/N
+**Overall pipeline reliability: high, with three multi-hour outages and two self-healed
+crashes.** The pipeline ran an unattended every-1–2h cadence from Jun 11 to Jul 20 and delivered
+a scored, pre-kickoff prediction for **all 104 matches in both cadence modes** — no match was
+ever missed. Downtime came from four incidents: the Jun 29–30 scheduler pause (3 missed cycles),
+the Jul 5–6 IPv6 ELO stall (at least 25.8 h of killed runs, 1 missed snapshot), and the two
+Jul 12 push failures (each recovered by the next retry cycle, ~10 and ~19 minutes). None of them cost
+a prediction or a Gold row; all four cost only RQ2 entropy-trajectory resolution or point-in-time
+snapshot pointers. Six silent shadow-skips occurred across the tournament (~1 per round), of
+which three left holes in the artifacts and three self-healed.
+
+**Biggest failure / surprise:** the **shadow-resolution bug** — the highest-cost defect of the
+project, because it is the only one that silently invalidated a *result* rather than an
+operation. `wc_shadow` has no cadence alias, so the "frozen" column for the three refit-eligible
+roster shadows silently carried the per_round artifact for the entire tournament, leaving
+`xgboost` as the study's only clean frozen↔per_round contrast — one model instead of four. It
+produced no error, no alert, and no missing data; it was found only by noticing that two columns
+that should differ were byte-identical. The runner-up surprise is analytical rather than
+operational: **the champion did not lead five of the last six rounds** while still winning
+cumulatively, and the final-weekend matches were both mispredicted at the lowest confidence of
+the tournament.
+
+**Data completeness: 100%** — 104 of 104 WC 2026 matches have settled scores in Bronze, and all
+104 are scored in both monitoring artifacts. Model-level completeness is 830/832 rows per
+cadence (99.76%): four dropped model-match rows in total, all pre-QF, all from the silent
+shadow-skip path, all on cadence-invariant never-refit shadows or otherwise back-fillable (see
+the backfill TODO).
+
+**Both modes produced complete snapshot sets? Y, with two documented caveats.** Every match has
+a pre-kickoff snapshot in both modes. The caveats are (1) the frozen mode's snapshots for
+`poisson_glm` / `bayesian_poisson` / `mean_rate_poisson` are not genuinely frozen (shadow-
+resolution bug — reconstruction TODO below), and (2) four intermediate *entropy-trajectory*
+snapshots are missing from both modes (3 from the R32 scheduler pause, 1 from the R16 IPv6
+stall) — a uniform gap across every model × cadence, affecting RQ2 only.
 
 ### TODO — offline frozen-shadow reconstruction (shadow-resolution bug)
 
@@ -424,9 +751,9 @@ Steps (run with D.1, after the Final, alongside the frozen-shadow rebuild):
 
 ### TODO — backfill dropped never-refit shadow rows (data completeness)
 
-Why: the silent shadow-skip path (`_safe_shadow_predict` → DagsHub load timeout) has now
-dropped a never-refit shadow from **three** inference cycles across the tournament, one per
-matchday since MD2:
+Why: the silent shadow-skip path (`_safe_shadow_predict` → DagsHub load timeout) fired **six
+times** across the tournament (~1 per round). Three of those skips landed on the last
+pre-kickoff cycle for the affected fixture and therefore left permanent holes in the artifacts:
 
 - **MD3 per_round `ridge`** — cycle `ed64fbfac5ed487ca222cf0a9d2c938d`; 2 holes: Colombia
   0–0 Portugal (`1489419`) and DR Congo 3–1 Uzbekistan (`1539013`), both Jun 27.
@@ -434,6 +761,17 @@ matchday since MD2:
   Never-refit ⇒ cadence-invariant, so the per_round row on the same fixture is byte-identical
   to what frozen would have logged (verified: 0/15 RPS or λ diffs across cadences on the
   common R32 `random_forest` rows).
+- **MD1 frozen `mean_rate_poisson`** — 1 hole: Portugal 1–1 DR Congo (`1539003`, Jun 17).
+  Cadence-invariant, already back-filled from per_round in the MD2 table and recomputed anyway
+  by the frozen-shadow rebuild; listed here for completeness of the inventory.
+
+**LIST IS FINAL (verified against the end-of-tournament artifacts, Jul 20).** Exactly **four**
+model-match rows are missing across both cadences — the two MD3 per_round `ridge` rows, the R32
+frozen `random_forest` row, and the MD1 frozen `mean_rate_poisson` row. All are pre-QF. Three
+*further* silent shadow-skips fired later in the tournament (`negbin_glm` Jul 13 08:15, `ridge`
+Jul 13 08:17, `random_forest` Jul 14 20:21 — see the SF pipeline note) but **left no holes**:
+each was followed by a successful cycle before the affected kickoff, so the final artifacts have
+full coverage. Do **not** extend this list for them.
 
 **Not** covered by the frozen-shadow reconstruction — that rebuilds *frozen* rows for the 3
 contaminated *refit-eligible* shadows, whereas these are dropped rows on *never-refit* shadows
@@ -444,13 +782,14 @@ Steps (fold into the single D.1 pass — same mechanics and prereq as the frozen
    (never-refit ⇒ same version as every other row for that model, so deterministic).
 2. Rebuild the pre-kickoff feature row from the DVC-versioned Gold snapshot of that cycle
    (strict `inference_timestamp < kickoff`).
-3. Predict, recompute RPS / NLL / RMSE_h / RMSE_a, and backfill:
-   - `ridge` per_round → +2 rows (MD3 = 24/24, overall = 88/88).
-   - `random_forest` frozen → +1 row (R32 = 16/16, overall = 88/88). Alternatively, copy
+3. Predict, recompute RPS / NLL / RMSE_h / RMSE_a, and backfill (final tournament totals):
+   - `ridge` per_round → +2 rows (MD3 = 24/24, overall = 104/104).
+   - `random_forest` frozen → +1 row (R32 = 16/16, overall = 104/104). Alternatively, copy
      the byte-identical per_round row for the same fixture (both paths give the same result).
-   (The frozen `mean_rate_poisson` MD1 hole — Portugal 1–1 DR Congo — is already handled:
-   cadence-invariant, back-filled from per_round, and recomputed anyway by the frozen-shadow
-   rebuild.)
+   - `mean_rate_poisson` frozen → +1 row (MD1 = 24/24, overall = 104/104); already handled in
+     practice (cadence-invariant, back-filled from per_round in the MD2 table, and recomputed
+     anyway by the frozen-shadow rebuild).
+   Target after backfill: 832/832 rows per cadence, up from 830/832.
 4. Prereq: per-cycle Gold/DVC history retained (shared with the two TODOs above).
 
 ### TODO — reconstruct missed entropy-trajectory snapshots (pipeline outages)
@@ -467,8 +806,10 @@ RQ1/monitoring and refit gates are untouched. Two cases:
    per-match resolution steps into one jump.
 2. **R16 IPv6-stall gap (Jul 5–6):** every trigger run from Jul 5 was killed by the 90 min task
    timeout at the ELO freshness check (see R16 pipeline note above), so the hourly cadence
-   produced no inference cycle in the window bounded by Brazil–Norway and Mexico–England. One
-   missed snapshot: lock all matches with `kickoff <= Brazil–Norway`, re-run with
+   produced no inference cycle in the window bounded by Brazil–Norway and Mexico–England.
+   Confirmed from MLflow: last inference run Jul 5 06:14 UTC, next not until after Jul 6 08:00
+   UTC — **at least 25.8 h**, against 22.01 h for the R32 pause (Jun 29 09:23 → Jun 30 07:32).
+   Still exactly one missed snapshot: lock all matches with `kickoff <= Brazil–Norway`, re-run with
    `simulation_seed = _seed_from_string("R16")`, insert one point at a synthetic
    `inference_timestamp` between the two kickoffs.
 
@@ -496,9 +837,78 @@ Reconstruction steps (fold into the single D.1 pass; do NOT touch the live pipel
    snapshot between Brazil–Norway and Mexico–England).
 5. Prereq: per-cycle Gold/DVC history retained (shared with the TODOs above).
 
+### TODO — D.1 replay prerequisites (Gold / DVC history integrity)
+
+All four TODOs above share one prerequisite: per-cycle Gold/DVC history must be intact enough to
+rebuild each match's pre-kickoff feature row (strict `inference_timestamp < kickoff`).
+
+**STATUS: VERIFIED (Aug 10) — the prerequisite holds; D.1 is unblocked.** Two independent checks
+against the tag:
+- **Remote completeness.** `dvc status --cloud --all-commits data/gold` reported `0 files` to
+  transfer on every Gold snapshot walked (500+) — no object missing from the DagsHub remote. The
+  run was stopped near the end once the pattern was uniform; no missing object was ever reported.
+- **Pre-kickoff coverage.** All **104 of 104** matches have a Gold commit strictly before
+  kickoff. Median lead time 1.89 h, min 1.08 h (measured against the date-only `date_utc`, so
+  these are conservative). Gold history is rich: **437 distinct `data/gold` hashes across the 454
+  commits** touching `dvc.lock`.
+- **The two Jul 12 gaps are confirmed harmless** — they do not appear among the worst lead times,
+  because the retry cycles restored normal cadence before the next kickoff. The rebuild tolerates
+  the two missing point-in-time snapshots; no recovery attempt is needed.
+
+Lead-time findings from that check, using real kickoff times (see the R32 and R16 notes):
+- **The R32 pause degraded one match, not three.** Only Netherlands–Morocco (Jun 30 01:00 UTC)
+  sat inside the off-window, at a 15.63 h lead time. Ivory Coast–Norway (17:00) and France–Sweden
+  (21:00) kicked off after the catch-up cycle and had normal ~0.90 h lead times. This concerns
+  *feature freshness* only; the 3 missed intermediate **entropy** snapshots stand as documented.
+- **Portugal–Spain (Jul 6 19:00 UTC) had a 19-minute pre-kickoff margin** — the tightest of the
+  tournament, and a better illustration of cadence risk than either outage, since it had no
+  cause beyond the 1–2 h cycle landing awkwardly against the kickoff.
+- Mexico–England (Jul 6 01:00 UTC) ran on an 18.91 h old snapshot that predated Brazil–Norway.
+  Harmless for RQ1: both teams last played Jul 1, so their features were current, and stale Gold
+  is the leakage-safe direction. The cost is the missing R16 bracket snapshot already logged.
+
+Status as of Jul 20:
+
+- **Replay endpoint pinned.** Last pipeline commit `91cd6f57` ("data: auto-update pipeline
+  2026-07-20", Jul 20 10:06:12 UTC) is tagged **`wc2026-end-of-tournament`** (annotated, pushed).
+  Every D.1 run starts from `git checkout wc2026-end-of-tournament && dvc pull` so the
+  reconstruction replays against a fixed end-of-tournament data state.
+- **Do NOT run `dvc repro` during D.1.** It would rebuild Silver and Gold and produce new
+  hashes, breaking the tagged state. (`dvc status` reports "changed deps" on `src/silver` and
+  `src/gold` at the tag — this is `__pycache__` noise, not source drift; the tracked outputs
+  match.)
+- **Two known gaps in the per-cycle commit history, both benign.** The Jul 12 02:05 cycle
+  (`dvc push` crash) produced no snapshot and no commit; the Jul 12 10:51 cycle (`git push`
+  rejected) pushed its data but had its pointer commit discarded by the next cycle's hard reset,
+  leaving orphaned blobs on the remote. Both were superseded by retry cycles within the same
+  two-hour slot (`8df3d581` at 02:15, `7254a5f` at 11:10), and because Gold is cumulative each
+  retry snapshot is a superset of the failed one — **no match rows are unrecoverable.** What is
+  gone is only the point-in-time view at those two timestamps. Confirm the rebuild tolerates two
+  missing point-in-time snapshots rather than attempting to recover them, and do **not** run
+  `dvc gc` while the 10:51 orphans may still be wanted.
+- **Application logs before Jul 11 06:00 UTC are gone** (Cloud Logging `_Default`, 30-day
+  retention), including the Jul 10 QF matchday. Audit logs survive in `_Required` (400 days).
+  The exported window Jul 11 06:08 – Jul 20 10:31 is preserved in `logs/logs_qf_final.txt`. This
+  limits narration, not reconstruction — Gold, DVC and MLflow carry everything D.1 needs.
+
+### Decision — pipeline push failures: document, do NOT build a fix
+
+Two hard crashes hit `run_dvc_pipeline` on Jul 12 (02:05 `dvc push` timeout at
+`trigger.py:280`; 10:51 non-fast-forward `git push` rejection at `trigger.py:287`). Both are
+transient-remote failures against DagsHub, and both self-healed on the next scheduled cycle
+because the pipeline is idempotent and Gold is cumulative. The natural hardening — a
+`git pull --rebase` before push, and retry-with-backoff around both push steps — is **preventive
+only**, and the pipeline retires at the end of the tournament, so **no code change will be
+shipped**, consistent with the silent-shadow-skip decision below. Capture as thesis prose:
+- Chapter 3 / Chapter 6: an unattended CT pipeline that commits its own data state needs the
+  push step to be idempotent and retry-safe, because the remote is the one dependency it cannot
+  control. The crash-and-retry pattern worked here only because the cadence was frequent
+  (every 1–2 h) and the data model cumulative; a daily cadence or a mutable Gold would have
+  turned the same two failures into real snapshot loss.
+
 ### Decision — silent shadow-skip: document, do NOT build a fix
 
-The hole above comes from `run_prediction_all_models` silently dropping a shadow on
+The holes above come from `run_prediction_all_models` silently dropping a shadow on
 transient DagsHub load failure (warning only). The natural mitigations — in-cycle retry on
 the shadow load/predict child, ERROR-level logging, and a per-cycle model-count completeness
 check — are **preventive only**: they pay off on *future* inference cycles. The pipeline
