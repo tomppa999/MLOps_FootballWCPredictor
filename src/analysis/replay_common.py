@@ -184,18 +184,25 @@ def predict_single_model(
     fixture_rows = pairings.loc[mask]
     if fixture_rows.empty:
         raise ValueError(f"No pairing row for {home_team} vs {away_team}")
-    row = fixture_rows.iloc[0]
-    if row["home_team"] != home_team:
-        row = row.copy()
-        row["home_team"], row["away_team"] = home_team, away_team
+    pred_row = fixture_rows.iloc[0]
 
     features = build_inference_features(fixture_rows, augmented_gold)
     feature_cols = MODEL_FEATURE_SETS[model_name]
     x_df = features[feature_cols].astype(float)
     preds = model.predict(x_df)
     preds = np.atleast_2d(preds)
-    lam_h = float(np.clip(preds[0, 0], 1e-6, None))
-    lam_a = float(np.clip(preds[0, 1], 1e-6, None))
+    # Pairings are stored with the alphabetically-smaller team as home; align the
+    # rates with the real fixture exactly as live monitoring does.
+    lam_h, lam_a = _orient_lambdas(
+        pd.Series(
+            {
+                "home_team": pred_row["home_team"],
+                "lambda_h": float(np.clip(preds[0, 0], 1e-6, None)),
+                "lambda_a": float(np.clip(preds[0, 1], 1e-6, None)),
+            },
+        ),
+        home_team,
+    )
     probs = compute_outcome_probs(np.array([lam_h]), np.array([lam_a]))
     return {
         "lambda_h": lam_h,
