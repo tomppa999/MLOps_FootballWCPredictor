@@ -95,7 +95,7 @@ def run_prediction(
     return result
 
 
-_SHADOW_PREDICT_TIMEOUT_S: float = 120.0
+_SHADOW_PREDICT_TIMEOUT_S: float = 300.0
 
 
 def _shadow_predict_worker(
