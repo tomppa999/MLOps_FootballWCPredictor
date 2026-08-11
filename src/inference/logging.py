@@ -12,6 +12,7 @@ import mlflow
 import pandas as pd
 
 from src.models.mlflow_utils import (
+    EXPERIMENT_NAME,
     get_latest_production_run_id,
     log_run,
     setup_mlflow,
