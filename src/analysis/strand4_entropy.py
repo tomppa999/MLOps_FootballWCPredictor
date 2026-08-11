@@ -9,7 +9,8 @@ import pandas as pd
 
 from src.analysis.replay_common import (
     RECONSTRUCTION_EXPERIMENT,
-    compute_advancement_entropy,
+    check_entropy_trajectory,
+    compute_entropy_columns,
     ensure_output_dir,
     log_reconstruction_run,
     parse_wc_results_before_kickoff,
@@ -124,6 +125,13 @@ def run_strand4_entropy(*, cadence_modes: tuple[str, ...] = ("frozen", "per_roun
             for model_name in EXPERIMENT_MODELS:
                 model_adv = adv[adv["model_name"] == model_name]
                 if model_adv.empty:
+                    logger.warning(
+                        "No advancement rows for %s (%s, %s) — model was skipped "
+                        "upstream; snapshot will be incomplete.",
+                        model_name,
+                        spec.label,
+                        cadence_mode,
+                    )
                     continue
                 entropy_rows.append({
                     "snapshot_label": spec.label,
@@ -131,13 +139,22 @@ def run_strand4_entropy(*, cadence_modes: tuple[str, ...] = ("frozen", "per_roun
                     "inference_timestamp": spec.synthetic_timestamp,
                     "cadence_mode": cadence_mode,
                     "model_name": model_name,
-                    "entropy": compute_advancement_entropy(model_adv),
+                    **compute_entropy_columns(model_adv),
                     "synthetic": True,
                 })
 
     entropy_df = pd.DataFrame(entropy_rows)
     entropy_path = out_dir / "reconstructed_entropy_snapshots.csv"
     entropy_df.to_csv(entropy_path, index=False)
+
+    expected_rows = len(specs) * len(cadence_modes) * len(EXPERIMENT_MODELS)
+    if len(entropy_df) != expected_rows:
+        logger.warning(
+            "Strand 4 produced %d of %d expected entropy rows — some models "
+            "were skipped upstream.",
+            len(entropy_df),
+            expected_rows,
+        )
 
     return log_reconstruction_run(
         strand="strand4_entropy",
@@ -146,7 +163,11 @@ def run_strand4_entropy(*, cadence_modes: tuple[str, ...] = ("frozen", "per_roun
             "cadence_modes": ",".join(cadence_modes),
             **{k: str(v) for k, v in counts.items()},
         },
-        metrics={"entropy_points": float(len(entropy_df))},
+        metrics={
+            "entropy_points": float(len(entropy_df)),
+            "expected_entropy_points": float(expected_rows),
+            **check_entropy_trajectory(entropy_df),
+        },
         artifacts={"reconstructed_snapshots": entropy_path},
     )
 

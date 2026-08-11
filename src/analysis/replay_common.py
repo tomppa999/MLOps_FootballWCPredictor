@@ -58,6 +58,11 @@ _FIXTURES_DIR: Final[Path] = Path("data/raw/api_football/fixtures")
 _TEAM_MAPPING_PATH: Final[Path] = Path("data/mappings/team_mapping_master_merged.csv")
 _WC_SEASONS: Final[frozenset[int]] = frozenset({2025, 2026})
 
+# A match is only treated as settled this long after kickoff, covering 90
+# minutes plus stoppage, extra time and penalties.  Used when reconstructing
+# what a past inference cycle could legitimately have known.
+SETTLE_DELTA: Final[pd.Timedelta] = pd.Timedelta(hours=2)
+
 PINNED_FROZEN_SHADOW_VERSIONS: Final[dict[str, int]] = {
     "poisson_glm": 88,
     "bayesian_poisson": 90,
@@ -277,20 +282,94 @@ def leaderboard_summary(df: pd.DataFrame) -> pd.DataFrame:
     return agg.sort_values("mean_rps")
 
 
+ENTROPY_COLUMNS: Final[tuple[str, ...]] = (
+    "p_r32",
+    "p_r16",
+    "p_qf",
+    "p_sf",
+    "p_final",
+    "p_winner",
+)
+
+
 def compute_advancement_entropy(
     advancement_df: pd.DataFrame,
     *,
     prob_col: str = "p_r32",
 ) -> float:
-    """Shannon entropy of the normalised advancement vector (thesis D.1)."""
+    """Shannon entropy of the normalised advancement vector (thesis D.1).
+
+    Each advancement column sums to the number of slots in that round (32 for
+    ``p_r32`` down to 1 for ``p_winner``), so normalising by the column's own
+    sum turns any of them into a distribution over the teams.  Every round is
+    then on one scale: ``log(n_teams)`` under full uncertainty, 0 once the
+    round is resolved.  ``p_group`` is excluded from ``ENTROPY_COLUMNS`` — the
+    simulator sets it to 1.0 for every team, so it carries no signal.
+    """
     if advancement_df.empty or prob_col not in advancement_df.columns:
         return float("nan")
     p = advancement_df[prob_col].astype(float).to_numpy()
-    p_norm = p / 32.0
+    total = p.sum()
+    if total <= 0:
+        return float("nan")
+    p_norm = p / total
     p_pos = p_norm[p_norm > 0]
-    if p_pos.size == 0:
-        return 0.0
     return float(-np.sum(p_pos * np.log(p_pos)))
+
+
+def compute_entropy_columns(advancement_df: pd.DataFrame) -> dict[str, float]:
+    """Per-round advancement entropies keyed ``entropy_r32`` … ``entropy_winner``."""
+    return {
+        f"entropy_{col.removeprefix('p_')}": compute_advancement_entropy(
+            advancement_df, prob_col=col,
+        )
+        for col in ENTROPY_COLUMNS
+    }
+
+
+def check_entropy_trajectory(
+    entropy_df: pd.DataFrame,
+    *,
+    timestamp_col: str = "inference_timestamp",
+) -> dict[str, float]:
+    """Warn on degenerate entropy curves and return summary metrics.
+
+    A constant curve means the simulation had nothing left to sample — the
+    signature of the D.1 leak where final results were locked into every
+    replayed cycle.  A healthy trajectory starts near ``log(n_teams)`` and
+    decays towards 0 as the tournament resolves.
+    """
+    metrics: dict[str, float] = {}
+    if entropy_df.empty:
+        logger.warning("Entropy trajectory is empty — nothing to check.")
+        return metrics
+
+    ordered = entropy_df.sort_values(timestamp_col)
+    for col in (f"entropy_{c.removeprefix('p_')}" for c in ENTROPY_COLUMNS):
+        if col not in ordered.columns:
+            continue
+        values = ordered[col].dropna()
+        if values.empty:
+            logger.warning("Entropy column %s is entirely NaN.", col)
+            continue
+        if values.nunique() == 1:
+            logger.warning(
+                "Entropy column %s is constant at %.6f across %d points — "
+                "the simulation is fully determined; check the as-of cutoff.",
+                col,
+                float(values.iloc[0]),
+                len(values),
+            )
+        metrics[f"{col}_first"] = float(values.iloc[0])
+        metrics[f"{col}_last"] = float(values.iloc[-1])
+
+    if "entropy_winner_first" in metrics:
+        logger.info(
+            "Champion entropy: %.4f at first snapshot -> %.4f at last.",
+            metrics["entropy_winner_first"],
+            metrics["entropy_winner_last"],
+        )
+    return metrics
 
 
 def ensure_output_dir(subdir: str) -> Path:
@@ -327,21 +406,39 @@ def log_reconstruction_run(
         return run.info.run_id
 
 
-def parse_wc_results_before_kickoff(
-    max_kickoff: pd.Timestamp,
-    *,
+@dataclass
+class FinishedFixture:
+    """One finished WC fixture, parsed from Bronze and cutoff-independent."""
+
+    fixture_id: int | None
+    kickoff: pd.Timestamp
+    kickoff_raw: str
+    round_str: str
+    round_label: str | None
+    home_team: str
+    away_team: str
+    home_goals: int
+    away_goals: int
+    status: str
+    teams: dict
+    score: dict
+
+
+@lru_cache(maxsize=4)
+def load_finished_wc_fixtures(
     fixtures_dir: Path = _FIXTURES_DIR,
     mapping_path: Path = _TEAM_MAPPING_PATH,
-) -> dict[str, Any]:
-    """Build partial ``wc_results`` with matches whose kickoff <= ``max_kickoff``."""
-    id_to_name = _load_api_id_to_canonical(mapping_path)
+) -> tuple[FinishedFixture, ...]:
+    """Parse every finished WC fixture from Bronze, newest snapshot winning.
+
+    Cached because the D.1 replay calls the as-of filter once per inference
+    cycle (~900 times); re-globbing and re-parsing the ~14 MB of fixture JSON
+    each time dominates the runtime.  Treat the result as read-only.
+    """
     fixture_files = sorted(fixtures_dir.glob("*/fixtures.json"), reverse=True)
+    id_to_name = _load_api_id_to_canonical(mapping_path)
     seen_fixture_ids: set[int] = set()
-    group_results: dict[tuple[str, str], tuple[int, int]] = {}
-    ko_results: dict[frozenset, dict] = {}
-    finished_fixtures: list[dict] = []
-    finished_per_round: dict[str, int] = {}
-    max_group_matchday = 0
+    out: list[FinishedFixture] = []
 
     for fp in fixture_files:
         with open(fp) as f:
@@ -357,9 +454,6 @@ def parse_wc_results_before_kickoff(
             kickoff_raw = fixture.get("date")
             if not kickoff_raw:
                 continue
-            kickoff = pd.to_datetime(kickoff_raw, utc=True)
-            if kickoff > max_kickoff:
-                continue
 
             fixture_id = fixture.get("id")
             if fixture_id is not None and fixture_id in seen_fixture_ids:
@@ -367,62 +461,101 @@ def parse_wc_results_before_kickoff(
             if fixture_id is not None:
                 seen_fixture_ids.add(fixture_id)
 
-            round_str = league.get("round", "")
-            round_label = _round_to_matchday_label(round_str)
             teams = entry.get("teams", {})
             goals_raw = entry.get("goals", {})
-            home_name = id_to_name.get(
-                teams.get("home", {}).get("id"), teams.get("home", {}).get("name"),
-            )
-            away_name = id_to_name.get(
-                teams.get("away", {}).get("id"), teams.get("away", {}).get("name"),
-            )
             hg_raw, ag_raw = goals_raw.get("home"), goals_raw.get("away")
             if hg_raw is None or ag_raw is None:
                 continue
-            home_goals, away_goals = int(hg_raw), int(ag_raw)
 
-            finished_fixtures.append({
-                "fixture_id": fixture_id,
-                "date_utc": kickoff_raw,
-                "home_team": home_name,
-                "away_team": away_name,
-                "home_goals": home_goals,
-                "away_goals": away_goals,
-                "is_knockout": not round_str.lower().startswith("group"),
-                "round": round_str,
-            })
-            if round_label is not None:
-                finished_per_round[round_label] = finished_per_round.get(round_label, 0) + 1
+            round_str = league.get("round", "")
+            out.append(
+                FinishedFixture(
+                    fixture_id=fixture_id,
+                    kickoff=pd.to_datetime(kickoff_raw, utc=True),
+                    kickoff_raw=kickoff_raw,
+                    round_str=round_str,
+                    round_label=_round_to_matchday_label(round_str),
+                    home_team=id_to_name.get(
+                        teams.get("home", {}).get("id"), teams.get("home", {}).get("name"),
+                    ),
+                    away_team=id_to_name.get(
+                        teams.get("away", {}).get("id"), teams.get("away", {}).get("name"),
+                    ),
+                    home_goals=int(hg_raw),
+                    away_goals=int(ag_raw),
+                    status=status,
+                    teams=teams,
+                    score=entry.get("score", {}),
+                ),
+            )
 
-            round_lower = round_str.lower()
-            if round_lower.startswith("group"):
-                if (home_name, away_name) not in group_results:
-                    group_results[(home_name, away_name)] = (home_goals, away_goals)
-                parts = round_str.rsplit(" - ", 1)
-                if len(parts) == 2 and parts[1].isdigit():
-                    max_group_matchday = max(max_group_matchday, int(parts[1]))
-            else:
-                stage = _round_to_matchday_label(round_str)
-                if stage is not None:
-                    key = frozenset({home_name, away_name})
-                    if key not in ko_results:
-                        ko_results[key] = {
-                            "home": home_name,
-                            "away": away_name,
-                            "home_goals": home_goals,
-                            "away_goals": away_goals,
-                            "winner": _resolve_ko_winner(
-                                home_name,
-                                away_name,
-                                home_goals,
-                                away_goals,
-                                teams,
-                                entry.get("score", {}),
-                            ),
-                            "decided_by": status,
-                            "stage": stage,
-                        }
+    return tuple(out)
+
+
+def parse_wc_results_before_kickoff(
+    max_kickoff: pd.Timestamp,
+    *,
+    settle_delta: pd.Timedelta = pd.Timedelta(0),
+    fixtures_dir: Path = _FIXTURES_DIR,
+    mapping_path: Path = _TEAM_MAPPING_PATH,
+) -> dict[str, Any]:
+    """Build partial ``wc_results`` from matches settled by ``max_kickoff``.
+
+    A match counts as settled when ``kickoff + settle_delta <= max_kickoff``.
+    The default zero delta keeps the original "kicked off at or before the
+    cutoff" semantics.  Callers reconstructing what was *known* at a point in
+    time should pass a non-zero delta (see ``SETTLE_DELTA``), otherwise a match
+    still being played at the cutoff would leak its final score.
+    """
+    effective_cutoff = max_kickoff - settle_delta
+    group_results: dict[tuple[str, str], tuple[int, int]] = {}
+    ko_results: dict[frozenset, dict] = {}
+    finished_fixtures: list[dict] = []
+    finished_per_round: dict[str, int] = {}
+    max_group_matchday = 0
+
+    for fx in load_finished_wc_fixtures(fixtures_dir, mapping_path):
+        if fx.kickoff > effective_cutoff:
+            continue
+
+        finished_fixtures.append({
+            "fixture_id": fx.fixture_id,
+            "date_utc": fx.kickoff_raw,
+            "home_team": fx.home_team,
+            "away_team": fx.away_team,
+            "home_goals": fx.home_goals,
+            "away_goals": fx.away_goals,
+            "is_knockout": not fx.round_str.lower().startswith("group"),
+            "round": fx.round_str,
+        })
+        if fx.round_label is not None:
+            finished_per_round[fx.round_label] = finished_per_round.get(fx.round_label, 0) + 1
+
+        if fx.round_str.lower().startswith("group"):
+            if (fx.home_team, fx.away_team) not in group_results:
+                group_results[(fx.home_team, fx.away_team)] = (fx.home_goals, fx.away_goals)
+            parts = fx.round_str.rsplit(" - ", 1)
+            if len(parts) == 2 and parts[1].isdigit():
+                max_group_matchday = max(max_group_matchday, int(parts[1]))
+        elif fx.round_label is not None:
+            key = frozenset({fx.home_team, fx.away_team})
+            if key not in ko_results:
+                ko_results[key] = {
+                    "home": fx.home_team,
+                    "away": fx.away_team,
+                    "home_goals": fx.home_goals,
+                    "away_goals": fx.away_goals,
+                    "winner": _resolve_ko_winner(
+                        fx.home_team,
+                        fx.away_team,
+                        fx.home_goals,
+                        fx.away_goals,
+                        fx.teams,
+                        fx.score,
+                    ),
+                    "decided_by": fx.status,
+                    "stage": fx.round_label,
+                }
 
     from src.inference.features import _MATCHDAY_ORDER
 
