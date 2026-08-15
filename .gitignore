@@ -30,6 +30,9 @@ build/
 # MLflow
 mlruns/
 
+# D.1 replay artifact cache (local scratch, re-downloadable from MLflow)
+.d1_artifact_cache/
+
 # DVC cache and tmp
 .dvc/cache/
 .dvc/tmp/
@@ -43,6 +46,8 @@ data/raw/
 data/silver/
 data/gold/
 data/interim/
+data/reconstruction/
+data/analysis/
 
 # Notebooks
 *.ipynb

@@ -318,7 +318,9 @@ def _latest_version_with_tags(
 
     When ``cadence_mode`` is given, prefer versions whose run also carries
     tag ``cadence_mode=<mode>``.  If none match both tags, fall back to
-    ``model_name``-only (pre-B.2 / pre-A.10 shadow versions).
+    ``model_name``-only versions that carry no explicit ``cadence_mode``
+    tag, or the same mode (pre-B.2 / pre-A.10 shadow versions).  Versions
+    tagged with a *different* explicit ``cadence_mode`` are skipped.
     """
     client = mlflow.tracking.MlflowClient()
     try:
@@ -353,8 +355,13 @@ def _latest_version_with_tags(
         tags = _run_tags(mv)
         if tags is None:
             continue
-        if tags.get("model_name") == model_name:
-            return mv
+        if tags.get("model_name") != model_name:
+            continue
+        if cadence_mode is not None:
+            explicit_mode = tags.get("cadence_mode")
+            if explicit_mode is not None and explicit_mode != cadence_mode:
+                continue
+        return mv
     return None
 
 

@@ -673,9 +673,9 @@ from Secret Manager in favour of IAM). Revisit after the tournament.
 - [x] DVC push succeeded (gold 6921 rows, 9 files pushed)
 
 **Final pass — pending A.10 (Jun 11 pre-kickoff):**
-- [ ] `champion_frozen` and `champion_per_round` aliases resolve
-- [ ] Monitoring runs empty pre-WC
-- [ ] Both alias-tagged artifact sets written correctly
+- [x] `champion_frozen` and `champion_per_round` aliases resolve
+- [x] Monitoring runs empty pre-WC
+- [x] Both alias-tagged artifact sets written correctly
 
 ---
 

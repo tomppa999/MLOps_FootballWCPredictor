@@ -12,6 +12,7 @@ import mlflow
 import pandas as pd
 
 from src.models.mlflow_utils import (
+    EXPERIMENT_NAME,
     get_latest_production_run_id,
     log_run,
     setup_mlflow,
@@ -58,6 +59,7 @@ def log_inference_artifacts(
     matchday_label: str = "1",
     matches_completed_in_matchday: int = 0,
     total_matches_completed: int = 0,
+    experiment_name: str | None = None,
 ) -> str:
     """Start an MLflow run tagged stage=inference and log all artifacts.
 
@@ -113,6 +115,7 @@ def log_inference_artifacts(
     with start_run(
         run_name="inference",
         tags={"stage": "inference"},
+        experiment_name=experiment_name or EXPERIMENT_NAME,
     ) as run:
         log_run(params=params)
 

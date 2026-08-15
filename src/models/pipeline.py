@@ -856,7 +856,11 @@ def run_shadow_refit(df: pd.DataFrame) -> list[str]:
 
         with start_run(
             run_name=f"shadow_refit_{meta.model_name}",
-            tags={"stage": "shadow-refit", "model_name": meta.model_name},
+            tags={
+                "stage": "shadow-refit",
+                "model_name": meta.model_name,
+                "cadence_mode": "frozen",
+            },
         ) as run:
             log_run(
                 params={

@@ -265,6 +265,9 @@ def run_inference_and_simulation(
     matches_completed_in_matchday: int | None = None,
     total_matches_completed: int | None = None,
     simulation_seed: int | None = None,
+    wc_results_override: dict | None = None,
+    inference_timestamp_override: str | None = None,
+    reconstruction_experiment: str | None = None,
 ) -> str:
     """End-to-end inference: features → predict → simulate → log.
 
@@ -272,7 +275,7 @@ def run_inference_and_simulation(
     """
     logger.info("=== Inference and simulation ===")
 
-    cycle_ts = datetime.now(timezone.utc).isoformat()
+    cycle_ts = inference_timestamp_override or datetime.now(timezone.utc).isoformat()
 
     # Load Gold history
     if gold_path is not None:
@@ -282,7 +285,7 @@ def run_inference_and_simulation(
     logger.info("Gold loaded: %d rows", len(gold_df))
 
     # Parse already-played WC results from Bronze and lock them into simulation
-    wc_results = parse_wc_results()
+    wc_results = wc_results_override if wc_results_override is not None else parse_wc_results()
     snapshot_meta = derive_snapshot_metadata(wc_results)
     if matchday_label is None:
         matchday_label = str(snapshot_meta["matchday_label"])
@@ -498,6 +501,7 @@ def run_inference_and_simulation(
         matchday_label=matchday_label,
         matches_completed_in_matchday=matches_completed_in_matchday,
         total_matches_completed=total_matches_completed,
+        experiment_name=reconstruction_experiment,
     )
 
     logger.info("=== Inference complete (run_id=%s) ===", run_id)

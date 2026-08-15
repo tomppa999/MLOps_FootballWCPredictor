@@ -153,6 +153,53 @@ def test_shadow_refit_skips_champion_and_fits_eight(
 @patch("src.models.pipeline.make_splits")
 @patch("src.models.pipeline.get_all_shadow_metadata")
 @patch("src.models.pipeline.get_champion_metadata")
+def test_shadow_refit_tags_cadence_mode_frozen(
+    mock_get_champion,
+    mock_get_all_shadows,
+    mock_make_splits,
+    mock_register,
+    mock_log_artifact,
+    mock_fit_timeout,
+    tmp_mlflow,
+    fake_splits,
+):
+    """Frozen shadow refit runs must carry cadence_mode=frozen."""
+    from src.models import pipeline as pipeline_module
+
+    mock_get_champion.return_value = ChampionMeta(
+        model_name="xgboost",
+        best_params={},
+        holdout_metrics={},
+    )
+    mock_get_all_shadows.return_value = [
+        ChampionMeta(model_name="ridge", best_params={"alpha": 0.5}, holdout_metrics={}),
+    ]
+    mock_make_splits.return_value = fake_splits
+    mock_register.return_value = MagicMock(version="1")
+
+    with patch.dict(
+        pipeline_module.CANDIDATE_MODELS,
+        {"xgboost": _FakeShadowModel, "ridge": _FakeShadowModel},
+        clear=True,
+    ):
+        with patch("src.models.pipeline.start_run") as mock_start_run:
+            mock_ctx = MagicMock()
+            mock_ctx.__enter__ = MagicMock(return_value=MagicMock(info=MagicMock(run_id="r1")))
+            mock_ctx.__exit__ = MagicMock(return_value=False)
+            mock_start_run.return_value = mock_ctx
+            pipeline_module.run_shadow_refit(pd.DataFrame({"x": range(20)}))
+
+    tags = mock_start_run.call_args.kwargs["tags"]
+    assert tags["cadence_mode"] == "frozen"
+    assert tags["stage"] == "shadow-refit"
+
+
+@patch("src.models.pipeline._fit_with_timeout", side_effect=_inproc_fit)
+@patch("src.models.pipeline._log_model_artifact", return_value="models:/fake/1")
+@patch("src.models.pipeline.register_model")
+@patch("src.models.pipeline.make_splits")
+@patch("src.models.pipeline.get_all_shadow_metadata")
+@patch("src.models.pipeline.get_champion_metadata")
 def test_shadow_refit_does_not_invoke_optuna(
     mock_get_champion,
     mock_get_all_shadows,
