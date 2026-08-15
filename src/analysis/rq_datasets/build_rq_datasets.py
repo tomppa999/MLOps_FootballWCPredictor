@@ -82,10 +82,10 @@ def _key_frame(df: pd.DataFrame) -> pd.Series:
 
 
 def _backfill_provenance(inference_run_id: str) -> str:
+    if inference_run_id.startswith("backfill_copy_from_"):
+        return PROVENANCE_BACKFILL_COPIED
     if inference_run_id == "backfill_ridge_md3":
         return PROVENANCE_BACKFILL_REPRED
-    if inference_run_id == "backfill_copy_from_per_round":
-        return PROVENANCE_BACKFILL_COPIED
     raise ValueError(f"Unknown backfill inference_run_id: {inference_run_id!r}")
 
 

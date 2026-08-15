@@ -9,6 +9,7 @@ import pandas as pd
 
 from src.analysis.replay_common import (
     PINNED_FROZEN_SHADOW_VERSIONS,
+    SETTLE_DELTA,
     augment_gold_for_inference,
     build_gold_commit_index,
     ensure_output_dir,
@@ -17,9 +18,10 @@ from src.analysis.replay_common import (
     load_pinned_shadow_model,
     log_reconstruction_run,
     parse_wc_results_before_kickoff,
-    predict_single_model,
+    predict_fixture_from_batch,
     resolve_gold_commit,
     score_prediction_row,
+    snapshot_key,
 )
 from src.monitoring.monitor import parse_wc_settled_matches
 
@@ -50,15 +52,22 @@ def run_strand1_frozen_shadow() -> dict[str, str]:
         for commit_sha, matches in by_commit.items():
             gold_df = load_gold_at_commit(commit_sha)
             for match in matches:
-                wc_partial = parse_wc_results_before_kickoff(match["kickoff_utc"])
+                # SETTLE_DELTA keeps a match (and any simultaneous kickoff) out
+                # of its own feature history; the zero-delta default would leak
+                # the final score being predicted.
+                wc_partial = parse_wc_results_before_kickoff(
+                    match["kickoff_utc"],
+                    settle_delta=SETTLE_DELTA,
+                )
                 augmented, ref_date = augment_gold_for_inference(gold_df, wc_partial)
-                pred = predict_single_model(
+                pred = predict_fixture_from_batch(
                     model,
                     model_name,
                     match["home"],
                     match["away"],
                     augmented,
                     ref_date,
+                    key=snapshot_key(commit_sha, wc_partial),
                 )
                 model_rows.append(
                     score_prediction_row(

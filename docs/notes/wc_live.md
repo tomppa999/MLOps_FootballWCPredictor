@@ -112,11 +112,11 @@ Pipeline:
 - Both modes logged? **Y** — all 72 settled matches scored in both artifacts. As-logged: frozen 575 rows, per_round 574 (isolated dropped rows, see below). **After D.1 Strand 3 backfill: 576/576** (72 × 8) per cadence.
 - per_round refit fired? **N/A for the MD3 boundary** — the MD3 *predictions* are backed by the **MD2-boundary** champion refit. The MD3-boundary refit (after all 24 MD3 fixtures settle, last kickoff Jun 28) feeds **R32**, not MD3. New run_id: `4dbbaec7d20a4de0a1306b9785f86eeb` (`wc_production` v19, fired Jun 28 04:06 UTC).
 - AFCON/format effect: **6 of 24 draws** (Japan 1–1 Sweden, Paraguay 0–0 Australia, Cape Verde 0–0 Saudi Arabia, Egypt 1–1 Iran, Colombia 0–0 Portugal, Algeria 3–3 Austria) — exactly the ~1/4 base rate for 24 games, so **no evidence of final-day draw-gaming / third-place hedging** this round (the three 0–0s notwithstanding). Outcome mix 9 home / 9 away / 6 draw, more balanced than MD2's 13/6/5.
-- **Any failures: `ridge` dropped from one per_round inference cycle (data-completeness anomaly).** The per_round `ridge` row is missing for Colombia 0–0 Portugal (`1489419`) and DR Congo 3–1 Uzbekistan (`1539013`), both Jun 27, both served by the single per_round inference run `ed64fbfac5ed487ca222cf0a9d2c938d`. Every other model is present for those matches, and the frozen run for the same fixtures (`0facdde2…`) has `ridge` fine — so `ridge` itself is healthy (present for the other 70 per_round matches). Root cause: `run_prediction_all_models` runs each shadow in an isolated child process with a 120 s timeout (`_safe_shadow_predict`); on timeout / non-zero exit / no output it logs a warning and **silently drops the model** from that cycle's `predictions_all_models.csv`. The child's `load_shadow_model` does a DagsHub MLflow resolve+download, so a transient DagsHub stall in `ridge`'s load window blows the budget for `ridge` alone. This is the *only* code path that can omit a model from the artifact — `logging.py` writes `predictions_all_models.csv` verbatim (no dropna / dedup). Same anomaly *class* as MD2's dropped `mean_rate_poisson` row (Portugal 1–1 DR Congo) — single-cycle, single-model holes from the silent shadow-skip path, not corruption. Consequence as-logged: `ridge` MD3 = 22 matches (overall 70), everyone else 24/72. **D.1 Strand 3 re-predicted the two missing per_round `ridge` rows** (`data/reconstruction/strand3_backfill/backfill_rows.csv`) → MD3 = 24/24, overall = 72/72. Trigger confirmed from Cloud Logging: `WARNING Shadow prediction: ridge exceeded 120s — skipping` — a transient DagsHub stall during the ridge shadow load (setup_mlflow + model download) blew the child-process budget in that one per-round cycle. Visibility fix (post-tournament, not mid-flight): raise these skips to ERROR / emit a per-cycle model-count so a missing shadow alerts instead of going unnoticed.
+- **Any failures: `ridge` dropped from one per_round inference cycle (data-completeness anomaly).** The per_round `ridge` row is missing for Colombia 0–0 Portugal (`1489419`) and DR Congo 3–1 Uzbekistan (`1539013`), both Jun 27, both served by the single per_round inference run `ed64fbfac5ed487ca222cf0a9d2c938d`. Every other model is present for those matches, and the frozen run for the same fixtures (`0facdde2…`) has `ridge` fine — so `ridge` itself is healthy (present for the other 70 per_round matches). Root cause: `run_prediction_all_models` runs each shadow in an isolated child process with a 120 s timeout (`_safe_shadow_predict`); on timeout / non-zero exit / no output it logs a warning and **silently drops the model** from that cycle's `predictions_all_models.csv`. The child's `load_shadow_model` does a DagsHub MLflow resolve+download, so a transient DagsHub stall in `ridge`'s load window blows the budget for `ridge` alone. This is the *only* code path that can omit a model from the artifact — `logging.py` writes `predictions_all_models.csv` verbatim (no dropna / dedup). Same anomaly *class* as MD2's dropped `mean_rate_poisson` row (Portugal 1–1 DR Congo) — single-cycle, single-model holes from the silent shadow-skip path, not corruption. Consequence as-logged: `ridge` MD3 = 22 matches (overall 70), everyone else 24/72. **D.1 Strand 3 copied the two missing per_round `ridge` rows from their frozen twins** (`data/reconstruction/strand3_backfill/backfill_rows.csv`) → MD3 = 24/24, overall = 72/72. `ridge` is never refitted, so both cadences must carry identical predictions; the first version of the backfill re-predicted these two rows offline instead and drifted by ~0.0003 mean RPS on the feature snapshot, which made a never-refit model look like it had a cadence effect (fixed Aug 15). Trigger confirmed from Cloud Logging: `WARNING Shadow prediction: ridge exceeded 120s — skipping` — a transient DagsHub stall during the ridge shadow load (setup_mlflow + model download) blew the child-process budget in that one per-round cycle. Visibility fix (post-tournament, not mid-flight): raise these skips to ERROR / emit a per-cycle model-count so a missing shadow alerts instead of going unnoticed.
 
 Observations:
 
-MD3 leaderboard — single table sorted by MD3 mean RPS. After D.1, `xgboost`, `poisson_glm` and `bayesian_poisson` each show both cadences; never-refit shadows are cadence-invariant. `ridge` is restored to full MD3 coverage (24/24; was 22/24 as-logged — Strand 3 backfill). "Overall" = cumulative across all 72 settled matches.
+MD3 leaderboard — single table sorted by MD3 mean RPS. After D.1, `xgboost`, `poisson_glm` and `bayesian_poisson` each show both cadences; never-refit shadows are cadence-invariant. `ridge` is restored to full MD3 coverage (24/24; was 22/24 as-logged — Strand 3 copied the two holes from its frozen twin). "Overall" = cumulative across all 72 settled matches.
 
 | Model                       | Overall RPS | MD3 RPS    | Overall RMSE | MD3 RMSE   | Overall NLL | MD3 NLL    |
 |-----------------------------|-------------|------------|--------------|------------|-------------|-----------|
@@ -128,13 +128,13 @@ MD3 leaderboard — single table sorted by MD3 mean RPS. After D.1, `xgboost`, `
 | poisson_glm (per-round)     | 0.1618      | 0.1335     | 0.9663       | 0.9217     | 2.978       | 2.937     |
 | xgboost (per-round)         | **0.1583**  | 0.1381     | 0.9669       | 0.9303     | 2.970       | 2.944     |
 | random_forest               | 0.1595      | 0.1382     | 0.9681       | 0.9451     | 2.962       | 2.975     |
-| ridge                       | 0.1598      | 0.1394     | 0.9448       | 0.9363     | 2.934       | 2.959     |
 | xgboost (frozen)            | 0.1609      | 0.1395     | 0.9648       | 0.9282     | 2.973       | 2.959     |
+| ridge                       | 0.1602      | 0.1406     | 0.9467       | 0.9418     | 2.938       | 2.970     |
 | mean_rate (floor)           | 0.2308      | 0.2344     | 1.1295       | 1.1374     | 3.340       | 3.320     |
 *D.1 Strand 1: `poisson_glm` / `bayesian_poisson` **frozen** rows reconstructed (see `data/reconstruction/strand1_frozen_shadow/`); per-round rows are live.
 
 - **The refit's edge shrank to ~1%.** The only valid frozen↔per_round contrast (xgboost): per_round beat frozen on RPS (0.1381 vs 0.1395, ~1.0%) and on NLL (2.944 vs 2.959, ~0.5%), but was marginally worse on RMSE (0.9303 vs 0.9282, ~0.2%). All three gaps are tiny over just 24 matches — within MD3 noise. The metrics are not an outcome-vs-rate split: **RPS** scores the W/D/L outcome, while **NLL and RMSE are both goal-count metrics**. NLL (Poisson log-score) and RMSE (point error of λ vs realized goals) need not move together — NLL is convex and asymmetric (penalizes under-pricing high-scoring games steeply), RMSE is symmetric and linear — so a refit can win the high-information matches on NLL while slightly overshooting λ elsewhere on RMSE. This differs from MD2, where only RPS improved and both NLL and RMSE were flat-to-worse; the RPS gain itself fell from ~5% (MD2) to ~1% (MD3).
-- **Champion did not lead MD3.** On per_round MD3 RPS, four cheaper models (sarimax, bayesian_poisson, negbin_glm, poisson_glm) still beat xgboost; with full `ridge` coverage its MD3 RPS rises to 0.1394 (was 0.1377 on n=22) and no longer beats the champion. xgboost still leads cumulative Overall RPS (0.1583). The cadence advantage is matchday-dependent and small — a useful RQ1 nuance.
+- **Champion did not lead MD3.** On per_round MD3 RPS, four cheaper models (sarimax, bayesian_poisson, negbin_glm, poisson_glm) still beat xgboost; with full `ridge` coverage its MD3 RPS rises to 0.1406 (was 0.1377 on n=22) and no longer beats the champion. xgboost still leads cumulative Overall RPS (0.1583). The cadence advantage is matchday-dependent and small — a useful RQ1 nuance.
 - **MD3 was another predictable slate on average.** Round mean RPS (per_round, team-aware): 0.214 (MD1) → 0.149 (MD2) → 0.148 (MD3). Despite genuine upsets, favorites mostly delivered.
 - **Worst matches (mean team-aware RPS, per_round):** South Africa 1–0 South Korea (0.512), Ecuador 2–1 Germany (0.307), DR Congo 3–1 Uzbekistan (0.252), Turkey 3–2 USA (0.234), Japan 1–1 Sweden (0.203). Two heavy-favorite upsets (Germany, South Korea both lost) plus the recurring unpriced low-scoring/level games — same failure mode flagged in MD1 and MD2.
 - **Best matches (per_round):** Jordan 1–3 Argentina (0.007), Tunisia 1–3 Netherlands (0.020), Panama 0–2 England (0.026), New Zealand 1–5 Belgium (0.028), Croatia 2–1 Ghana (0.036) — dominant favorites priced correctly.
@@ -232,13 +232,13 @@ R32 leaderboard — single table sorted by R32 mean RPS. After D.1, `xgboost`, `
 | poisson_glm (per-round)     | 0.1543      | 0.1204     | 0.8979       | 0.5905     | 2.893       | 2.508     |
 | bayesian_poisson (frozen)   | 0.1555      | 0.1218     | **0.8695**   | 0.5904     | **2.833**   | 2.492     |
 | poisson_glm (frozen)        | 0.1558      | 0.1233     | 0.8708       | 0.5924     | 2.838       | 2.491     |
-| ridge                       | 0.1536      | 0.1256     | 0.8894       | 0.6399     | 2.871       | 2.589     |
+| ridge                       | 0.1539      | 0.1256     | 0.8909       | 0.6399     | 2.874       | 2.589     |
 | mean_rate (floor)           | 0.2329      | 0.2426     | 1.0716       | 0.8109     | 3.233       | 2.749     |
 *D.1 Strand 1: `poisson_glm` / `bayesian_poisson` **frozen** rows reconstructed (see `data/reconstruction/strand1_frozen_shadow/`); per-round rows are live.
 
 - **R32 was extremely chalky** Scored against the model's own implied favorite (mean team-aware `p_home`/`p_draw`/`p_away` argmax vs actual result): the model correctly picked the winning side in **all 13 non-draw R32 matches (13/13)**, and the 3 "misses" — Germany 1–1 Paraguay, Netherlands 1–1 Morocco, Australia 1–1 Egypt — were all draws against a *mild* implied favorite (p_fav 0.43–0.59), not a big underdog winning outright. **Zero genuine "underdog beats favorite" upsets in R32.** Round mean RPS (per_round, team-aware): 0.219 (MD1) → 0.137 (MD2) → 0.131 (MD3) → **0.117 (R32)**, the lowest of the tournament so far. Interpret cautiously: the KO seeding compresses the field to broadly asymmetric pairings (Argentina–Cape Verde, France–Sweden, Colombia–Ghana), and only 3 draws is well below the ~25% base rate — a fortunate slate for team-aware models, not a step-change in skill.
 - **Refit stayed net-positive on RPS, closer to a wash overall.** The only valid frozen↔per_round contrast (xgboost, 16/16 R32 matches differ): per_round beat frozen on RPS (0.1105 vs 0.1163, ~5.0%) and RMSE (0.5864 vs 0.5958, ~1.6%), but was fractionally worse on NLL (2.4829 vs 2.4771, ~0.2%). Direction reversed vs MD3, where per_round was slightly worse on RMSE and better on both RPS and NLL — consistent with the picture that outcome-calibration (RPS) is where the refit reliably wins by 1–5% per round, while the goal-rate metrics (NLL / RMSE) trade blows within a few tenths of a percent, i.e. within round-level noise on 16–24 matches.
-- **Champion did not lead R32.** On R32 RPS, `random_forest` led (0.1077, per_round) with per_round xgboost 2nd (0.1105) and frozen xgboost 4th (0.1163); `random_forest` also led on R32 RMSE (0.5655) and NLL (2.427). Same pattern as MD3 (cheaper models beat champion on the round), but xgboost still leads **cumulative Overall RPS** (per_round 0.1496 vs random_forest 0.1501, ridge 0.1536, sarimax 0.1534). Two matchdays in a row where the champion is not the round leader but retains the cumulative lead — RQ1 evidence that per_round retraining pays off *across the tournament*, not necessarily on any given round.
+- **Champion did not lead R32.** On R32 RPS, `random_forest` led (0.1077, per_round) with per_round xgboost 2nd (0.1105) and frozen xgboost 4th (0.1163); `random_forest` also led on R32 RMSE (0.5655) and NLL (2.427). Same pattern as MD3 (cheaper models beat champion on the round), but xgboost still leads **cumulative Overall RPS** (per_round 0.1496 vs random_forest 0.1501, ridge 0.1539, sarimax 0.1534). Two matchdays in a row where the champion is not the round leader but retains the cumulative lead — RQ1 evidence that per_round retraining pays off *across the tournament*, not necessarily on any given round.
 - **Alert window (rolling 24 = last 8 MD3 + all 16 R32, spanning Jun 27–Jul 4):** all 7 team-aware models sit at 0.105–0.126 RPS, well under the 0.235 static naive floor — no breach. `mean_rate_poisson` printed 0.2344 on the rolling window and 0.2426 on R32-only, essentially on/above the floor (and above its 0.229 holdout baseline); the gap between the floor and the mean team-aware model widened to ~0.13 RPS on R32, the largest all tournament — cleanly reflects the "chalk-slate" effect.
 - **Worst matches (mean team-aware RPS, per_round):** Portugal 2–1 Croatia (0.205), Switzerland 2–0 Algeria (0.202), Germany 1–1 Paraguay (0.195), Mexico 2–0 Ecuador (0.188), Brazil 2–1 Japan (0.163). The recurring theme is the **narrow-favorite / close KO match** — models were fairly confident but the pairings were genuinely close (Portugal vs Croatia, Brazil vs Japan) so scores still landed far from λ. Germany 1–1 Paraguay is the same unpriced-low-scoring-draw failure mode flagged in MD1–MD3.
 - **Best matches (per_round):** Argentina 3–2 Cape Verde (0.006), Colombia 1–0 Ghana (0.015), France 3–0 Sweden (0.023), England 2–1 DR Congo (0.053), Spain 3–0 Austria (0.073), South Africa 0–1 Canada (0.094) — dominant / lopsided pairings priced correctly.
@@ -307,7 +307,7 @@ R16 leaderboard (n=8 matches), sorted by R16 mean RPS. After D.1, `xgboost`, `po
 | sarimax                     | 0.1545      | 0.1673     | 0.9039       | 1.0911     | 2.892       | 3.090     |
 | xgboost (frozen)            | 0.1547      | 0.1758     | 0.9149       | 1.1035     | 2.905       | 3.153     |
 | xgboost (per-round)         | **0.1523**  | 0.1821     | 0.9183       | 1.1450     | 2.908       | 3.197     |
-| ridge                       | 0.1561      | 0.1831     | 0.9062       | 1.0910     | 2.890       | 3.097     |
+| ridge                       | 0.1564      | 0.1831     | 0.9076       | 1.0910     | 2.893       | 3.097     |
 | random_forest               | 0.1534      | 0.1898     | 0.9150       | 1.1360     | 2.893       | 3.201     |
 | mean_rate (floor)           | 0.2344      | 0.2507     | 1.0742       | 1.1031     | 3.228       | 3.170     |
 *D.1 Strand 1: `poisson_glm` / `bayesian_poisson` **frozen** rows reconstructed (see `data/reconstruction/strand1_frozen_shadow/`); per-round rows are live.
@@ -412,7 +412,7 @@ QF leaderboard (n=4 matches), sorted by QF mean RPS. After D.1, `xgboost`, `pois
 | poisson_glm (per-round)     | 0.1524      | 0.0951     | 0.8861       | 0.3355     | 2.878       | 2.372     |
 | poisson_glm (frozen)        | 0.1529      | 0.0985     | 0.8586       | 0.3498     | 2.823       | 2.382     |
 | xgboost (frozen)            | 0.1529      | 0.1099     | 0.8943       | 0.3994     | 2.886       | 2.435     |
-| ridge                       | 0.1545      | 0.1161     | 0.8846       | 0.3670     | 2.871       | 2.416     |
+| ridge                       | 0.1548      | 0.1161     | 0.8860       | 0.3670     | 2.874       | 2.416     |
 | mean_rate (floor)           | 0.2357      | 0.2670     | 1.0613       | 0.7500     | 3.209       | 2.774     |
 *D.1 Strand 1: `poisson_glm` / `bayesian_poisson` **frozen** rows reconstructed (see `data/reconstruction/strand1_frozen_shadow/`); per-round rows are live.
 
@@ -504,7 +504,7 @@ SF leaderboard (n=2 matches), sorted by SF mean RPS. After D.1, `xgboost`, `pois
 | bayesian_poisson (frozen)   | 0.1535      | 0.2054     | **0.8524**   | 0.5958     | **2.813**   | 2.516     |
 | poisson_glm (frozen)        | 0.1539      | 0.2081     | 0.8536       | 0.6027     | 2.818       | 2.528     |
 | poisson_glm (per-round)     | 0.1535      | 0.2091     | 0.8805       | 0.5981     | 2.872       | 2.558     |
-| ridge                       | 0.1556      | 0.2129     | 0.8790       | 0.5981     | 2.866       | 2.591     |
+| ridge                       | 0.1559      | 0.2129     | 0.8803       | 0.5981     | 2.868       | 2.591     |
 | mean_rate (floor)           | 0.2363      | 0.2670     | 1.0552       | 0.7500     | 3.198       | 2.640     |
 *D.1 Strand 1: `poisson_glm` / `bayesian_poisson` **frozen** rows reconstructed (see `data/reconstruction/strand1_frozen_shadow/`); per-round rows are live.
 
@@ -627,25 +627,31 @@ Final + third-place leaderboard (n=2 matches, treated as one block), sorted by r
 |-----------------------------|-------------|------------|--------------|------------|-------------|-----------|
 | mean_rate (floor)           | 0.2369      | 0.2670     | 1.0781       | 2.2500     | 3.252       | 5.980     |
 | random_forest               | 0.1542      | **0.2813** | 0.9131       | 2.2661     | 2.935       | 6.385     |
+| poisson_glm (frozen)        | 0.1584      | 0.2873     | **0.8982**   | 2.2782     | 2.927       | 6.327     |
 | poisson_glm (per-round)     | 0.1561      | 0.2875     | 0.9074       | 2.2820     | 2.936       | 6.206     |
-| bayesian_poisson (per-round) | 0.1558      | 0.2879     | 0.9009       | 2.2830     | 2.922       | 6.294     |
-| poisson_glm (frozen)        | 0.1565      | 0.2888     | 0.8794       | 2.1920     | 2.877       | 5.933     |
-| bayesian_poisson (frozen)   | 0.1561      | 0.2898     | **0.8778**   | **2.1740** | **2.873**   | **5.921** |
-| xgboost (per-round)         | **0.1534**  | 0.2936     | 0.9145       | 2.2402     | 2.945       | 6.247     |
-| sarimax                     | 0.1556      | 0.2951     | 0.9008       | 2.2687     | 2.926       | 5.987     |
+| bayesian_poisson (per-round) | 0.1558      | 0.2879     | 0.9009       | 2.2830     | **2.922**   | 6.294     |
+| bayesian_poisson (frozen)   | 0.1579      | 0.2880     | **0.8982**   | 2.2821     | 2.926       | 6.420     |
+| xgboost (per-round)         | **0.1534**  | 0.2936     | 0.9145       | **2.2402** | 2.945       | 6.247     |
+| sarimax                     | 0.1556      | 0.2951     | 0.9008       | 2.2687     | 2.926       | **5.987** |
 | negbin_glm                  | 0.1572      | 0.2964     | 0.8995       | 2.2731     | 2.927       | 6.401     |
 | xgboost (frozen)            | 0.1567      | 0.2985     | 0.9157       | 2.2822     | 2.949       | 6.439     |
-| ridge                       | 0.1586      | 0.3112     | 0.9057       | 2.2697     | 2.930       | 6.193     |
+| ridge                       | 0.1589      | 0.3112     | 0.9070       | 2.2697     | 2.932       | 6.193     |
 
 - **`xgboost` (per-round) is the tournament champion on the primary metric: Overall RPS 0.1534
   across all 104 matches**, ahead of `random_forest` (0.1542), `sarimax` (0.1556),
-  `bayesian_poisson` per_round (0.1558) / reconstructed frozen (0.1561), `poisson_glm`
-  per_round (0.1561) / frozen (0.1565), and `xgboost` frozen (0.1567). The spread across the
-  seven team-aware models remains remarkably tight — 0.1534 to 0.1586, about 3% end to end —
+  `bayesian_poisson` per_round (0.1558), `poisson_glm` per_round (0.1561), `xgboost` frozen
+  (0.1567), `negbin_glm` (0.1572), and the reconstructed frozen shadows
+  `bayesian_poisson` (0.1579) / `poisson_glm` (0.1584). The spread across the
+  seven team-aware models remains remarkably tight — 0.1534 to 0.1589, about 3% end to end —
   while the naive floor sits at 0.2369, ~54% worse than the best model. **The headline RQ1
   result is that every team-aware model comfortably beat the naive floor over a full
   tournament, and that the differences between them are small relative to that gap.**
-- *Reconstructed offline (D.1 Strand 1): `poisson_glm` / `bayesian_poisson` **frozen** rows from pinned `wc_shadow` v88 / v90 on pre-kickoff Gold — see `data/reconstruction/strand1_frozen_shadow/`. Per-round rows for those models are the live artifact. `mean_rate_poisson` frozen rebuild was dropped by decision (λ spread ~2e-3).
+- **All three refit-eligible models now favour per-round retraining**, which was not true of the
+  first reconstruction pass: `xgboost` −0.0033, `poisson_glm` −0.0023, `bayesian_poisson`
+  −0.0021 RPS. The gain concentrates in the group stage (−0.0027 to −0.0036) and is roughly
+  neutral in the knockout rounds, consistent with refits having more new data to absorb early.
+  Effect sizes stay small against n=104 — a consistent direction, not a decisive one.
+- *Reconstructed offline (D.1 Strand 1): `poisson_glm` / `bayesian_poisson` **frozen** rows from pinned `wc_shadow` v88 / v90 on pre-kickoff Gold — see `data/reconstruction/strand1_frozen_shadow/`. Per-round rows for those models are the live artifact. `mean_rate_poisson` frozen rebuild was dropped by decision (λ spread ~2e-3). Frozen figures above are the **corrected** Strand 1 rerun (Aug 15, settle-delta + batch-feature fix); the first pass leaked each match's own result and overstated the frozen arm by ~0.002 RPS.
 - **Per-round retraining won the full-tournament comparison: 0.1534 (per_round) vs 0.1567
   (frozen), ~2.1% better on RPS** — still the cleanest champion cadence contrast; D.1 additionally restores frozen shadows for `poisson_glm` / `bayesian_poisson` (see Strand 1). Frozen was
   also marginally worse on RMSE (0.9157 vs 0.9145) and NLL (2.949 vs 2.945). Round by round the
@@ -727,10 +733,11 @@ inserted the four snapshots).
 Pinned `wc_shadow` versions: `poisson_glm` v88, `bayesian_poisson` v90 (untagged
 `stage=shadow-refit`). Outputs: `data/reconstruction/strand1_frozen_shadow/`
 (`frozen_shadow_combined.csv` 208 rows; `frozen_shadow_leaderboard.csv`). Tournament frozen
-means: bayesian RPS 0.15607 / NLL 2.87265 / RMSE 0.87780; poisson_glm 0.15654 / 2.87747 /
-0.87936 (n=104). `mean_rate_poisson` rebuild dropped by decision (λ spread ~2e-3). Code fix
+means **after the Aug 15 correction rerun** (see "Strand 1 correction" below): bayesian RPS
+0.15788 / NLL 2.92649 / RMSE 0.89823; poisson_glm 0.15845 / 2.92722 / 0.89821 (n=104).
+`mean_rate_poisson` rebuild dropped by decision (λ spread ~2e-3). Code fix
 also landed: `run_shadow_refit` tags `cadence_mode=frozen`; `_latest_version_with_tags`
-fallback is cadence-aware; regression tests in `tests/models/`. Audit: Strand 1 — 19 pass, 0 warn.
+fallback is cadence-aware; regression tests in `tests/models/`. Audit: Strand 1 — 20 pass, 0 warn.
 
 Why (record): `wc_shadow` has no cadence alias and frozen shadow refits write no `cadence_mode`
 tag, so `load_shadow_model` resolved BOTH cadences to the newest (per_round) version.
@@ -752,6 +759,36 @@ Reconstruction steps (completed):
 4. Prereq verified (see prerequisites section below).
 5. Code fix landed (not mid-tournament): tag `run_shadow_refit` runs with
    `cadence_mode=frozen` AND make `_latest_version_with_tags` fallback cadence-aware.
+
+### DONE — Strand 1 correction: own-result leakage + single-row features
+
+**STATUS: DONE (Aug 15).** The first Strand 1 pass carried two defects of its own; both are
+fixed and all 208 rows were regenerated. See `errors_overview.md` §2.2 for the full write-up.
+
+1. **Own-result leakage.** `parse_wc_results_before_kickoff` counts a match as settled when
+   `kickoff <= cutoff`, and Strand 1 passed each match's own kickoff as the cutoff without
+   `settle_delta`. Every replayed match therefore had its own final score appended to Gold
+   before its features were built, with `reference_date` pushed to kickoff + 1 day so the
+   rolling window actually read it. Confirmed on the tournament opener: augmented Gold held
+   6946 rows when nothing should yet have been appended.
+2. **Single-row feature construction.** `build_inference_features` derives
+   `days_since_last_match` from Gold concatenated with the *upcoming* rows. Live inference
+   passes all 1131 pairings at once; the replay passed one fixture. The two paths therefore
+   disagreed even with identical Gold and identical model.
+
+**Effect.** The leak flattered the frozen arm by **+0.0018 (bayesian) / +0.0019 (poisson_glm)
+mean RPS** — the same order as the RQ1 cadence effect itself, and in the direction that
+reversed the finding. Pre-correction, frozen appeared to beat per-round for both models; after
+correction all three refit-eligible models favour per-round.
+
+**Fix.** Strand 1 passes `SETTLE_DELTA` (2 h) and predicts through the full pairing batch via
+new `replay_common` helpers (`snapshot_key`, `batch_lambdas`, `predict_fixture_from_batch`).
+Validated end to end: the opener now reproduces the live λ exactly (2.083377 / 0.656733) with
+zero results known and Gold at 6945 rows.
+
+**Guard.** New `s1.leakage` audit check fails if any match sees its own or an unsettled result;
+`tests/analysis/test_strand1_frozen_shadow.py` pins the settle-delta pass-through, the
+self-leakage invariant and the batch shape. Audit after rerun: **83 pass / 7 warn / 0 fail**.
 
 ### DONE — host-advantage fix regeneration (RQ2 entropy)
 
@@ -776,19 +813,28 @@ locking bug (fixed live in `20260629a`), and the pen-winner bracket bug (fixed l
 
 **STATUS: DONE (Aug 15) — D.1 Strand 3.** Driver: `src/analysis/strand3_backfill.py`.
 Output: `data/reconstruction/strand3_backfill/backfill_rows.csv` (4 rows). Achieved
-**832/832 per cadence** in `data/analysis/rq1_matches.csv` (1,664 total). Actions:
-re-predicted 2 MD3 per_round `ridge` rows; copied R32 frozen `random_forest` from its
-per_round twin; MD1 frozen `mean_rate_poisson` from per_round copy. Audit caveats (Strand 3):
-5 warns — coverage 832/832 was not fully re-verifiable from the partial monitoring exports
-the audit saw (54/104 matches); copy byte-identity checks similarly blocked. Claim rests on
-the RQ1 merge, not the audit's partial export.
+**832/832 per cadence** in `data/analysis/rq1_matches.csv` (1,664 total). All three models
+involved are never refitted, so every row is copied byte-for-byte from its twin in the other
+cadence: 2 MD3 per_round `ridge` rows from frozen; R32 frozen `random_forest` from per_round;
+MD1 frozen `mean_rate_poisson` from per_round. Audit (Strand 3, against the
+`data/analysis/live/monitoring_*.csv` exports): 14 pass, 0 warn, 0 fail — coverage 832/832 and
+all four copy byte-identity checks verified.
+
+Revision (Aug 15): the first version re-predicted the two `ridge` rows offline from pinned
+`wc_shadow` + a DVC Gold snapshot rather than copying them. That drifted on the feature
+snapshot and left `ridge` — a never-refit model — showing a spurious frozen↔per_round delta
+of ~0.0003 mean RPS, the same order of magnitude as the real RQ1 cadence effect. Strand 3 is
+now a uniform copy step over `BACKFILL_FIXTURES` (each spec carries `copy_from_cadence`), and
+`audit_reconstruction` fails if any backfill row is not a cadence copy (`s3.all_copied`).
 
 Why (record): the silent shadow-skip path (`_safe_shadow_predict` → DagsHub load timeout) fired
 **six times** across the tournament (~1 per round). Three of those skips landed on the last
 pre-kickoff cycle for the affected fixture and therefore left permanent holes in the artifacts:
 
 - **MD3 per_round `ridge`** — cycle `ed64fbfac5ed487ca222cf0a9d2c938d`; 2 holes: Colombia
-  0–0 Portugal (`1489419`) and DR Congo 3–1 Uzbekistan (`1539013`), both Jun 27.
+  0–0 Portugal (`1489419`) and DR Congo 3–1 Uzbekistan (`1539013`), both Jun 27. Never-refit
+  ⇒ cadence-invariant, so both rows are copied from the frozen cycle `0facdde2…`, which has
+  `ridge` intact for the same two fixtures.
 - **R32 frozen `random_forest`** — 1 hole: Ivory Coast 1–2 Norway (`1564789`, Jun 30).
   Never-refit ⇒ cadence-invariant, so the per_round row on the same fixture is byte-identical
   to what frozen would have logged (verified: 0/15 RPS or λ diffs across cadences on the

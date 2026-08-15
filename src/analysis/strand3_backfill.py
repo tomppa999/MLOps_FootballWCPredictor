@@ -1,4 +1,9 @@
-"""Strand 3: backfill four dropped never-refit shadow rows."""
+"""Strand 3: backfill four dropped never-refit shadow rows.
+
+All four rows belong to models that are never refitted, so both cadences must
+carry identical predictions.  Each row is therefore copied byte-for-byte from
+its twin in the other cadence rather than re-predicted offline.
+"""
 
 from __future__ import annotations
 
@@ -9,36 +14,13 @@ import pandas as pd
 
 from src.analysis.replay_common import (
     BACKFILL_FIXTURES,
-    augment_gold_for_inference,
-    build_gold_commit_index,
     ensure_output_dir,
-    load_gold_at_commit,
-    load_pinned_shadow_model,
     load_monitoring_artifact,
     log_reconstruction_run,
-    match_row_for_fixture,
-    parse_wc_results_before_kickoff,
-    predict_single_model,
-    resolve_gold_commit,
-    score_prediction_row,
 )
-from src.models.mlflow_utils import (
-    SHADOW_MODEL_NAME,
-    _latest_version_with_tags,
-    setup_mlflow,
-)
-from src.monitoring.monitor import parse_wc_settled_matches
+from src.analysis.rq_datasets.export_live import monitoring_path
 
 logger = logging.getLogger(__name__)
-
-
-def _resolve_never_refit_version(model_name: str) -> int:
-    """Return the wc_shadow version for a never-refit model (cadence-invariant)."""
-    setup_mlflow()
-    mv = _latest_version_with_tags(SHADOW_MODEL_NAME, model_name)
-    if mv is None:
-        raise ValueError(f"No wc_shadow version for {model_name}")
-    return int(mv.version)
 
 
 def _copy_row_from_monitoring(
@@ -70,72 +52,42 @@ def run_strand3_backfill(
 ) -> str:
     """Backfill the four dropped model-match rows to 832/832 per cadence."""
     out_dir = ensure_output_dir("strand3_backfill")
-    settled = parse_wc_settled_matches()
-    gold_index = build_gold_commit_index()
+
+    source_paths = {
+        "per_round": per_round_monitoring_path or monitoring_path("per_round"),
+        "frozen": frozen_monitoring_path or monitoring_path("frozen"),
+    }
+    sources: dict[str, pd.DataFrame] = {}
+    for cadence, path in source_paths.items():
+        if Path(path).exists():
+            sources[cadence] = load_monitoring_artifact(Path(path))
+        else:
+            logger.warning("No %s monitoring artifact at %s", cadence, path)
+
     backfill_rows: list[dict] = []
-
-    per_round_mon = (
-        load_monitoring_artifact(per_round_monitoring_path)
-        if per_round_monitoring_path
-        else pd.DataFrame()
-    )
-    frozen_mon = (
-        load_monitoring_artifact(frozen_monitoring_path)
-        if frozen_monitoring_path
-        else pd.DataFrame()
-    )
-
-    # Two MD3 per_round ridge rows — re-predict.
-    ridge_version = _resolve_never_refit_version("ridge")
-    ridge_model = load_pinned_shadow_model("ridge", ridge_version)
-    for fixture_id in BACKFILL_FIXTURES["ridge_per_round_md3"]["fixture_ids"]:
-        match = match_row_for_fixture(settled, fixture_id)
-        commit = resolve_gold_commit(match["kickoff_utc"], gold_index)
-        if commit is None:
-            raise RuntimeError(f"No Gold commit for fixture {fixture_id}")
-        gold_df = load_gold_at_commit(commit.commit_sha)
-        wc_partial = parse_wc_results_before_kickoff(match["kickoff_utc"])
-        augmented, ref_date = augment_gold_for_inference(gold_df, wc_partial)
-        pred = predict_single_model(
-            ridge_model,
-            "ridge",
-            match["home"],
-            match["away"],
-            augmented,
-            ref_date,
-        )
-        backfill_rows.append(
-            score_prediction_row(
-                match,
-                "ridge",
-                pred,
-                cadence_mode="per_round",
-                inference_run_id="backfill_ridge_md3",
-            ),
-        )
-
-    # random_forest frozen — copy from per_round twin.
-    if not per_round_mon.empty:
-        for fixture_id in BACKFILL_FIXTURES["random_forest_frozen_r32"]["fixture_ids"]:
+    for label, spec in BACKFILL_FIXTURES.items():
+        source_cadence = spec["copy_from_cadence"]
+        if source_cadence not in sources:
+            raise FileNotFoundError(
+                f"{label}: needs {source_cadence} monitoring at "
+                f"{source_paths[source_cadence]}",
+            )
+        for fixture_id in spec["fixture_ids"]:
             backfill_rows.append(
                 _copy_row_from_monitoring(
-                    per_round_mon,
+                    sources[source_cadence],
                     fixture_id,
-                    "random_forest",
-                    "per_round",
-                    "frozen",
+                    spec["model_name"],
+                    source_cadence,
+                    spec["cadence_mode"],
                 ),
             )
-        for fixture_id in BACKFILL_FIXTURES["mean_rate_poisson_frozen_md1"]["fixture_ids"]:
-            backfill_rows.append(
-                _copy_row_from_monitoring(
-                    per_round_mon,
-                    fixture_id,
-                    "mean_rate_poisson",
-                    "per_round",
-                    "frozen",
-                ),
-            )
+        logger.info(
+            "%s: copied %d row(s) from %s",
+            label,
+            len(spec["fixture_ids"]),
+            source_cadence,
+        )
 
     df = pd.DataFrame(backfill_rows)
     csv_path = out_dir / "backfill_rows.csv"

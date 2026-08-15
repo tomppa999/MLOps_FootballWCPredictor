@@ -1,6 +1,6 @@
 outs:
-- md5: 36db6cfd584f46aa02e102d3ab36a429.dir
-  size: 171497998
+- md5: e0125fd231a2d92a21f420993d5531b1.dir
+  size: 171497762
   nfiles: 7010
   hash: md5
   path: reconstruction

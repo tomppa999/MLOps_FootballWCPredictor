@@ -6,6 +6,7 @@ All drivers replay from the ``wc2026-end-of-tournament`` tag.  Never run
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import subprocess
@@ -69,10 +70,13 @@ PINNED_FROZEN_SHADOW_VERSIONS: Final[dict[str, int]] = {
 }
 
 BACKFILL_FIXTURES: Final[dict[str, dict[str, Any]]] = {
+    # ridge is never refitted, so its per_round rows must equal the frozen twin
+    # exactly; re-predicting them offline would drift on the feature snapshot.
     "ridge_per_round_md3": {
         "fixture_ids": [1489419, 1539013],
         "model_name": "ridge",
         "cadence_mode": "per_round",
+        "copy_from_cadence": "frozen",
     },
     "random_forest_frozen_r32": {
         "fixture_ids": [1564789],
@@ -216,6 +220,86 @@ def predict_single_model(
         "p_draw": float(probs[0, 1]),
         "p_away": float(probs[0, 2]),
     }
+
+
+# Live inference predicts every WC pairing in a single batch. Some features
+# (notably days-since-last-match) are derived from the upcoming rows as a whole,
+# so a one-fixture-at-a-time replay does NOT reproduce live values. Replays keep
+# the batch shape and pick the fixture out afterwards.
+_BATCH_FEATURE_CACHE: dict[tuple[str, str], pd.DataFrame] = {}
+_BATCH_LAMBDA_CACHE: dict[tuple[str, str, str], pd.DataFrame] = {}
+
+
+def snapshot_key(commit_sha: str, wc_results: dict[str, Any]) -> tuple[str, str]:
+    """Cache key identifying one (Gold commit, known-results) inference state."""
+    ids = sorted(str(fx["fixture_id"]) for fx in wc_results["finished_fixtures"])
+    digest = hashlib.sha1("|".join(ids).encode(), usedforsecurity=False).hexdigest()
+    return (commit_sha, digest[:16])
+
+
+def batch_lambdas(
+    model: Any,
+    model_name: str,
+    augmented_gold: pd.DataFrame,
+    reference_date: pd.Timestamp | None,
+    *,
+    key: tuple[str, str],
+) -> pd.DataFrame:
+    """Predict all WC pairings at once, mirroring ``run_inference_and_simulation``."""
+    if key not in _BATCH_FEATURE_CACHE:
+        pairings = generate_all_wc_pairings(reference_date=reference_date)
+        _BATCH_FEATURE_CACHE[key] = build_inference_features(pairings, augmented_gold)
+    features = _BATCH_FEATURE_CACHE[key]
+
+    lambda_key = (model_name, *key)
+    if lambda_key not in _BATCH_LAMBDA_CACHE:
+        feature_cols = MODEL_FEATURE_SETS[model_name]
+        x = features[feature_cols].to_numpy(dtype="float64", na_value=np.nan)
+        preds = np.atleast_2d(model.predict(pd.DataFrame(x, columns=feature_cols)))
+        out = features[["home_team", "away_team"]].copy()
+        out["lambda_h"] = preds[:, 0].clip(1e-6)
+        out["lambda_a"] = preds[:, 1].clip(1e-6)
+        _BATCH_LAMBDA_CACHE[lambda_key] = out
+    return _BATCH_LAMBDA_CACHE[lambda_key]
+
+
+def predict_fixture_from_batch(
+    model: Any,
+    model_name: str,
+    home_team: str,
+    away_team: str,
+    augmented_gold: pd.DataFrame,
+    reference_date: pd.Timestamp | None,
+    *,
+    key: tuple[str, str],
+) -> dict[str, float]:
+    """Select one fixture out of the full-pairings batch prediction."""
+    lambdas = batch_lambdas(
+        model, model_name, augmented_gold, reference_date, key=key,
+    )
+    mask = (
+        (lambdas["home_team"] == home_team) & (lambdas["away_team"] == away_team)
+    ) | (
+        (lambdas["home_team"] == away_team) & (lambdas["away_team"] == home_team)
+    )
+    rows = lambdas.loc[mask]
+    if rows.empty:
+        raise ValueError(f"No pairing row for {home_team} vs {away_team}")
+    lam_h, lam_a = _orient_lambdas(rows.iloc[0], home_team)
+    probs = compute_outcome_probs(np.array([lam_h]), np.array([lam_a]))
+    return {
+        "lambda_h": lam_h,
+        "lambda_a": lam_a,
+        "p_home": float(probs[0, 0]),
+        "p_draw": float(probs[0, 1]),
+        "p_away": float(probs[0, 2]),
+    }
+
+
+def clear_batch_caches() -> None:
+    """Drop cached replay features/predictions (tests and long runs)."""
+    _BATCH_FEATURE_CACHE.clear()
+    _BATCH_LAMBDA_CACHE.clear()
 
 
 def score_prediction_row(

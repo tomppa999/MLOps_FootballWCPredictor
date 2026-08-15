@@ -443,6 +443,47 @@ def audit_strand1(root: Path = OUTPUT_ROOT) -> list[CheckResult]:
         else:
             results.append(_warn("s1.lambda_distinct", "match_id sets differ; skipped Δλ check"))
 
+    # Leakage guard: a replayed match must never see its own result — nor any
+    # fixture still in play at its kickoff — in the known-results snapshot its
+    # features are built from. Calling parse_wc_results_before_kickoff without
+    # SETTLE_DELTA silently reintroduces exactly that.
+    try:
+        from src.monitoring.monitor import parse_wc_settled_matches
+
+        settled = parse_wc_settled_matches()
+        self_leaks = 0
+        unsettled_leaks = 0
+        for _, match in settled.iterrows():
+            kickoff = pd.Timestamp(match["kickoff_utc"])
+            wc = parse_wc_results_before_kickoff(kickoff, settle_delta=SETTLE_DELTA)
+            for fx in wc["finished_fixtures"]:
+                if int(fx["fixture_id"]) == int(match["match_id"]):
+                    self_leaks += 1
+                if pd.to_datetime(fx["date_utc"], utc=True) + SETTLE_DELTA > kickoff:
+                    unsettled_leaks += 1
+        if self_leaks or unsettled_leaks:
+            results.append(
+                _fail(
+                    "s1.leakage",
+                    f"{self_leaks} matches see their own result and "
+                    f"{unsettled_leaks} unsettled fixtures leak into replayed "
+                    f"features under SETTLE_DELTA={SETTLE_DELTA}",
+                    self_leaks=self_leaks,
+                    unsettled_leaks=unsettled_leaks,
+                ),
+            )
+        else:
+            results.append(
+                _pass(
+                    "s1.leakage",
+                    f"no match sees its own or an unsettled result "
+                    f"(n={len(settled)}, SETTLE_DELTA={SETTLE_DELTA})",
+                    matches=int(len(settled)),
+                ),
+            )
+    except Exception as exc:  # noqa: BLE001
+        results.append(_warn("s1.leakage", f"leakage check skipped: {exc}"))
+
     return _tag(results, "1")
 
 
@@ -631,49 +672,62 @@ def audit_strand3(
     else:
         results.append(_pass("s3.keys", "fixture/model/cadence keys match BACKFILL_FIXTURES"))
 
-    ridge = bf[bf["inference_run_id"] == "backfill_ridge_md3"]
-    if len(ridge) != 2:
+    non_copy = bf[~bf["inference_run_id"].str.startswith("backfill_copy_from_")]
+    if not non_copy.empty:
         results.append(
-            _fail("s3.ridge.run_id", f"expected 2 ridge backfill rows, got {len(ridge)}"),
+            _fail(
+                "s3.all_copied",
+                f"{len(non_copy)} backfill row(s) are not cadence copies: "
+                f"{sorted(set(non_copy['inference_run_id']))}",
+            ),
         )
     else:
-        results.append(_pass("s3.ridge.run_id", "2 ridge rows with backfill_ridge_md3"))
-        results.append(_recompute_metrics_ok(ridge, name="s3.ridge.metrics"))
-        results.extend(_prob_and_outcome_ok(ridge, name="s3.ridge"))
+        results.append(_pass("s3.all_copied", "all backfill rows copied from a cadence twin"))
+        results.append(_recompute_metrics_ok(bf, name="s3.backfill.metrics"))
+        results.extend(_prob_and_outcome_ok(bf, name="s3.backfill"))
 
-    # Copy-row twin identity against per_round monitoring
-    twin_source: pd.DataFrame | None = None
-    for candidate in (per_round_monitoring_path, monitoring_path, DEFAULT_MONITORING):
+    # Copy-row twin identity against the source cadence monitoring export.
+    twin_sources: dict[str, pd.DataFrame] = {}
+    for candidate in (
+        per_round_monitoring_path,
+        frozen_monitoring_path,
+        monitoring_path,
+        DEFAULT_MONITORING,
+    ):
         if candidate is None:
             continue
         p = Path(candidate)
-        if p.exists():
-            src = load_monitoring_artifact(p)
-            if (src["cadence_mode"] == "per_round").any() or "per_round" in str(p):
-                twin_source = src
-                break
-            # frozen-only offline cache won't have twins
-            if twin_source is None:
-                twin_source = src
+        if not p.exists():
+            continue
+        src = load_monitoring_artifact(p)
+        for cadence in ("frozen", "per_round"):
+            if cadence not in twin_sources and (src["cadence_mode"] == cadence).any():
+                twin_sources[cadence] = src
 
-    copy_specs = (
-        ("random_forest_frozen_r32", "random_forest", 1564789),
-        ("mean_rate_poisson_frozen_md1", "mean_rate_poisson", 1539003),
+    copy_specs = tuple(
+        (label, spec["model_name"], fixture_id, spec["copy_from_cadence"], spec["cadence_mode"])
+        for label, spec in BACKFILL_FIXTURES.items()
+        for fixture_id in spec["fixture_ids"]
     )
-    if twin_source is None:
+    if not twin_sources:
         results.append(_warn("s3.copy_twins", "no monitoring CSV for twin comparison"))
     else:
-        for label, model_name, fixture_id in copy_specs:
+        for label, model_name, fixture_id, src_cadence, tgt_cadence in copy_specs:
             bf_row = bf[
                 (bf["match_id"] == fixture_id)
                 & (bf["model_name"] == model_name)
-                & (bf["cadence_mode"] == "frozen")
+                & (bf["cadence_mode"] == tgt_cadence)
             ]
-            twin = twin_source[
-                (twin_source["match_id"] == fixture_id)
-                & (twin_source["model_name"] == model_name)
-                & (twin_source["cadence_mode"] == "per_round")
-            ]
+            twin_source = twin_sources.get(src_cadence)
+            twin = (
+                twin_source[
+                    (twin_source["match_id"] == fixture_id)
+                    & (twin_source["model_name"] == model_name)
+                    & (twin_source["cadence_mode"] == src_cadence)
+                ]
+                if twin_source is not None
+                else pd.DataFrame()
+            )
             if bf_row.empty:
                 results.append(_fail(f"s3.copy.{label}", "backfill row missing"))
                 continue
@@ -681,7 +735,8 @@ def audit_strand3(
                 results.append(
                     _warn(
                         f"s3.copy.{label}",
-                        "per_round twin not in monitoring export — cannot verify byte identity",
+                        f"{src_cadence} twin not in monitoring export — "
+                        f"cannot verify byte identity",
                     ),
                 )
                 continue
@@ -707,11 +762,14 @@ def audit_strand3(
                     break
             if ok:
                 results.append(
-                    _pass(f"s3.copy.{label}", "frozen copy matches per_round twin floats"),
+                    _pass(
+                        f"s3.copy.{label}",
+                        f"{tgt_cadence} copy matches {src_cadence} twin floats",
+                    ),
                 )
             else:
                 results.append(
-                    _fail(f"s3.copy.{label}", "frozen copy ≠ per_round twin"),
+                    _fail(f"s3.copy.{label}", f"{tgt_cadence} copy ≠ {src_cadence} twin"),
                 )
 
     return _tag(results, "3")
