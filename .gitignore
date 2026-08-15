@@ -46,6 +46,8 @@ data/raw/
 data/silver/
 data/gold/
 data/interim/
+data/reconstruction/
+data/analysis/
 
 # Notebooks
 *.ipynb
