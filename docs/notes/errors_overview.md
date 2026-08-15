@@ -1,12 +1,13 @@
 # Errors overview — WC 2026 pipeline
 
-Synthesis of the defects and outages that produced the post-tournament TODOs, and how each is
-being addressed. Chronology and per-round detail live in `wc_live.md`; this file is the
+Synthesis of the defects and outages that produced the post-tournament TODOs, and how each was
+addressed. Chronology and per-round detail live in `wc_live.md`; this file is the
 cross-cutting view that feeds Chapter 3 (threats to validity) and Chapter 6 (limitations).
 
 Nine incidents fall into three buckets: one silently invalidated a *result*, four cost
 *artifacts* that can be rebuilt, and four cost *operations* that self-healed. Only the first
-bucket threatens a research question.
+bucket threatens a research question. **All four artifact holes were rebuilt in D.1 (Aug 15);
+the result-invalidating bug was corrected offline and in code.**
 
 ---
 
@@ -25,10 +26,14 @@ was found only by noticing that two columns which should differ were byte-identi
 (`negbin_glm`, `ridge`, `sarimax`, `random_forest`, where identical columns are *correct*), and
 the entire per_round column for every model.
 
-**Addressed by.** Offline frozen-shadow rebuild for `poisson_glm` and `bayesian_poisson` (D.1),
-plus the cadence-aware resolution fix and a regression test under `tests/models/`. The
-`mean_rate_poisson` rebuild was dropped by decision: its λ spread across the tournament is
-~2e-3 and symmetric, so refit-vs-frozen is noise there.
+**Addressed by.** **DONE (Aug 15) — D.1 Strand 1.** Offline frozen-shadow rebuild for
+`poisson_glm` (v88) and `bayesian_poisson` (v90) completed; tournament frozen means RPS
+0.15654 / 0.15607, NLL 2.87747 / 2.87265, RMSE 0.87936 / 0.87780 (n=104) — see
+`data/reconstruction/strand1_frozen_shadow/`. Cadence-aware resolution fix and regression
+tests under `tests/models/` also landed. The `mean_rate_poisson` rebuild was dropped by
+decision: its λ spread across the tournament is ~2e-3 and symmetric, so refit-vs-frozen is
+noise there. As-logged, `xgboost` was the only clean contrast; after D.1, `poisson_glm` and
+`bayesian_poisson` also have separable frozen↔per_round columns.
 
 ---
 
@@ -36,20 +41,23 @@ plus the cadence-aware resolution fix and a regression test under `tests/models/
 
 All four share the same mechanics — replay from the `wc2026-end-of-tournament` tag, rebuild each
 match's pre-kickoff feature row from the DVC-versioned Gold snapshot (strict
-`inference_timestamp < kickoff`), re-predict or re-simulate. They are folded into a single D.1
+`inference_timestamp < kickoff`), re-predict or re-simulate. They were folded into a single D.1
 pass rather than four separate jobs.
 
-| Hole | Cause | Missing | Replay action |
-|---|---|---|---|
-| Frozen shadow column | shadow-resolution bug (§1) | True frozen rows, `poisson_glm` + `bayesian_poisson`, all rounds | Predict with the untagged `stage=shadow-refit` versions; recompute RPS / NLL / RMSE |
-| Bracket artifacts | host-rate scramble, KO-locking bug, pen-winner bug (Jul 7 → `20260712a`) | Valid `tournament_probabilities.csv`, `ko_pairings.csv`, `ko_fixtures.csv` from Jul 7 on, and the RQ2 entropy curves derived from them | Re-run `simulate_tournament` on corrected code, same seeds, locked KO results |
-| Four dropped rows | `_safe_shadow_predict` 120 s load timeout on a last pre-kickoff cycle | 2 × `ridge` per_round (MD3), 1 × `random_forest` frozen (R32), 1 × `mean_rate_poisson` frozen (MD1) — 830/832 per cadence | Same predict path; never-refit ⇒ version resolution is deterministic |
-| Four entropy snapshots | R32 scheduler pause (3), R16 IPv6 stall (1) | Intermediate locked states in the RQ2 trajectory | Re-run `run_inference_and_simulation` per state with the round's `_seed_from_string` seed |
+**STATUS: DONE (Aug 15) — all four holes replayed.** Audit: 76 pass / 12 warn / 0 fail
+(`data/reconstruction/audit_report.json`). RQ-ready merges in `data/analysis/`.
 
-Two of these overlap: the frozen rebuild recomputes the `mean_rate_poisson` backfill row anyway,
-and the `random_forest` frozen row can be copied from its byte-identical per_round twin. The
-backfill therefore reduces in practice to the two `ridge` rows. Target after the pass is 832/832
-per cadence.
+| Hole | Cause | Missing | Replay action | Status |
+|---|---|---|---|---|
+| Frozen shadow column | shadow-resolution bug (§1) | True frozen rows, `poisson_glm` + `bayesian_poisson`, all rounds | Predict with the untagged `stage=shadow-refit` versions; recompute RPS / NLL / RMSE | **DONE** Strand 1 |
+| Bracket artifacts | host-rate scramble, KO-locking bug, pen-winner bug (Jul 7 → `20260712a`) | Valid `tournament_probabilities.csv`, `ko_pairings.csv`, `ko_fixtures.csv` from Jul 7 on, and the RQ2 entropy curves derived from them | Re-run `simulate_tournament` on corrected code, same seeds, locked KO results | **DONE** Strand 2 (3,500 cycle entropy rows) |
+| Four dropped rows | `_safe_shadow_predict` 120 s load timeout on a last pre-kickoff cycle | 2 × `ridge` per_round (MD3), 1 × `random_forest` frozen (R32), 1 × `mean_rate_poisson` frozen (MD1) — 830/832 as-logged | Same predict path; never-refit ⇒ version resolution is deterministic | **DONE** Strand 3 → **832/832** |
+| Four entropy snapshots | R32 scheduler pause (3), R16 IPv6 stall (1) | Intermediate locked states in the RQ2 trajectory | Re-run `run_inference_and_simulation` per state with the round's `_seed_from_string` seed | **DONE** Strand 4 (32 synthetic rows) |
+
+Two of these overlapped: the frozen rebuild covered `mean_rate_poisson` via the live
+per_round copy path, and the `random_forest` frozen row was copied from its byte-identical
+per_round twin. The backfill therefore reduced in practice to the two `ridge` re-predictions.
+**Achieved: 832/832 per cadence** (`data/analysis/rq1_matches.csv`, 1,664 rows).
 
 The backfill list is **final at four rows**. Three further silent shadow-skips fired later
 (`negbin_glm` Jul 13 08:15, `ridge` Jul 13 08:17, `random_forest` Jul 14 20:21) but each was
