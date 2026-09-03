@@ -32,6 +32,8 @@ from src.inference.features import (
     generate_all_wc_pairings,
     wc_results_to_gold_rows,
 )
+from src.analysis.rq_datasets.paths import LIVE_ROOT
+from src.inference.run import _seed_from_string
 from src.models.config import MODEL_FEATURE_SETS
 from src.models.data_split import load_gold
 from src.models.evaluation import compute_outcome_probs, compute_rps
@@ -59,15 +61,51 @@ _FIXTURES_DIR: Final[Path] = Path("data/raw/api_football/fixtures")
 _TEAM_MAPPING_PATH: Final[Path] = Path("data/mappings/team_mapping_master_merged.csv")
 _WC_SEASONS: Final[frozenset[int]] = frozenset({2025, 2026})
 
+# Offline input snapshot: everything the reconstruction strands used to read
+# from MLflow, frozen into DVC-tracked files so the analysis re-derives
+# without network access.  Written once by src.analysis.snapshot_inputs.
+INPUTS_ROOT: Final[Path] = OUTPUT_ROOT / "inputs"
+SNAPSHOT_PREDICTIONS_DIR: Final[Path] = INPUTS_ROOT / "logged_predictions"
+SNAPSHOT_MODELS_DIR: Final[Path] = INPUTS_ROOT / "models"
+MODEL_MANIFEST_PATH: Final[Path] = SNAPSHOT_MODELS_DIR / "manifest.csv"
+INFERENCE_CYCLES_PATH: Final[Path] = LIVE_ROOT / "inference_cycles.csv"
+
+# Only the columns simulate_tournament actually reads are snapshotted; the
+# logged artifacts also carry fixture_id/date_utc/p_* which no replay uses.
+PREDICTION_KINDS: Final[tuple[str, ...]] = ("all_models", "champion")
+_SNAPSHOT_ID_COLUMN: Final[str] = "inference_run_id"
+SNAPSHOT_PREDICTION_COLUMNS: Final[dict[str, tuple[str, ...]]] = {
+    "all_models": ("model_name", "home_team", "away_team", "lambda_h", "lambda_a"),
+    "champion": ("home_team", "away_team", "lambda_h", "lambda_a"),
+}
+
+MODEL_MANIFEST_COLUMNS: Final[tuple[str, ...]] = (
+    "registry_name",
+    "version",
+    "model_name",
+    "cadence_role",
+    "regime",
+    "source_run_id",
+)
+
 # A match is only treated as settled this long after kickoff, covering 90
 # minutes plus stoppage, extra time and penalties.  Used when reconstructing
 # what a past inference cycle could legitimately have known.
 SETTLE_DELTA: Final[pd.Timedelta] = pd.Timedelta(hours=2)
 
+# Strand 1 scope only: the two GLMs whose *match-level* frozen predictions were
+# rebuilt for RQ1.  Strand 5 covers the full roster (including
+# mean_rate_poisson at wc_shadow v89 and the champion at wc_production v15) and
+# reads its pins from the snapshot manifest, not from here.
 PINNED_FROZEN_SHADOW_VERSIONS: Final[dict[str, int]] = {
     "poisson_glm": 88,
     "bayesian_poisson": 90,
 }
+
+# The regime a cadence served at a given point in the tournament.  "frozen"
+# never refits, so it has a single pre-tournament regime; "per_round" refits at
+# every round boundary (regime table: docs/notes/wc_live.md).
+FROZEN_REGIME: Final[str] = "pre_tournament"
 
 BACKFILL_FIXTURES: Final[dict[str, dict[str, Any]]] = {
     # ridge is never refitted, so its per_round rows must equal the frozen twin
@@ -142,22 +180,32 @@ def resolve_gold_commit(
     return candidates[-1]
 
 
-@lru_cache(maxsize=32)
-def _gold_parquet_path_at_commit(commit_sha: str) -> Path:
-    """Materialise ``data/gold`` at ``commit_sha`` into a temp dir (cached)."""
-    tmp = Path(tempfile.mkdtemp(prefix=f"gold-{commit_sha[:8]}-"))
+# Keyed by Gold content hash, not commit sha: ~450 dvc.lock commits in the
+# tournament window share far fewer distinct Gold versions, so hashing by
+# content fetches each Gold once instead of once per commit.
+_GOLD_PATH_BY_HASH: dict[str, Path] = {}
+
+
+def _gold_parquet_path(commit: GoldCommit) -> Path:
+    """Materialise ``data/gold`` for ``commit`` into a temp dir (cached)."""
+    cached = _GOLD_PATH_BY_HASH.get(commit.gold_hash)
+    if cached is not None:
+        return cached
+    tmp = Path(tempfile.mkdtemp(prefix=f"gold-{commit.gold_hash[:8]}-"))
     out = tmp / "gold"
     subprocess.run(
-        ["dvc", "get", ".", "data/gold", "-o", str(out), "--rev", commit_sha],
+        ["dvc", "get", ".", "data/gold", "-o", str(out), "--rev", commit.commit_sha],
         check=True,
         capture_output=True,
     )
-    return out / "matches.parquet"
+    path = out / "matches.parquet"
+    _GOLD_PATH_BY_HASH[commit.gold_hash] = path
+    return path
 
 
-def load_gold_at_commit(commit_sha: str) -> pd.DataFrame:
+def load_gold_at_commit(commit: GoldCommit) -> pd.DataFrame:
     """Load Gold parquet materialised from a historical git commit."""
-    return load_gold(_gold_parquet_path_at_commit(commit_sha))
+    return load_gold(_gold_parquet_path(commit))
 
 
 def augment_gold_for_inference(
@@ -230,11 +278,15 @@ _BATCH_FEATURE_CACHE: dict[tuple[str, str], pd.DataFrame] = {}
 _BATCH_LAMBDA_CACHE: dict[tuple[str, str, str], pd.DataFrame] = {}
 
 
-def snapshot_key(commit_sha: str, wc_results: dict[str, Any]) -> tuple[str, str]:
-    """Cache key identifying one (Gold commit, known-results) inference state."""
+def snapshot_key(gold_hash: str, wc_results: dict[str, Any]) -> tuple[str, str]:
+    """Cache key identifying one (Gold content, known-results) inference state.
+
+    Keyed on the Gold *hash* so consecutive cycles that ran against the same
+    Gold version share one feature build even when their commits differ.
+    """
     ids = sorted(str(fx["fixture_id"]) for fx in wc_results["finished_fixtures"])
     digest = hashlib.sha1("|".join(ids).encode(), usedforsecurity=False).hexdigest()
-    return (commit_sha, digest[:16])
+    return (gold_hash, digest[:16])
 
 
 def batch_lambdas(
@@ -341,11 +393,236 @@ def score_prediction_row(
     }
 
 
-def load_pinned_shadow_model(model_name: str, version: int) -> Any:
-    """Load a specific ``wc_shadow`` registry version (read-only)."""
+def snapshot_model_dir(registry_name: str, version: int) -> Path:
+    """Where :mod:`src.analysis.snapshot_inputs` stores one pinned pyfunc dir."""
+    return SNAPSHOT_MODELS_DIR / registry_name / f"v{version}"
+
+
+def load_pinned_shadow_model(
+    model_name: str,
+    version: int,
+    *,
+    registry_name: str = SHADOW_MODEL_NAME,
+) -> Any:
+    """Load a pinned registry version, preferring the offline snapshot.
+
+    Falls back to the MLflow registry when the snapshot is not present, so the
+    strands still run against DagsHub on a machine without ``dvc pull``.
+    """
+    local = snapshot_model_dir(registry_name, version)
+    if local.is_dir():
+        logger.info(
+            "Loading %s (%s v%d) from snapshot %s", model_name, registry_name, version, local,
+        )
+        return mlflow.pyfunc.load_model(str(local))
+    logger.info(
+        "No snapshot for %s v%d — loading %s from the MLflow registry",
+        registry_name,
+        version,
+        model_name,
+    )
     setup_mlflow()
-    uri = f"models:/{SHADOW_MODEL_NAME}/{version}"
-    return mlflow.pyfunc.load_model(uri)
+    return mlflow.pyfunc.load_model(f"models:/{registry_name}/{version}")
+
+
+def load_model_manifest(path: Path = MODEL_MANIFEST_PATH) -> pd.DataFrame:
+    """Read the pinned-model manifest written by the input snapshot."""
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Missing pinned-model manifest {path}. "
+            "Run: python -m src.analysis.snapshot_inputs",
+        )
+    manifest = pd.read_csv(path)
+    missing = [c for c in MODEL_MANIFEST_COLUMNS if c not in manifest.columns]
+    if missing:
+        raise ValueError(f"{path}: missing columns {missing}")
+    manifest["version"] = manifest["version"].astype(int)
+    return manifest
+
+
+def pinned_versions(
+    manifest: pd.DataFrame,
+    *,
+    cadence_role: str,
+    regime: str,
+) -> dict[str, tuple[str, int]]:
+    """Return ``{model_name: (registry_name, version)}`` for one regime."""
+    sub = manifest[
+        (manifest["cadence_role"] == cadence_role) & (manifest["regime"] == regime)
+    ]
+    if sub.empty:
+        raise KeyError(
+            f"No manifest entries for cadence_role={cadence_role!r} regime={regime!r}",
+        )
+    dup = sub["model_name"].duplicated()
+    if dup.any():
+        raise ValueError(
+            f"Manifest has {int(dup.sum())} duplicate model_name rows for "
+            f"{cadence_role}/{regime}",
+        )
+    return {
+        str(row.model_name): (str(row.registry_name), int(row.version))
+        for row in sub.itertuples(index=False)
+    }
+
+
+# ---------------------------------------------------------------------------
+# Offline logged-prediction snapshot
+# ---------------------------------------------------------------------------
+
+
+def snapshot_predictions_path(kind: str) -> Path:
+    """Parquet path for one logged-prediction kind (``all_models``/``champion``)."""
+    if kind not in PREDICTION_KINDS:
+        raise ValueError(f"Unknown prediction kind {kind!r}; expected {PREDICTION_KINDS}")
+    return SNAPSHOT_PREDICTIONS_DIR / f"{kind}.parquet"
+
+
+@dataclass(frozen=True)
+class _PredictionSnapshot:
+    """One consolidated parquet plus per-run row spans.
+
+    Rows are stored grouped by ``inference_run_id`` in logged order, so a run's
+    rows are one contiguous slice and no groupby is needed at read time.  Team
+    and model columns stay categorical in the held frame (~4M rows) and are
+    widened back to object dtype per slice.
+    """
+
+    frame: pd.DataFrame
+    spans: dict[str, tuple[int, int]]
+
+    def rows_for(self, run_id: str) -> pd.DataFrame | None:
+        span = self.spans.get(run_id)
+        if span is None:
+            return None
+        start, stop = span
+        out = self.frame.iloc[start:stop].reset_index(drop=True)
+        for col in out.columns:
+            if isinstance(out[col].dtype, pd.CategoricalDtype):
+                out[col] = out[col].astype(object)
+        return out
+
+
+_PREDICTION_SNAPSHOTS: dict[str, _PredictionSnapshot | None] = {}
+
+
+def _read_prediction_snapshot(kind: str) -> _PredictionSnapshot | None:
+    path = snapshot_predictions_path(kind)
+    if not path.exists():
+        return None
+    frame = pd.read_parquet(path)
+    ids = frame[_SNAPSHOT_ID_COLUMN].astype(str).to_numpy()
+    boundaries = np.flatnonzero(ids[1:] != ids[:-1]) + 1
+    starts = np.concatenate(([0], boundaries))
+    stops = np.concatenate((boundaries, [len(ids)]))
+    spans = {
+        str(ids[start]): (int(start), int(stop))
+        for start, stop in zip(starts, stops, strict=True)
+    }
+    if len(spans) != len(set(ids)):
+        raise ValueError(
+            f"{path}: rows for a run are not contiguous "
+            f"({len(spans)} runs of rows vs {len(set(ids))} distinct run ids)",
+        )
+    frame = frame.drop(columns=[_SNAPSHOT_ID_COLUMN])
+    logger.info("Loaded %s prediction snapshot: %d runs from %s", kind, len(spans), path)
+    return _PredictionSnapshot(frame=frame, spans=spans)
+
+
+def prediction_snapshot_available(kind: str) -> bool:
+    """Whether the offline snapshot for ``kind`` exists (loading it on first ask)."""
+    if kind not in _PREDICTION_SNAPSHOTS:
+        _PREDICTION_SNAPSHOTS[kind] = _read_prediction_snapshot(kind)
+    return _PREDICTION_SNAPSHOTS[kind] is not None
+
+
+def load_snapshot_predictions(run_id: str, kind: str) -> pd.DataFrame | None:
+    """Return one run's logged predictions from the offline snapshot, or None."""
+    if not prediction_snapshot_available(kind):
+        return None
+    snapshot = _PREDICTION_SNAPSHOTS[kind]
+    assert snapshot is not None  # narrowed by prediction_snapshot_available
+    return snapshot.rows_for(run_id)
+
+
+def clear_prediction_snapshots() -> None:
+    """Drop the in-memory prediction snapshots (tests, memory pressure)."""
+    _PREDICTION_SNAPSHOTS.clear()
+
+
+# ---------------------------------------------------------------------------
+# Live inference cycle table
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class InferenceCycle:
+    """One live inference cycle, as frozen in ``inference_cycles.csv``."""
+
+    run_id: str
+    inference_timestamp: pd.Timestamp
+    cadence_mode: str
+    matchday_label: str | None
+    champion_model_name: str
+    simulation_seed: int | None
+    n_sims: int
+
+
+def load_inference_cycles(path: Path = INFERENCE_CYCLES_PATH) -> pd.DataFrame:
+    """Read the frozen live inference-cycle table."""
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Missing {path}. Run: python -m src.analysis.rq_datasets.export_live",
+        )
+    cycles = pd.read_csv(path)
+    cycles["inference_timestamp"] = pd.to_datetime(
+        cycles["inference_timestamp"], utc=True, format="mixed",
+    )
+    return cycles
+
+
+def _cycle_from_row(row: pd.Series) -> InferenceCycle:
+    """Apply the same param defaults the live pipeline applied.
+
+    ``champion_model_name`` and ``n_sims`` fall back to the live defaults, and a
+    missing ``simulation_seed`` is re-derived from ``matchday_label`` exactly as
+    ``run_inference_and_simulation`` did.
+    """
+    matchday = row["matchday_label"]
+    matchday = None if pd.isna(matchday) else str(matchday)
+
+    seed_raw = row["simulation_seed"]
+    if pd.notna(seed_raw):
+        seed: int | None = int(seed_raw)
+    elif matchday is not None:
+        seed = _seed_from_string(matchday)
+    else:
+        seed = None
+
+    champion = row["champion_model_name"]
+    n_sims = row["n_sims"]
+    return InferenceCycle(
+        run_id=str(row["inference_run_id"]),
+        inference_timestamp=row["inference_timestamp"],
+        cadence_mode=str(row["cadence_mode"]),
+        matchday_label=matchday,
+        champion_model_name="xgboost" if pd.isna(champion) else str(champion),
+        simulation_seed=seed,
+        n_sims=10_000 if pd.isna(n_sims) else int(n_sims),
+    )
+
+
+def inference_cycles_for(
+    cadence_mode: str,
+    *,
+    path: Path = INFERENCE_CYCLES_PATH,
+) -> list[InferenceCycle]:
+    """Cycles for one cadence, ascending by ``inference_timestamp``."""
+    cycles = load_inference_cycles(path)
+    sub = cycles[cycles["cadence_mode"] == cadence_mode].sort_values(
+        "inference_timestamp", kind="stable",
+    )
+    return [_cycle_from_row(row) for _, row in sub.iterrows()]
 
 
 def leaderboard_summary(df: pd.DataFrame) -> pd.DataFrame:
@@ -470,8 +747,17 @@ def log_reconstruction_run(
     metrics: dict[str, float] | None = None,
     artifacts: dict[str, Path] | None = None,
     tags: dict[str, str] | None = None,
+    enabled: bool = True,
 ) -> str:
-    """Log a reconstruction driver run to ``wc2026_reconstruction``."""
+    """Log a reconstruction driver run to ``wc2026_reconstruction``.
+
+    ``enabled=False`` makes the whole recompute path read-only (no network, no
+    new MLflow runs) and returns an empty run id.
+    """
+    if not enabled:
+        logger.info("MLflow logging disabled — not logging a run for strand %s.", strand)
+        return ""
+
     setup_mlflow()
     get_or_create_experiment(RECONSTRUCTION_EXPERIMENT)
     run_tags = {"stage": "reconstruction", "strand": strand}

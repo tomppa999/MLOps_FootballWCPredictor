@@ -10,6 +10,7 @@ import pandas as pd
 from src.analysis.replay_common import (
     PINNED_FROZEN_SHADOW_VERSIONS,
     SETTLE_DELTA,
+    GoldCommit,
     augment_gold_for_inference,
     build_gold_commit_index,
     ensure_output_dir,
@@ -28,7 +29,7 @@ from src.monitoring.monitor import parse_wc_settled_matches
 logger = logging.getLogger(__name__)
 
 
-def run_strand1_frozen_shadow() -> dict[str, str]:
+def run_strand1_frozen_shadow(*, log_mlflow: bool = False) -> dict[str, str]:
     """Rebuild true-frozen monitoring rows for pinned shadow models."""
     out_dir = ensure_output_dir("strand1_frozen_shadow")
     settled = parse_wc_settled_matches()
@@ -41,16 +42,19 @@ def run_strand1_frozen_shadow() -> dict[str, str]:
         logger.info("Loading pinned frozen shadow %s v%s", model_name, version)
         model = load_pinned_shadow_model(model_name, version)
         by_commit: dict[str, list[pd.Series]] = defaultdict(list)
+        commits: dict[str, GoldCommit] = {}
 
         for _, match in settled.iterrows():
             commit = resolve_gold_commit(match["kickoff_utc"], gold_index)
             if commit is None:
                 continue
             by_commit[commit.commit_sha].append(match)
+            commits[commit.commit_sha] = commit
 
         model_rows: list[dict] = []
         for commit_sha, matches in by_commit.items():
-            gold_df = load_gold_at_commit(commit_sha)
+            commit = commits[commit_sha]
+            gold_df = load_gold_at_commit(commit)
             for match in matches:
                 # SETTLE_DELTA keeps a match (and any simultaneous kickoff) out
                 # of its own feature history; the zero-delta default would leak
@@ -67,7 +71,7 @@ def run_strand1_frozen_shadow() -> dict[str, str]:
                     match["away"],
                     augmented,
                     ref_date,
-                    key=snapshot_key(commit_sha, wc_partial),
+                    key=snapshot_key(commit.gold_hash, wc_partial),
                 )
                 model_rows.append(
                     score_prediction_row(
@@ -106,6 +110,7 @@ def run_strand1_frozen_shadow() -> dict[str, str]:
                 "summary": summary_path,
             },
             tags={"model_name": model_name},
+            enabled=log_mlflow,
         )
         run_ids[model_name] = run_id
         logger.info(
@@ -130,6 +135,7 @@ def run_strand1_frozen_shadow() -> dict[str, str]:
             "combined": combined_path,
             "leaderboard": combined_summary_path,
         },
+        enabled=log_mlflow,
     )
     return run_ids
 
