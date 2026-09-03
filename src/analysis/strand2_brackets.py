@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import shutil
-import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 import mlflow
@@ -13,11 +13,15 @@ import pandas as pd
 from src.analysis.replay_common import (
     RECONSTRUCTION_EXPERIMENT,
     SETTLE_DELTA,
+    InferenceCycle,
     check_entropy_trajectory,
     compute_entropy_columns,
     ensure_output_dir,
+    inference_cycles_for,
+    load_snapshot_predictions,
     log_reconstruction_run,
     parse_wc_results_before_kickoff,
+    prediction_snapshot_available,
 )
 from src.inference.run import _simulate_roster, _seed_from_string
 from src.models.config import EXPERIMENT_MODELS
@@ -66,32 +70,59 @@ def _load_artifact(run_id: str, filename: str, *, use_cache: bool = True) -> pd.
     return pd.read_csv(local)
 
 
+def _load_predictions(run_id: str, kind: str) -> pd.DataFrame | None:
+    """Logged predictions for one run: snapshot → local cache → MLflow.
+
+    A present snapshot is authoritative.  A run missing from it logged no such
+    artifact (two pre-tournament cycles did not), so reaching for MLflow would
+    only spend retry backoff on a 404.
+    """
+    if prediction_snapshot_available(kind):
+        return load_snapshot_predictions(run_id, kind)
+    filename = (
+        _PREDICTIONS_FILENAME if kind == "all_models" else _CHAMPION_PREDICTIONS_FILENAME
+    )
+    return _load_artifact(run_id, filename)
+
+
+def _cycle_params_from_mlflow(run_id: str) -> tuple[int | None, str]:
+    """Fallback seed / champion lookup when no cycle table row is available."""
+    client = mlflow.tracking.MlflowClient()
+    params = client.get_run(run_id).data.params
+    seed = int(params["simulation_seed"]) if "simulation_seed" in params else None
+    if seed is None and "matchday_label" in params:
+        seed = _seed_from_string(params["matchday_label"])
+    return seed, params.get("champion_model_name", "xgboost")
+
+
 def _replay_simulation_for_run(
     run_id: str,
     *,
     cadence_mode: str,
     as_of: pd.Timestamp,
+    cycle: InferenceCycle | None = None,
     settle_delta: pd.Timedelta = SETTLE_DELTA,
     n_sims: int = 10_000,
 ) -> dict[str, dict]:
     """Re-simulate all roster models from logged predictions.
 
     Only results settled by ``as_of`` are locked, so each replayed cycle sees
-    the tournament state that cycle actually ran against.
+    the tournament state that cycle actually ran against.  ``cycle`` supplies
+    the logged seed / champion / n_sims offline; without it they are read back
+    from MLflow.
     """
-    client = mlflow.tracking.MlflowClient()
-    run = client.get_run(run_id)
-    params = run.data.params
-    seed = int(params["simulation_seed"]) if "simulation_seed" in params else None
-    if seed is None and "matchday_label" in params:
-        seed = _seed_from_string(params["matchday_label"])
+    if cycle is not None:
+        seed = cycle.simulation_seed
+        champion_model = cycle.champion_model_name
+        n_sims = cycle.n_sims
+    else:
+        seed, champion_model = _cycle_params_from_mlflow(run_id)
 
-    all_models = _load_artifact(run_id, _PREDICTIONS_FILENAME)
-    champion = _load_artifact(run_id, _CHAMPION_PREDICTIONS_FILENAME)
+    all_models = _load_predictions(run_id, "all_models")
+    champion = _load_predictions(run_id, "champion")
     if all_models is None or champion is None:
         raise ValueError(f"Missing prediction artifacts for run {run_id}")
 
-    champion_model = params.get("champion_model_name", "xgboost")
     wc = parse_wc_results_before_kickoff(as_of, settle_delta=settle_delta)
     return _simulate_roster(
         all_models_predictions_df=all_models,
@@ -104,24 +135,60 @@ def _replay_simulation_for_run(
     )
 
 
-def run_strand2_brackets(*, cadence_modes: tuple[str, ...] = ("frozen", "per_round")) -> str:
-    """Replay inference cycles through corrected simulate_tournament; build entropy curves."""
-    out_dir = ensure_output_dir("strand2_brackets")
+@dataclass(frozen=True)
+class _ReplayTarget:
+    """One cycle to replay.  ``cycle`` is None when only MLflow knows its params."""
+
+    run_id: str
+    inference_timestamp: pd.Timestamp
+    cycle: InferenceCycle | None
+
+
+def _replay_targets(cadence_mode: str) -> list[_ReplayTarget]:
+    """Cycles to replay for one cadence, from the frozen table when available."""
+    try:
+        cycles = inference_cycles_for(cadence_mode)
+    except FileNotFoundError:
+        logger.warning(
+            "No frozen inference-cycle table — listing runs from MLflow instead.",
+        )
+        return [
+            _ReplayTarget(str(r["run_id"]), r["inference_timestamp"], None)
+            for r in _list_inference_runs(cadence_mode)
+        ]
+    return [_ReplayTarget(c.run_id, c.inference_timestamp, c) for c in cycles]
+
+
+def run_strand2_brackets(
+    *,
+    cadence_modes: tuple[str, ...] = ("frozen", "per_round"),
+    log_mlflow: bool = False,
+    subdir: str = "strand2_brackets",
+) -> str:
+    """Replay inference cycles through corrected simulate_tournament; build entropy curves.
+
+    ``subdir`` writes the brackets somewhere other than the committed output,
+    which is how the offline snapshot path is validated against it.
+    """
+    out_dir = ensure_output_dir(subdir)
     entropy_rows: list[dict] = []
 
     for cadence_mode in cadence_modes:
-        inference_runs = _list_inference_runs(cadence_mode)
+        targets = _replay_targets(cadence_mode)
         logger.info(
             "Strand 2: %d inference runs for cadence_mode=%s",
-            len(inference_runs),
+            len(targets),
             cadence_mode,
         )
-        for run_info in inference_runs:
-            run_id = run_info["run_id"]
-            ts = run_info["inference_timestamp"]
+        for target in targets:
+            run_id = target.run_id
+            ts = target.inference_timestamp
             try:
                 per_model = _replay_simulation_for_run(
-                    run_id, cadence_mode=cadence_mode, as_of=ts,
+                    run_id,
+                    cadence_mode=cadence_mode,
+                    as_of=ts,
+                    cycle=target.cycle,
                 )
             except Exception:
                 logger.exception("Simulation replay failed for run %s", run_id)
@@ -165,6 +232,7 @@ def run_strand2_brackets(*, cadence_modes: tuple[str, ...] = ("frozen", "per_rou
             **check_entropy_trajectory(entropy_df),
         },
         artifacts={"entropy_trajectory": entropy_path},
+        enabled=log_mlflow,
     )
 
 
