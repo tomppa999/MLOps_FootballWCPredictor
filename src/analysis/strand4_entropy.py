@@ -1,4 +1,10 @@
-"""Strand 4: reconstruct four missed entropy-trajectory snapshots."""
+"""Strand 4: reconstruct four missed entropy-trajectory snapshots (SUPERSEDED).
+
+Superseded by :mod:`src.analysis.strand5_frozen_entropy`, which rebuilds the
+same four states with regime-pinned model versions.  Only
+:func:`build_entropy_snapshot_specs` is still consumed — it remains the source
+of truth for *which* states are missing.
+"""
 
 from __future__ import annotations
 
@@ -92,8 +98,18 @@ def confirm_missing_cycle_counts() -> dict[str, int]:
     }
 
 
-def run_strand4_entropy(*, cadence_modes: tuple[str, ...] = ("frozen", "per_round")) -> str:
-    """Re-run inference+simulation at four synthetic locked states."""
+def run_strand4_entropy(
+    *,
+    cadence_modes: tuple[str, ...] = ("frozen", "per_round"),
+    log_mlflow: bool = True,
+) -> str:
+    """Re-run inference+simulation at four synthetic locked states.
+
+    Superseded by :mod:`src.analysis.strand5_frozen_entropy`: this driver
+    re-ran live inference at reconstruction time, so its per_round rows used
+    the newest (terminal) models rather than the models that actually served
+    the R32/R16 regimes.  Kept only for provenance and for its snapshot specs.
+    """
     out_dir = ensure_output_dir("strand4_entropy")
     settled = parse_wc_settled_matches()
     specs = build_entropy_snapshot_specs(settled)
@@ -169,6 +185,7 @@ def run_strand4_entropy(*, cadence_modes: tuple[str, ...] = ("frozen", "per_roun
             **check_entropy_trajectory(entropy_df),
         },
         artifacts={"reconstructed_snapshots": entropy_path},
+        enabled=log_mlflow,
     )
 
 

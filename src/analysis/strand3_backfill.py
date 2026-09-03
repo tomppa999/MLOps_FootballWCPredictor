@@ -49,6 +49,7 @@ def run_strand3_backfill(
     *,
     per_round_monitoring_path: Path | None = None,
     frozen_monitoring_path: Path | None = None,
+    log_mlflow: bool = False,
 ) -> str:
     """Backfill the four dropped model-match rows to 832/832 per cadence."""
     out_dir = ensure_output_dir("strand3_backfill")
@@ -98,6 +99,7 @@ def run_strand3_backfill(
         params={"backfill_row_count": str(len(df))},
         metrics={"rows_backfilled": float(len(df))},
         artifacts={"backfill_rows": csv_path},
+        enabled=log_mlflow,
     )
 
 
