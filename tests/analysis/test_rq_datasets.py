@@ -22,7 +22,10 @@ from src.analysis.rq_datasets.paths import (
     PROVENANCE_BACKFILL_REPRED,
     PROVENANCE_FROZEN_SHADOW,
     PROVENANCE_LIVE,
+    PROVENANCE_LIVE_REPLAY,
+    PROVENANCE_SNAPSHOT,
     RQ1_KEY,
+    RQ2_KEY,
 )
 
 
@@ -271,113 +274,158 @@ class TestBuildRq1:
             )
 
 
+def _entropy_row(
+    run_id: str,
+    ts: str,
+    model: str,
+    *,
+    cadence: str = "frozen",
+    h: float = 3.5,
+    **extra: object,
+) -> dict:
+    """One entropy trajectory row, stages descending from ``h``.
+
+    ``mean_rate_poisson`` must stay the entropy floor (highest H) for
+    ``build_rq2``'s sanity check, so give it a larger ``h`` than any other
+    model in the same cadence.
+    """
+    row: dict = {
+        "inference_run_id": run_id,
+        "inference_timestamp": ts,
+        "cadence_mode": cadence,
+        "model_name": model,
+        "entropy_r32": h,
+        "entropy_r16": h - 0.1,
+        "entropy_qf": h - 0.2,
+        "entropy_sf": h - 0.3,
+        "entropy_final": h - 0.4,
+        "entropy_winner": h - 0.5,
+    }
+    row.update(extra)
+    return row
+
+
+def _write(rows: list[dict], path: Path) -> Path:
+    pd.DataFrame(rows).to_csv(path, index=False)
+    return path
+
+
 class TestBuildRq2:
-    def test_synthetic_merge_and_cycle_index(self, tiny_live: Path, tmp_path: Path):
-        traj = pd.DataFrame([
-            {
-                "inference_run_id": "run_a",
-                "inference_timestamp": "2026-06-10T10:00:00Z",
-                "cadence_mode": "frozen",
-                "model_name": "xgboost",
-                "entropy_r32": 3.5,
-                "entropy_r16": 3.2,
-                "entropy_qf": 2.9,
-                "entropy_sf": 2.5,
-                "entropy_final": 2.0,
-                "entropy_winner": 1.5,
-            },
-            {
-                "inference_run_id": "run_b",
-                "inference_timestamp": "2026-06-11T10:00:00Z",
-                "cadence_mode": "frozen",
-                "model_name": "xgboost",
-                "entropy_r32": 3.4,
-                "entropy_r16": 3.1,
-                "entropy_qf": 2.8,
-                "entropy_sf": 2.4,
-                "entropy_final": 1.9,
-                "entropy_winner": 1.4,
-            },
-            {
-                "inference_run_id": "run_a",
-                "inference_timestamp": "2026-06-10T10:00:00Z",
-                "cadence_mode": "frozen",
-                "model_name": "mean_rate_poisson",
-                "entropy_r32": 3.8,
-                "entropy_r16": 3.8,
-                "entropy_qf": 3.8,
-                "entropy_sf": 3.8,
-                "entropy_final": 3.8,
-                "entropy_winner": 3.8,
-            },
-            {
-                "inference_run_id": "run_b",
-                "inference_timestamp": "2026-06-11T10:00:00Z",
-                "cadence_mode": "frozen",
-                "model_name": "mean_rate_poisson",
-                "entropy_r32": 3.8,
-                "entropy_r16": 3.8,
-                "entropy_qf": 3.8,
-                "entropy_sf": 3.8,
-                "entropy_final": 3.8,
-                "entropy_winner": 3.801,
-            },
-        ])
-        traj_path = tmp_path / "traj.csv"
-        traj.to_csv(traj_path, index=False)
+    """Strand 5 outranks Strand 2 on shared keys; Strand 4 is never read."""
 
-        snaps = pd.DataFrame([
-            {
-                "snapshot_label": "r32_pre_japan_brazil",
-                "inference_run_id": "synth_1",
-                "inference_timestamp": "2026-06-10T16:00:00Z",
-                "cadence_mode": "frozen",
-                "model_name": "xgboost",
-                "entropy_r32": 3.4,
-                "entropy_r16": 3.1,
-                "entropy_qf": 2.8,
-                "entropy_sf": 2.4,
-                "entropy_final": 1.9,
-                "entropy_winner": 1.4,
-                "synthetic": True,
-            },
-            {
-                "snapshot_label": "r32_pre_japan_brazil",
-                "inference_run_id": "synth_1",
-                "inference_timestamp": "2026-06-10T16:00:00Z",
-                "cadence_mode": "frozen",
-                "model_name": "mean_rate_poisson",
-                "entropy_r32": 3.8,
-                "entropy_r16": 3.8,
-                "entropy_qf": 3.8,
-                "entropy_sf": 3.8,
-                "entropy_final": 3.8,
-                "entropy_winner": 3.8,
-                "synthetic": True,
-            },
-        ])
-        snaps_path = tmp_path / "snaps.csv"
-        snaps.to_csv(snaps_path, index=False)
+    def _strand2(self, tmp_path: Path, *, drop_frozen_mean_rate: bool = False) -> Path:
+        rows = [
+            _entropy_row("run_f", "2026-06-10T10:00:00.5Z", "xgboost", h=3.5),
+            _entropy_row("run_p", "2026-06-10T10:05:00Z", "xgboost",
+                         cadence="per_round", h=3.5),
+            _entropy_row("run_p", "2026-06-10T10:05:00Z", "mean_rate_poisson",
+                         cadence="per_round", h=3.8),
+        ]
+        if not drop_frozen_mean_rate:
+            rows.append(
+                _entropy_row("run_f", "2026-06-10T10:00:00.5Z", "mean_rate_poisson", h=3.8)
+            )
+        return _write(rows, tmp_path / "strand2.csv")
 
+    def _strand5(self, tmp_path: Path, **overrides: object) -> Path:
+        common = {"synthetic": False, "snapshot_label": "",
+                  "provenance": PROVENANCE_FROZEN_SHADOW}
+        common.update(overrides)
+        rows = [
+            _entropy_row("run_f", "2026-06-10T10:00:00.5Z", "xgboost", h=3.4, **common),
+            _entropy_row("run_f", "2026-06-10T10:00:00.5Z", "mean_rate_poisson",
+                         h=3.75, **common),
+        ]
+        return _write(rows, tmp_path / "strand5.csv")
+
+    def test_strand5_supersedes_strand2_on_frozen_keys(
+        self, tiny_live: Path, tmp_path: Path,
+    ):
         rq2 = build_rq2(
             live_root=tiny_live,
-            trajectory_path=traj_path,
-            snapshots_path=snaps_path,
+            trajectory_path=self._strand2(tmp_path),
+            strand5_path=self._strand5(tmp_path),
+        )
+        assert len(rq2) == 4
+        assert_unique_keys(rq2, RQ2_KEY, label="rq2")
+
+        frozen_xgb = rq2[(rq2["cadence_mode"] == "frozen") & (rq2["model_name"] == "xgboost")]
+        assert frozen_xgb["entropy_r32"].iloc[0] == pytest.approx(3.4)  # strand5 value
+        assert frozen_xgb["provenance"].iloc[0] == PROVENANCE_FROZEN_SHADOW
+
+        per_round = rq2[rq2["cadence_mode"] == "per_round"]
+        assert (per_round["provenance"] == PROVENANCE_LIVE_REPLAY).all()
+
+    def test_cycle_missing_a_model_in_strand2_is_tolerated(
+        self, tiny_live: Path, tmp_path: Path,
+    ):
+        rq2 = build_rq2(
+            live_root=tiny_live,
+            trajectory_path=self._strand2(tmp_path, drop_frozen_mean_rate=True),
+            strand5_path=self._strand5(tmp_path),
+        )
+        frozen = rq2[rq2["cadence_mode"] == "frozen"]
+        assert set(frozen["model_name"]) == {"xgboost", "mean_rate_poisson"}
+        assert (frozen["provenance"] == PROVENANCE_FROZEN_SHADOW).all()
+
+    def test_synthetic_rows_get_matchday_and_interleaved_cycle_index(
+        self, tiny_live: Path, tmp_path: Path,
+    ):
+        strand2 = _write(
+            [
+                _entropy_row("run_a", "2026-06-10T10:00:00Z", "xgboost", h=3.5),
+                _entropy_row("run_a", "2026-06-10T10:00:00Z", "mean_rate_poisson", h=3.8),
+                _entropy_row("run_b", "2026-06-11T10:00:00Z", "xgboost", h=3.4),
+                _entropy_row("run_b", "2026-06-11T10:00:00Z", "mean_rate_poisson", h=3.8),
+            ],
+            tmp_path / "strand2.csv",
+        )
+        strand5 = _write(
+            [
+                _entropy_row(
+                    "synth_1", "2026-06-10T16:00:00Z", "xgboost", h=3.4,
+                    synthetic=True, snapshot_label="r32_pre_japan_brazil",
+                    provenance=PROVENANCE_SNAPSHOT,
+                ),
+                _entropy_row(
+                    "synth_1", "2026-06-10T16:00:00Z", "mean_rate_poisson", h=3.8,
+                    synthetic=True, snapshot_label="r32_pre_japan_brazil",
+                    provenance=PROVENANCE_SNAPSHOT,
+                ),
+            ],
+            tmp_path / "strand5.csv",
+        )
+
+        rq2 = build_rq2(
+            live_root=tiny_live, trajectory_path=strand2, strand5_path=strand5,
         )
         assert len(rq2) == 6
         synth = rq2[rq2["synthetic"]]
         assert len(synth) == 2
-        assert (synth["snapshot_label"] == "r32_pre_japan_brazil").all()
         assert (synth["matchday_label"] == "R32").all()
+        assert (synth["provenance"] == PROVENANCE_SNAPSHOT).all()
 
-        # Synthetic timestamp sits between run_a and run_b → cycle_index 1.
-        synth_idx = synth["cycle_index"].iloc[0]
+        # Synthetic timestamp sits between run_a and run_b.
         run_a_idx = rq2.loc[rq2["inference_run_id"] == "run_a", "cycle_index"].iloc[0]
         run_b_idx = rq2.loc[rq2["inference_run_id"] == "run_b", "cycle_index"].iloc[0]
-        assert run_a_idx < synth_idx < run_b_idx
+        assert run_a_idx < synth["cycle_index"].iloc[0] < run_b_idx
+        assert_unique_keys(rq2, RQ2_KEY, label="rq2")
 
-        # No timestamp collision on (run_id, cadence, model) keys.
-        assert_unique_keys(rq2, ("inference_run_id", "cadence_mode", "model_name"), label="rq2")
+    def test_unexpected_strand5_provenance_raises(self, tiny_live: Path, tmp_path: Path):
+        with pytest.raises(ValueError, match="unexpected provenance"):
+            build_rq2(
+                live_root=tiny_live,
+                trajectory_path=self._strand2(tmp_path),
+                strand5_path=self._strand5(tmp_path, provenance=PROVENANCE_LIVE),
+            )
+
+    def test_strand4_is_no_longer_an_input(self):
+        import inspect
+
+        from src.analysis.rq_datasets import build_rq_datasets as mod
+
+        assert "snapshots_path" not in inspect.signature(mod.build_rq2).parameters
+        assert not hasattr(mod, "STRAND4_SNAPSHOTS")
 
 
 class TestBuildRq3:

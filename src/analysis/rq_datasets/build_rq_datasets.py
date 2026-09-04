@@ -37,6 +37,8 @@ from src.analysis.rq_datasets.paths import (
     PROVENANCE_BACKFILL_REPRED,
     PROVENANCE_FROZEN_SHADOW,
     PROVENANCE_LIVE,
+    PROVENANCE_LIVE_REPLAY,
+    PROVENANCE_SNAPSHOT,
     PROVENANCE_VALUES,
     RQ1_KEY,
     RQ1_PATH,
@@ -46,7 +48,7 @@ from src.analysis.rq_datasets.paths import (
     STRAND1_COMBINED,
     STRAND2_TRAJECTORY,
     STRAND3_BACKFILL,
-    STRAND4_SNAPSHOTS,
+    STRAND5_TRAJECTORY,
 )
 
 logger = logging.getLogger(__name__)
@@ -211,30 +213,63 @@ def build_rq1(
     ).reset_index(drop=True)
 
 
+def _rq2_key_frame(df: pd.DataFrame) -> pd.Series:
+    return (
+        df["inference_run_id"].astype(str)
+        + "|"
+        + df["cadence_mode"].astype(str)
+        + "|"
+        + df["model_name"].astype(str)
+    )
+
+
+def _read_trajectory(path: Path, *, provenance: set[str] | None) -> pd.DataFrame:
+    """Read one strand's entropy trajectory, timestamps mixed-precision.
+
+    Synthetic rows carry whole-second timestamps while live cycles carry
+    microseconds, hence ``format="mixed"``.
+    """
+    df = pd.read_csv(path)
+    df["inference_timestamp"] = pd.to_datetime(
+        df["inference_timestamp"], utc=True, format="mixed",
+    )
+    if provenance is not None:
+        if "provenance" not in df.columns:
+            raise ValueError(f"{path}: missing provenance")
+        unknown = set(df["provenance"]) - provenance
+        if unknown:
+            raise ValueError(f"{path}: unexpected provenance {sorted(unknown)}")
+    return df
+
+
 def build_rq2(
     *,
     live_root: Path = LIVE_ROOT,
     trajectory_path: Path = STRAND2_TRAJECTORY,
-    snapshots_path: Path = STRAND4_SNAPSHOTS,
+    strand5_path: Path = STRAND5_TRAJECTORY,
 ) -> pd.DataFrame:
-    """Corrected entropy trajectory + synthetic gap-fill snapshots."""
-    traj = pd.read_csv(trajectory_path)
-    traj["inference_timestamp"] = pd.to_datetime(
-        traj["inference_timestamp"], utc=True, format="ISO8601",
-    )
-    traj["synthetic"] = False
-    traj["snapshot_label"] = pd.NA
+    """Entropy trajectory from Strand 2, with Strand 5 taking precedence.
 
-    snaps = pd.read_csv(snapshots_path)
-    snaps["inference_timestamp"] = pd.to_datetime(
-        snaps["inference_timestamp"], utc=True, format="ISO8601",
+    Strand 2 replays each cycle's *logged* lambdas, so it covers both cadences.
+    Strand 5 re-predicts with the regime-pinned model — well defined only for
+    the frozen cadence, which never refits — and supplies every synthetic gap
+    snapshot.  So Strand 5 replaces Strand 2 on :data:`RQ2_KEY` wherever both
+    hold a row, and may add rows for cycles where Strand 2 lost a model.
+
+    Strand 4 is deliberately not read: it re-ran live inference at
+    reconstruction time, so its snapshots used terminal rather than regime
+    models.
+    """
+    strand2 = _read_trajectory(trajectory_path, provenance=None)
+    strand2["provenance"] = PROVENANCE_LIVE_REPLAY
+    strand2["synthetic"] = False
+    strand2["snapshot_label"] = pd.NA
+
+    strand5 = _read_trajectory(
+        strand5_path,
+        provenance={PROVENANCE_FROZEN_SHADOW, PROVENANCE_SNAPSHOT},
     )
-    if "synthetic" not in snaps.columns:
-        snaps["synthetic"] = True
-    else:
-        snaps["synthetic"] = snaps["synthetic"].astype(bool)
-    if "snapshot_label" not in snaps.columns:
-        raise ValueError(f"{snapshots_path}: missing snapshot_label")
+    strand5["synthetic"] = strand5["synthetic"].astype(bool)
 
     shared = [
         "inference_run_id",
@@ -244,16 +279,26 @@ def build_rq2(
         *_ENTROPY_COLS,
         "synthetic",
         "snapshot_label",
+        "provenance",
     ]
-    for col in shared:
-        if col not in traj.columns and col in ("synthetic", "snapshot_label"):
-            continue
-        if col not in traj.columns:
-            raise ValueError(f"{trajectory_path}: missing {col}")
-        if col not in snaps.columns:
-            raise ValueError(f"{snapshots_path}: missing {col}")
+    for path, df in ((trajectory_path, strand2), (strand5_path, strand5)):
+        missing = [col for col in shared if col not in df.columns]
+        if missing:
+            raise ValueError(f"{path}: missing {missing}")
 
-    rq2 = pd.concat([traj[shared], snaps[shared]], ignore_index=True)
+    superseded = _rq2_key_frame(strand2).isin(set(_rq2_key_frame(strand5)))
+    logger.info(
+        "rq2: strand5 supersedes %d of %d strand2 rows, adds %d new (%d synthetic); "
+        "%d strand2 rows kept",
+        int(superseded.sum()),
+        len(strand2),
+        len(strand5) - int(superseded.sum()),
+        int(strand5["synthetic"].sum()),
+        int((~superseded).sum()),
+    )
+    rq2 = pd.concat(
+        [strand2.loc[~superseded, shared], strand5[shared]], ignore_index=True,
+    )
 
     cycles_path = inference_cycles_path(live_root)
     if cycles_path.exists():
@@ -271,7 +316,7 @@ def build_rq2(
 
     rq2["matchday_label"] = rq2["matchday_label"].astype("object")
 
-    # Synthetic strand4 rows have no live cycle; map from snapshot_label.
+    # Synthetic strand5 rows have no live cycle; map from snapshot_label.
     _snap_to_md = {
         "r32_pre_japan_brazil": "R32",
         "r32_japan_brazil_locked": "R32",
@@ -338,6 +383,10 @@ def build_rq2(
             len(rq2),
         )
 
+    unknown = set(rq2["provenance"]) - PROVENANCE_VALUES
+    if unknown:
+        raise AssertionError(f"rq2: unexpected provenance values: {unknown}")
+
     col_order = [
         "inference_run_id",
         "inference_timestamp",
@@ -347,6 +396,7 @@ def build_rq2(
         "cycle_index",
         "synthetic",
         "snapshot_label",
+        "provenance",
         *_ENTROPY_COLS,
     ]
     return rq2[col_order].sort_values(
