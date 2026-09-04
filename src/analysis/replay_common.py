@@ -70,6 +70,22 @@ SNAPSHOT_MODELS_DIR: Final[Path] = INPUTS_ROOT / "models"
 MODEL_MANIFEST_PATH: Final[Path] = SNAPSHOT_MODELS_DIR / "manifest.csv"
 INFERENCE_CYCLES_PATH: Final[Path] = LIVE_ROOT / "inference_cycles.csv"
 
+# When live first saw each WC fixture finished, read off the Bronze snapshots
+# committed alongside each Gold version.  Written once by snapshot_inputs.
+FIXTURE_SETTLEMENT_PATH: Final[Path] = INPUTS_ROOT / "fixture_settlement.csv"
+FIXTURE_SETTLEMENT_COLUMNS: Final[tuple[str, ...]] = (
+    "fixture_id",
+    "kickoff_utc",
+    "home_team",
+    "away_team",
+    "round_str",
+    "first_known_utc",
+    "first_known_commit",
+    "status_at_first_known",
+    "probed_commits",
+)
+RAW_FIXTURES_DVC_PATH: Final[str] = "data/raw/api_football/fixtures"
+
 # Only the columns simulate_tournament actually reads are snapshotted; the
 # logged artifacts also carry fixture_id/date_utc/p_* which no replay uses.
 PREDICTION_KINDS: Final[tuple[str, ...]] = ("all_models", "champion")
@@ -88,9 +104,11 @@ MODEL_MANIFEST_COLUMNS: Final[tuple[str, ...]] = (
     "source_run_id",
 )
 
-# A match is only treated as settled this long after kickoff, covering 90
-# minutes plus stoppage, extra time and penalties.  Used when reconstructing
-# what a past inference cycle could legitimately have known.
+# Fallback rule for "what could this cycle have known", used only when
+# FIXTURE_SETTLEMENT_PATH is missing: treat a match as settled this long after
+# kickoff.  It is a proxy and it is too short for matches that go to extra
+# time, penalties or long stoppage — those settle 2h15-2h30 after kickoff,
+# which is why the settlement snapshot takes precedence where it exists.
 SETTLE_DELTA: Final[pd.Timedelta] = pd.Timedelta(hours=2)
 
 # Strand 1 scope only: the two GLMs whose *match-level* frozen predictions were
@@ -876,21 +894,65 @@ def load_finished_wc_fixtures(
     return tuple(out)
 
 
+@lru_cache(maxsize=2)
+def load_fixture_settlement(
+    path: Path = FIXTURE_SETTLEMENT_PATH,
+) -> dict[int, pd.Timestamp] | None:
+    """Map ``fixture_id`` to when live first saw that fixture finished.
+
+    ``None`` when the snapshot is absent, which makes callers fall back to the
+    :data:`SETTLE_DELTA` proxy.  Fixtures the snapshot could not resolve are
+    omitted and fall back individually.  Treat the result as read-only.
+    """
+    if not path.exists():
+        return None
+    df = pd.read_csv(path)
+    resolved = df.dropna(subset=["first_known_utc"])
+    return {
+        int(row.fixture_id): pd.to_datetime(row.first_known_utc, utc=True)
+        for row in resolved.itertuples()
+    }
+
+
+def clear_fixture_settlement() -> None:
+    """Drop the cached settlement snapshot (tests)."""
+    load_fixture_settlement.cache_clear()
+
+
+def _fixture_known_by(
+    fx: FinishedFixture,
+    max_kickoff: pd.Timestamp,
+    effective_cutoff: pd.Timestamp,
+    settlement: dict[int, pd.Timestamp] | None,
+) -> bool:
+    """Whether live could have known ``fx``'s result by ``max_kickoff``."""
+    first_known = settlement.get(fx.fixture_id) if settlement else None
+    if first_known is not None:
+        return first_known <= max_kickoff
+    return fx.kickoff <= effective_cutoff
+
+
 def parse_wc_results_before_kickoff(
     max_kickoff: pd.Timestamp,
     *,
     settle_delta: pd.Timedelta = pd.Timedelta(0),
     fixtures_dir: Path = _FIXTURES_DIR,
     mapping_path: Path = _TEAM_MAPPING_PATH,
+    use_settlement: bool = True,
 ) -> dict[str, Any]:
-    """Build partial ``wc_results`` from matches settled by ``max_kickoff``.
+    """Build partial ``wc_results`` from what was known at ``max_kickoff``.
 
-    A match counts as settled when ``kickoff + settle_delta <= max_kickoff``.
-    The default zero delta keeps the original "kicked off at or before the
-    cutoff" semantics.  Callers reconstructing what was *known* at a point in
-    time should pass a non-zero delta (see ``SETTLE_DELTA``), otherwise a match
-    still being played at the cutoff would leak its final score.
+    Two rules, in precedence order.  With the settlement snapshot available, a
+    match counts as known once the Bronze snapshot live ingested first showed
+    it finished — the exact record of what the cycle could see.  Without it
+    (or with ``use_settlement=False``), a match counts as settled when
+    ``kickoff + settle_delta <= max_kickoff``; the default zero delta keeps the
+    original "kicked off at or before the cutoff" semantics, and callers
+    reconstructing what was *known* pass a non-zero delta (see
+    :data:`SETTLE_DELTA`), otherwise a match still being played at the cutoff
+    would leak its final score.
     """
+    settlement = load_fixture_settlement() if use_settlement else None
     effective_cutoff = max_kickoff - settle_delta
     group_results: dict[tuple[str, str], tuple[int, int]] = {}
     ko_results: dict[frozenset, dict] = {}
@@ -899,7 +961,7 @@ def parse_wc_results_before_kickoff(
     max_group_matchday = 0
 
     for fx in load_finished_wc_fixtures(fixtures_dir, mapping_path):
-        if fx.kickoff > effective_cutoff:
+        if not _fixture_known_by(fx, max_kickoff, effective_cutoff, settlement):
             continue
 
         finished_fixtures.append({
