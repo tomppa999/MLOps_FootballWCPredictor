@@ -32,7 +32,7 @@ from src.inference.features import (
     generate_all_wc_pairings,
     wc_results_to_gold_rows,
 )
-from src.analysis.rq_datasets.paths import LIVE_ROOT
+from src.analysis.rq_datasets.paths import ANALYSIS_START, LIVE_ROOT
 from src.inference.run import _seed_from_string
 from src.models.config import MODEL_FEATURE_SETS
 from src.models.data_split import load_gold
@@ -616,12 +616,26 @@ def inference_cycles_for(
     cadence_mode: str,
     *,
     path: Path = INFERENCE_CYCLES_PATH,
+    since: pd.Timestamp | None = ANALYSIS_START,
 ) -> list[InferenceCycle]:
-    """Cycles for one cadence, ascending by ``inference_timestamp``."""
+    """Cycles for one cadence from ``since`` on, ascending by timestamp.
+
+    ``since`` defaults to :data:`ANALYSIS_START` so every strand replays the
+    same window; pass ``None`` to list all logged cycles.
+    """
     cycles = load_inference_cycles(path)
-    sub = cycles[cycles["cadence_mode"] == cadence_mode].sort_values(
-        "inference_timestamp", kind="stable",
-    )
+    sub = cycles[cycles["cadence_mode"] == cadence_mode]
+    if since is not None:
+        dropped = int((sub["inference_timestamp"] < since).sum())
+        if dropped:
+            logger.info(
+                "Excluding %d %s cycles before the analysis window opens at %s",
+                dropped,
+                cadence_mode,
+                since,
+            )
+        sub = sub[sub["inference_timestamp"] >= since]
+    sub = sub.sort_values("inference_timestamp", kind="stable")
     return [_cycle_from_row(row) for _, row in sub.iterrows()]
 
 

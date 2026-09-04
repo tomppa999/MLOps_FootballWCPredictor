@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -159,3 +160,47 @@ class TestScorePredictionRow:
         assert row["cadence_mode"] == "frozen"
         assert "rps" in row
         assert row["rmse_h"] == pytest.approx(0.5)
+
+
+def _cycle_row(run_id: str, ts: str, cadence: str = "frozen") -> dict:
+    return {
+        "inference_run_id": run_id,
+        "inference_timestamp": ts,
+        "cadence_mode": cadence,
+        "matchday_label": "1",
+        "champion_model_name": "xgboost",
+        "champion_run_id": "champ",
+        "simulation_seed": 42,
+        "n_sims": 10_000,
+    }
+
+
+class TestInferenceCyclesWindow:
+    """Replay drivers share ANALYSIS_START so dry-run cycles are excluded."""
+
+    def test_default_since_drops_cycles_before_the_window(self, tmp_path: Path):
+        from src.analysis.replay_common import inference_cycles_for
+        from src.analysis.rq_datasets.paths import ANALYSIS_START
+
+        path = tmp_path / "cycles.csv"
+        pd.DataFrame([
+            _cycle_row("early", "2026-06-08 11:13:15+00:00"),
+            _cycle_row("baseline", "2026-06-11 16:27:37+00:00"),
+            _cycle_row("live", "2026-06-12 06:07:07+00:00"),
+        ]).to_csv(path, index=False)
+
+        cycles = inference_cycles_for("frozen", path=path)
+        assert [c.run_id for c in cycles] == ["baseline", "live"]
+        assert cycles[0].inference_timestamp == ANALYSIS_START
+
+    def test_since_none_returns_every_logged_cycle(self, tmp_path: Path):
+        from src.analysis.replay_common import inference_cycles_for
+
+        path = tmp_path / "cycles.csv"
+        pd.DataFrame([
+            _cycle_row("early", "2026-06-08 11:13:15+00:00"),
+            _cycle_row("baseline", "2026-06-11 16:27:37+00:00"),
+        ]).to_csv(path, index=False)
+
+        cycles = inference_cycles_for("frozen", path=path, since=None)
+        assert [c.run_id for c in cycles] == ["early", "baseline"]
