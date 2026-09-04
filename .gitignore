@@ -92,3 +92,6 @@ betting/scorelines/
 betting/snapshots/
 betting/priced/
 betting/
+
+# temporary files
+.tmp_*
