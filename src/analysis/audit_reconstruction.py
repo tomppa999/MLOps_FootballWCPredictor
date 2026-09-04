@@ -20,6 +20,7 @@ import pandas as pd
 from src.analysis.replay_common import (
     BACKFILL_FIXTURES,
     ENTROPY_COLUMNS,
+    FIXTURE_SETTLEMENT_PATH,
     OUTPUT_ROOT,
     PINNED_FROZEN_SHADOW_VERSIONS,
     RECONSTRUCTION_EXPERIMENT,
@@ -28,10 +29,23 @@ from src.analysis.replay_common import (
     compute_entropy_columns,
     leaderboard_summary,
     load_finished_wc_fixtures,
+    load_fixture_settlement,
+    load_inference_cycles,
     load_monitoring_artifact,
     parse_wc_results_before_kickoff,
     score_prediction_row,
+    snapshot_predictions_path,
 )
+from src.analysis.rq_datasets.paths import (
+    ANALYSIS_START,
+    PROVENANCE_FROZEN_SHADOW,
+    PROVENANCE_SNAPSHOT,
+    PROVENANCE_VALUES,
+    RQ2_PATH,
+    STRAND5_PREDICTIONS,
+    STRAND5_TRAJECTORY,
+)
+from src.gold.context_features import WC_2026_HOSTS
 from src.models.config import EXPERIMENT_MODELS, LIVE_SHADOW_MODELS
 
 logger = logging.getLogger(__name__)
@@ -1357,6 +1371,277 @@ def audit_strand4(root: Path = OUTPUT_ROOT) -> list[CheckResult]:
 # ---------------------------------------------------------------------------
 
 
+# The production registry separated cadences with dedicated aliases
+# (champion_frozen v15), so the champion's logged frozen lambdas are a clean
+# reference for the whole tournament.  wc_shadow had no alias and frozen shadow
+# refits wrote no cadence_mode tag, so from the first refit the logged "frozen"
+# shadow rows actually carry per_round-refit artifacts — precisely what Strand 5
+# exists to replace (wc_live.md, MD2 caveat).
+CHAMPION_MODEL: Final[str] = "xgboost"
+# Commit 01942e41 stopped swapping already-correct host KO rates and started
+# emitting host-vs-host dual rows.  Before it, host pairings are not comparable
+# and live logged 3 fewer rows per model than Strand 5 emits.
+HOST_ORIENTATION_FIX: Final[pd.Timestamp] = pd.Timestamp("2026-06-27 16:08", tz="UTC")
+HOST_DUAL_ROWS: Final[int] = 3
+# The premature per_round refit fired Jun 12 (wc_live.md).  Frozen cycles before
+# it must reproduce live exactly for every model, not just the champion.
+FIRST_REFIT: Final[pd.Timestamp] = pd.Timestamp("2026-06-12 00:00", tz="UTC")
+# Models whose logged frozen rows were contaminated by the shadow-resolution
+# bug, so Strand 5 must *not* reproduce them after the first refit.
+REFIT_CONTAMINATED_MODELS: Final[tuple[str, ...]] = (
+    "poisson_glm",
+    "bayesian_poisson",
+    "mean_rate_poisson",
+)
+
+
+def _frozen_cycles_in_window() -> pd.DataFrame:
+    """Frozen cycles from ``ANALYSIS_START`` on, ascending."""
+    cycles = load_inference_cycles()
+    cycles["inference_timestamp"] = pd.to_datetime(
+        cycles["inference_timestamp"], utc=True, format="mixed",
+    )
+    sub = cycles[
+        (cycles["cadence_mode"] == "frozen")
+        & (cycles["inference_timestamp"] >= ANALYSIS_START)
+    ]
+    return sub.sort_values("inference_timestamp")[
+        ["inference_run_id", "inference_timestamp"]
+    ].reset_index(drop=True)
+
+
+def strand5_identity_frame(
+    logged: pd.DataFrame,
+    replay: pd.DataFrame,
+    cycles: pd.DataFrame,
+) -> pd.DataFrame:
+    """Strand 5 frozen lambdas joined onto the logged ones, per cycle.
+
+    Adds ``d_lambda`` (worst of the two rates) and ``comparable``, which is
+    False exactly for host pairings before the orientation fix — live's host
+    rates were scrambled there, so those rows carry no information about
+    whether the replay is faithful.
+    """
+    replay = replay[replay["cadence_mode"] == "frozen"]
+    key = ["inference_run_id", "model_name", "home_team", "away_team"]
+    merged = logged.merge(replay, on=key, how="inner", suffixes=("_live", "_replay"))
+    merged = merged.merge(cycles, on="inference_run_id", how="inner")
+    merged["host_pairing"] = (
+        merged["home_team"].isin(WC_2026_HOSTS) | merged["away_team"].isin(WC_2026_HOSTS)
+    )
+    merged["pre_host_fix"] = merged["inference_timestamp"] < HOST_ORIENTATION_FIX
+    merged["d_lambda"] = np.maximum(
+        (merged["lambda_h_live"] - merged["lambda_h_replay"]).abs(),
+        (merged["lambda_a_live"] - merged["lambda_a_replay"]).abs(),
+    )
+    merged["comparable"] = ~(merged["host_pairing"] & merged["pre_host_fix"])
+    return merged
+
+
+def _load_strand5_identity_frame() -> pd.DataFrame:
+    """Read the snapshot and Strand 5 predictions and join them."""
+    return strand5_identity_frame(
+        pd.read_parquet(snapshot_predictions_path("all_models")),
+        pd.read_parquet(STRAND5_PREDICTIONS),
+        _frozen_cycles_in_window(),
+    )
+
+
+def audit_strand5(root: Path = OUTPUT_ROOT) -> list[CheckResult]:
+    """Strand 5: identity against live where it must hold, divergence where it must not."""
+    results: list[CheckResult] = []
+    traj_path = STRAND5_TRAJECTORY
+    if not traj_path.exists() or not STRAND5_PREDICTIONS.exists():
+        return _tag([_fail("s5.exists", f"missing {traj_path} or {STRAND5_PREDICTIONS}")], "5")
+
+    # The settlement snapshot is what makes "what did live know" exact; without
+    # it every strand silently falls back to the 2 h proxy.
+    settlement = load_fixture_settlement()
+    if settlement is None:
+        results.append(
+            _fail("s5.settlement", f"missing {FIXTURE_SETTLEMENT_PATH} — replay used the SETTLE_DELTA proxy")
+        )
+    else:
+        n_fixtures = len(load_finished_wc_fixtures())
+        if len(settlement) != n_fixtures:
+            results.append(
+                _fail(
+                    "s5.settlement",
+                    f"settlement covers {len(settlement)} of {n_fixtures} fixtures",
+                )
+            )
+        else:
+            results.append(
+                _pass("s5.settlement", f"all {n_fixtures} fixtures have a first-known commit")
+            )
+
+    traj = pd.read_csv(traj_path)
+    n_cycles = len(_frozen_cycles_in_window())
+    expected_live = n_cycles * len(EXPERIMENT_MODELS)
+    got_live = int((~traj["synthetic"].astype(bool)).sum())
+    if got_live != expected_live:
+        results.append(
+            _fail("s5.rows", f"{got_live} live rows, expected {expected_live}",
+                  cycles=n_cycles, models=len(EXPERIMENT_MODELS))
+        )
+    else:
+        results.append(
+            _pass("s5.rows", f"{got_live} live rows = {n_cycles} cycles x {len(EXPERIMENT_MODELS)} models")
+        )
+
+    provenance = set(traj["provenance"])
+    allowed = {PROVENANCE_FROZEN_SHADOW, PROVENANCE_SNAPSHOT}
+    if not provenance <= allowed:
+        results.append(
+            _fail("s5.provenance", f"unexpected {sorted(provenance - allowed)}")
+        )
+    else:
+        results.append(_pass("s5.provenance", f"provenance in {sorted(allowed)}"))
+
+    merged = _load_strand5_identity_frame()
+
+    # 1. Champion identity: the frozen champion alias was never contaminated,
+    #    so every frozen cycle must reproduce live within METRIC_TOL.
+    champ = merged[(merged["model_name"] == CHAMPION_MODEL) & merged["comparable"]]
+    per_cycle = champ.groupby("inference_run_id")["d_lambda"].max()
+    bad = per_cycle[per_cycle > METRIC_TOL]
+    if len(bad):
+        results.append(
+            _fail(
+                "s5.champion_identity",
+                f"{len(bad)}/{len(per_cycle)} frozen cycles differ from logged "
+                f"{CHAMPION_MODEL} (worst |Δλ|={bad.max():.3e})",
+                worst_run=str(bad.idxmax()),
+            )
+        )
+    else:
+        results.append(
+            _pass(
+                "s5.champion_identity",
+                f"{CHAMPION_MODEL} reproduces logged lambdas on all {len(per_cycle)} "
+                f"frozen cycles (max |Δλ|={per_cycle.max():.3e})",
+            )
+        )
+
+    # 2. Baseline identity: before the first refit even the shadows must match.
+    pre = merged[(merged["inference_timestamp"] < FIRST_REFIT) & merged["comparable"]]
+    if pre.empty:
+        results.append(_warn("s5.baseline_identity", "no pre-refit frozen cycle in window"))
+    else:
+        worst = pre.groupby("model_name")["d_lambda"].max()
+        offenders = worst[worst > METRIC_TOL]
+        if len(offenders):
+            results.append(
+                _fail(
+                    "s5.baseline_identity",
+                    f"pre-refit cycle differs for {sorted(offenders.index)} "
+                    f"(worst |Δλ|={offenders.max():.3e})",
+                )
+            )
+        else:
+            results.append(
+                _pass(
+                    "s5.baseline_identity",
+                    f"all {len(worst)} models exact on the pre-refit cycle "
+                    f"(max |Δλ|={worst.max():.3e})",
+                )
+            )
+
+    # 3. Host handling: incomparable before the fix, identical after it.
+    post_host = merged[merged["host_pairing"] & ~merged["pre_host_fix"]]
+    if post_host.empty:
+        results.append(_warn("s5.host_identity", "no post-fix host pairings found"))
+    else:
+        champ_host = post_host[post_host["model_name"] == CHAMPION_MODEL]
+        worst_host = float(champ_host["d_lambda"].max())
+        if worst_host > METRIC_TOL:
+            results.append(
+                _fail("s5.host_identity", f"post-fix host pairings differ (|Δλ|={worst_host:.3e})")
+            )
+        else:
+            results.append(
+                _pass(
+                    "s5.host_identity",
+                    f"{len(champ_host)} post-fix host pairings identical "
+                    f"(max |Δλ|={worst_host:.3e})",
+                )
+            )
+
+    # 4. Post-refit divergence: the contaminated logged shadows must NOT be
+    #    reproduced, otherwise Strand 5 has silently re-served live's artifact.
+    post = merged[
+        (merged["inference_timestamp"] >= FIRST_REFIT)
+        & merged["comparable"]
+        & merged["model_name"].isin(REFIT_CONTAMINATED_MODELS)
+    ]
+    if post.empty:
+        results.append(_warn("s5.post_refit_divergence", "no post-refit rows to compare"))
+    else:
+        spread = post.groupby("model_name")["d_lambda"].max()
+        identical = spread[spread <= METRIC_TOL]
+        if len(identical):
+            results.append(
+                _fail(
+                    "s5.post_refit_divergence",
+                    f"{sorted(identical.index)} reproduce the contaminated logged "
+                    "frozen rows exactly — pinned versions are wrong",
+                )
+            )
+        else:
+            results.append(
+                _pass(
+                    "s5.post_refit_divergence",
+                    "refit-contaminated models all diverge post-refit: "
+                    + ", ".join(f"{m} {v:.2e}" for m, v in spread.items()),
+                )
+            )
+
+    return _tag(results, "5")
+
+
+def audit_rq2_provenance(path: Path = RQ2_PATH) -> list[CheckResult]:
+    """RQ2 must source its frozen rows from Strand 5 and never from Strand 4."""
+    if not path.exists():
+        return _tag([_fail("rq2.exists", f"missing {path}")], "rq2")
+
+    rq2 = pd.read_csv(path)
+    results: list[CheckResult] = []
+    if "provenance" not in rq2.columns:
+        return _tag([_fail("rq2.provenance", f"{path}: no provenance column")], "rq2")
+
+    frozen_glm = rq2[
+        (rq2["cadence_mode"] == "frozen")
+        & (rq2["model_name"] == "poisson_glm")
+        & (~rq2["synthetic"].astype(bool))
+    ]
+    wrong = frozen_glm[frozen_glm["provenance"] != PROVENANCE_FROZEN_SHADOW]
+    if len(wrong):
+        results.append(
+            _fail(
+                "rq2.glm_frozen_provenance",
+                f"{len(wrong)}/{len(frozen_glm)} frozen poisson_glm rows are not "
+                f"{PROVENANCE_FROZEN_SHADOW}",
+            )
+        )
+    else:
+        results.append(
+            _pass(
+                "rq2.glm_frozen_provenance",
+                f"all {len(frozen_glm)} frozen poisson_glm rows carry Strand 5 provenance",
+            )
+        )
+
+    unknown = set(rq2["provenance"]) - PROVENANCE_VALUES
+    if unknown:
+        results.append(_fail("rq2.provenance_values", f"unexpected {sorted(unknown)}"))
+    else:
+        results.append(
+            _pass("rq2.provenance_values", f"provenance in {sorted(set(rq2['provenance']))}")
+        )
+
+    return _tag(results, "rq2")
+
+
 def audit_mlflow() -> list[CheckResult]:
     results: list[CheckResult] = []
     try:
@@ -1517,7 +1802,7 @@ def audit_determinism(n: int, root: Path = OUTPUT_ROOT) -> list[CheckResult]:
 
 def run_audit(
     *,
-    strands: Sequence[str] = ("1", "2", "3", "4"),
+    strands: Sequence[str] = ("1", "2", "3", "5"),
     root: Path = OUTPUT_ROOT,
     with_mlflow: bool = False,
     with_determinism: int = 0,
@@ -1530,7 +1815,7 @@ def run_audit(
     selected = {s.strip() for s in strands}
 
     # Prefer strand 3 early among the CSV strands
-    order = [s for s in ("1", "3", "2", "4") if s in selected]
+    order = [s for s in ("1", "3", "2", "4", "5") if s in selected]
     dispatch: dict[str, Callable[[], list[CheckResult]]] = {
         "1": lambda: audit_strand1(root),
         "3": lambda: audit_strand3(
@@ -1540,11 +1825,17 @@ def run_audit(
             frozen_monitoring_path=frozen_monitoring_path,
         ),
         "2": lambda: audit_strand2(root),
+        # Strand 4 is superseded by Strand 5 and only audited on request.
         "4": lambda: audit_strand4(root),
+        "5": lambda: audit_strand5(root),
     }
     for key in order:
         logger.info("Auditing strand %s …", key)
         results.extend(dispatch[key]())
+
+    if "5" in selected:
+        logger.info("Auditing RQ2 provenance …")
+        results.extend(audit_rq2_provenance())
 
     if with_mlflow:
         logger.info("Auditing MLflow …")
@@ -1590,8 +1881,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--strand",
-        default="1,2,3,4",
-        help="Comma-separated strand numbers (default: 1,2,3,4)",
+        default="1,2,3,5",
+        help="Comma-separated strand numbers (default: 1,2,3,5; 4 is superseded)",
     )
     parser.add_argument(
         "--root",

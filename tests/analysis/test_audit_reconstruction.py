@@ -9,6 +9,8 @@ import pandas as pd
 import pytest
 
 from src.analysis.audit_reconstruction import (
+    HOST_ORIENTATION_FIX,
+    METRIC_TOL,
     MONITORING_COLUMNS,
     _check_one_advancement,
     _check_one_ko_pairings,
@@ -19,6 +21,7 @@ from src.analysis.audit_reconstruction import (
     audit_strand1,
     audit_strand3,
     run_audit,
+    strand5_identity_frame,
 )
 from src.analysis.replay_common import OUTPUT_ROOT, score_prediction_row
 
@@ -191,6 +194,67 @@ class TestStrand3Synthetic:
         pd.DataFrame(rows)[list(MONITORING_COLUMNS)].to_csv(d / "backfill_rows.csv", index=False)
         results = {r.name: r for r in audit_strand3(tmp_path)}
         assert results["s3.row_count"].status == "fail"
+
+
+def _lambda_row(home: str, away: str, *, lam_live: float, lam_replay: float) -> tuple[dict, dict]:
+    live = {
+        "inference_run_id": "run_x",
+        "model_name": "xgboost",
+        "home_team": home,
+        "away_team": away,
+        "lambda_h": lam_live,
+        "lambda_a": 1.0,
+    }
+    replay = {**live, "lambda_h": lam_replay, "cadence_mode": "frozen"}
+    return live, replay
+
+
+class TestStrand5Identity:
+    """Host pairings are only comparable once the orientation fix is in."""
+
+    def _frame(self, cycle_ts: str) -> pd.DataFrame:
+        # Mexico is a 2026 host; Brazil is not.
+        host_live, host_replay = _lambda_row("Mexico", "Brazil", lam_live=1.0, lam_replay=1.5)
+        plain_live, plain_replay = _lambda_row("Spain", "Brazil", lam_live=1.0, lam_replay=1.0)
+        return strand5_identity_frame(
+            pd.DataFrame([host_live, plain_live]),
+            pd.DataFrame([host_replay, plain_replay]),
+            pd.DataFrame([{
+                "inference_run_id": "run_x",
+                "inference_timestamp": pd.Timestamp(cycle_ts, tz="UTC"),
+            }]),
+        )
+
+    def test_host_difference_before_the_fix_is_excluded(self):
+        frame = self._frame("2026-06-20 12:00")
+        host = frame[frame["host_pairing"]]
+        assert not host["comparable"].any()
+        # The only comparable row is the non-host one, and it is identical.
+        comparable = frame[frame["comparable"]]
+        assert len(comparable) == 1
+        assert comparable["d_lambda"].max() <= METRIC_TOL
+
+    def test_same_host_difference_after_the_fix_is_caught(self):
+        frame = self._frame(str(HOST_ORIENTATION_FIX + pd.Timedelta(hours=1)))
+        assert frame["comparable"].all()
+        assert frame["d_lambda"].max() > METRIC_TOL
+
+    def test_d_lambda_takes_the_worse_of_both_rates(self):
+        live = {
+            "inference_run_id": "run_x", "model_name": "xgboost",
+            "home_team": "Spain", "away_team": "Brazil",
+            "lambda_h": 1.0, "lambda_a": 2.0,
+        }
+        replay = {**live, "lambda_h": 1.0, "lambda_a": 2.25, "cadence_mode": "frozen"}
+        frame = strand5_identity_frame(
+            pd.DataFrame([live]),
+            pd.DataFrame([replay]),
+            pd.DataFrame([{
+                "inference_run_id": "run_x",
+                "inference_timestamp": pd.Timestamp("2026-07-01 12:00", tz="UTC"),
+            }]),
+        )
+        assert frame["d_lambda"].iloc[0] == pytest.approx(0.25)
 
 
 @pytest.mark.skipif(
