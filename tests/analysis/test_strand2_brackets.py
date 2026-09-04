@@ -38,6 +38,13 @@ class TestReplayCutoff:
         )
         with (
             patch("src.analysis.strand2_brackets.mlflow.tracking.MlflowClient", return_value=client),
+            # This covers the MLflow/cache path, so opt out of the offline
+            # snapshot — a built snapshot on disk is authoritative and would
+            # short-circuit _load_artifact entirely.
+            patch(
+                "src.analysis.strand2_brackets.prediction_snapshot_available",
+                return_value=False,
+            ),
             patch("src.analysis.strand2_brackets._load_artifact", return_value=_predictions()),
             patch("src.analysis.strand2_brackets.parse_wc_results_before_kickoff", cutoff_spy),
             patch("src.analysis.strand2_brackets._simulate_roster", return_value={}),
