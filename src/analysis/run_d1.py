@@ -1,4 +1,8 @@
-"""Orchestrate the WC 2026 D.1 reconstruction pass (all four strands)."""
+"""Orchestrate the WC 2026 D.1 reconstruction pass.
+
+Strand 4 is superseded by Strand 5 and is kept runnable only for provenance;
+the default set is 1, 2, 3, 5.
+"""
 
 from __future__ import annotations
 
@@ -11,14 +15,20 @@ from src.analysis.strand1_frozen_shadow import run_strand1_frozen_shadow
 from src.analysis.strand2_brackets import run_strand2_brackets
 from src.analysis.strand3_backfill import run_strand3_backfill
 from src.analysis.strand4_entropy import run_strand4_entropy
+from src.analysis.strand5_frozen_entropy import run_strand5_frozen_entropy
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_STRANDS = "1,2,3,5"
 
 STRANDS = {
     "1": ("frozen_shadow", run_strand1_frozen_shadow),
     "2": ("brackets", run_strand2_brackets),
     "3": ("backfill", run_strand3_backfill),
-    "4": ("entropy", run_strand4_entropy),
+    # Superseded by strand 5: this one re-ran live inference at reconstruction
+    # time, so its per_round snapshots used terminal rather than regime models.
+    "4": ("entropy_superseded", run_strand4_entropy),
+    "5": ("frozen_entropy", run_strand5_frozen_entropy),
 }
 
 
@@ -41,8 +51,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run WC 2026 D.1 reconstruction strands.")
     parser.add_argument(
         "--strands",
-        default="1,2,3,4",
-        help="Comma-separated strand numbers to run (default: 1,2,3,4)",
+        default=DEFAULT_STRANDS,
+        help=f"Comma-separated strand numbers to run (default: {DEFAULT_STRANDS})",
     )
     parser.add_argument(
         "--per-round-monitoring",
@@ -60,6 +70,11 @@ def main(argv: list[str] | None = None) -> int:
         "--skip-tag-check",
         action="store_true",
         help="Skip git tag verification",
+    )
+    parser.add_argument(
+        "--log-mlflow",
+        action="store_true",
+        help="Log each strand to MLflow (default: off, so recompute is read-only)",
     )
     args = parser.parse_args(argv)
 
@@ -90,9 +105,10 @@ def main(argv: list[str] | None = None) -> int:
                 frozen_monitoring_path=(
                     Path(args.frozen_monitoring) if args.frozen_monitoring else None
                 ),
+                log_mlflow=args.log_mlflow,
             )
         else:
-            results[name] = fn()
+            results[name] = fn(log_mlflow=args.log_mlflow)
         logger.info("Strand %s complete: %s", key, results[name])
 
     logger.info("D.1 reconstruction complete: %s", results)
