@@ -825,6 +825,40 @@ window*, not the live logged sequence — any earlier citation of a cycle number
 stale. Strand 2's `entropy_trajectory.csv` is 3,376 rows (423 frozen + 422 per_round
 cycles × up to four roster models).
 
+### Results settlement — replay reads Bronze, not a 2-hour guess
+
+`SETTLE_DELTA = 2 h` (added to stop the §2.2 self-leak) assumed a match was known to
+the pipeline two hours after kickoff. Live actually took a result only once an
+API-Football ingestion returned it in a **finished** status, and the frozen cadence
+fires at kickoff + ~2 h 06 min — so for a match still being played the replay was
+handed a result live did not have. Seven frozen cycles and their seven per_round
+twins were affected:
+
+| cycle (UTC) | just-played match | round | status live saw | first visible |
+|---|---|---|---|---|
+| Jun 23 00:06 | France–Iraq | Group 2 | `INT` (interrupted) | Jun 23 02:05 |
+| Jul 1 22:06 | Belgium–Senegal | R32 | `BT` → AET | Jul 2 00:10 |
+| Jul 2 02:06 | USA–Bosnia | R32 | in play | Jul 2 04:09 |
+| Jul 3 20:06 | Australia–Egypt | R32 | in play → PEN | Jul 3 22:10 |
+| Jul 4 00:06 | Argentina–Cape Verde | R32 | `1H` → AET | Jul 4 02:09 |
+| Jul 7 18:06 | Argentina–Egypt | R16 | `2H` elapsed 90 | Jul 7 20:10 |
+| Jul 7 22:06 | Switzerland–Colombia | R16 | `ET` elapsed 95 | Jul 8 00:10 |
+
+Six of seven are knockout ties that went to extra time or penalties; one was
+interrupted; Argentina–Egypt finished in normal time but was still in stoppage at
+the 18:05 ingestion. Fixed by `data/reconstruction/inputs/fixture_settlement.csv`
+(built by `snapshot_inputs --only settlement`), which records per fixture the first
+Bronze commit showing it finished plus the status at that moment — 104 fixtures, 0
+unresolved. `parse_wc_results_before_kickoff` is snapshot-first and keeps
+`SETTLE_DELTA` only as a per-fixture fallback. No allowlist, no loosened tolerance.
+
+Not the Gold resolver: every one of the 423 frozen cycles has its Gold commit land
+16–33 s *before* it, and no commit lands within 34 min after any cycle. Scope: 14 of
+845 cycles (RQ2 only). Strand 1 re-ran bit-identical — all 208 rows, max |Δλ| = 0 —
+because the dropped result never involves either predicted team and the
+`reference_date` channel only feeds the rest features that §8's batch skew had
+already pinned to 0. So RQ1 and RQ3 are unchanged.
+
 ### DONE — backfill dropped never-refit shadow rows (data completeness)
 
 **STATUS: DONE (Aug 15) — D.1 Strand 3.** Driver: `src/analysis/strand3_backfill.py`.

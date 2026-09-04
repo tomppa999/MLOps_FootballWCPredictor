@@ -150,6 +150,68 @@ outcome; quantities that cannot differ must be identical); and a replay must rep
 *shape* of the original computation, because batch-dependent features make single-row inference
 a different function.
 
+### 2.3 The fix from §2.2 was a guess, and the guess was two hours
+
+**What.** `SETTLE_DELTA = 2 h` — introduced in §2.2 to stop a match leaking its own score —
+treats a match as known to the pipeline once `kickoff + 2 h <= cutoff`. Live never worked that
+way: it took a result only once an API-Football ingestion had returned it in a *finished*
+status, and the frozen cadence fires at kickoff + ~2 h 06 min. For a match still being played
+at that moment the proxy handed the replay a result live did not have. Seven frozen cycles and
+their seven per_round twins were affected: Jun 23 00:06, Jul 1 22:06, Jul 2 02:06, Jul 3 20:06,
+Jul 4 00:06, Jul 7 18:06, Jul 7 22:06 UTC. Six of the seven matches were knockout ties decided
+in extra time or penalties (Belgium–Senegal AET, Argentina–Cape Verde AET, Australia–Egypt PEN,
+Switzerland–Colombia PEN, plus USA–Bosnia); one was an interrupted group match (France–Iraq,
+status `INT` before `FT`); and Argentina–Egypt finished in normal time but was still `2H`
+elapsed 90 at the 18:05 ingestion. The retained Bronze window snapshots record all of these
+statuses directly, so the diagnosis rests on the versioned data, not inference.
+
+**Why it matters.** It is future information in the features — the one class of defect the
+project treats as non-negotiable — and it is not small where it lands: 93 of 1,128 pairings per
+model on an affected cycle, with |Δλ| from 1.3e-2 to 1.3e-1 against a `METRIC_TOL` of 1e-9. The
+bracket simulation then locked a team as advancing that live still had in the balance, so the
+RQ2 entropy at those points read lower than live's.
+
+**A wrong hypothesis first.** The initial reading blamed `resolve_gold_commit` for picking a
+stale Gold because the live `dvc.lock` commit landed late. That is disproved: every one of the
+423 frozen cycles has its Gold commit land 16–33 s *before* it (median 32.6 s) and no commit
+ever lands within 34 min *after* a cycle. The direction was also backwards — live's lambdas on
+the seven cycles are bit-identical to the previous cycle and match the replay's *previous-cycle*
+values to 2–4e-16, so the replay was ahead of live, not behind. Gold selection was never wrong.
+
+**Addressed by.** `snapshot_inputs --only settlement` walks the Bronze committed alongside each
+Gold version and writes `data/reconstruction/inputs/fixture_settlement.csv`: per fixture, the
+first commit whose snapshot showed it finished, and the status at that moment. 104 fixtures,
+none unresolved; 97 resolved on the first probe and exactly the seven problem matches on the
+second. `parse_wc_results_before_kickoff` is snapshot-first and falls back to `SETTLE_DELTA`
+per fixture only when the snapshot is absent. No allowlist and no loosened tolerance.
+Measured blast radius before re-running anything: 14 of 845 cycles for Strands 2 and 5, and 32
+of 104 Strand 1 match states. Every change removes a result; none adds one.
+
+**RQ1 and RQ3 are provably untouched, for two independent reasons.** In all 32 changed Strand 1
+states the dropped result involves *neither* of the two teams being predicted — a team that
+played two hours ago is not kicking off again the same night — so no rolling form feature moves.
+The one global channel, `reference_date` (`max(known WC date) + 1 day`), does shift in all 32,
+but it can only reach `days_since_last_match` / `rest_diff`, and those were already pinned to 0
+by the batch skew in §8. Re-running Strand 1 confirmed it: all 208 rows are bit-identical to the
+pre-fix output, max |Δλ| exactly 0, mean RPS 0.158166 unchanged. The correction is therefore
+confined to RQ2.
+
+`audit_strand5` encodes the invariant that would have caught this on day one:
+`s5.champion_identity` requires the frozen champion to reproduce the logged lambdas on **all**
+423 frozen cycles within `METRIC_TOL`. The champion is the right probe because
+`champion_frozen` v15 was never touched by the shadow-resolution bug, so any deviation is a
+replay-input error rather than a model difference. Against the pre-fix outputs it failed on
+exactly 7/423.
+
+**Lesson for Chapter 3.** §2.2 concluded that the as-of cutoff is the most dangerous parameter
+in a point-in-time replay; the sequel is that *replacing a leaky default with a plausible
+constant is still a guess*. Two hours was defensible for a 90-minute match and wrong for extra
+time, penalties and long stoppage. Where the production system recorded what it knew — here the
+versioned Bronze, committed atomically with the Gold it produced — the replay should read that
+record instead of modelling it. The reconstruction is only as trustworthy as its worst
+assumption about the past, and an assumption that is right 831 times out of 845 is still an
+assumption.
+
 ---
 
 ## 3. Operational: four incidents, all self-healed
