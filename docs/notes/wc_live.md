@@ -155,7 +155,7 @@ MD3 leaderboard — single table sorted by MD3 mean RPS. After D.1, `xgboost`, `
   - **Affected outputs:** `tournament_probabilities.csv`, `ko_pairings.csv`,
     `ko_fixtures.csv` (host KO paths only). Per-match predictions, monitoring, MLflow,
     Gold all clean. RQ2 entropy was contaminated live → **regenerated in D.1 Strand 2**
-    (`data/reconstruction/strand2_brackets/entropy_trajectory.csv`, 3,500 cycle snapshots);
+    (`data/reconstruction/strand2_brackets/entropy_trajectory.csv`, 3,376 cycle snapshots);
     RQ1/RQ3 untouched.
 
 ---
@@ -201,8 +201,9 @@ Pipeline:
     trajectory. It is a **uniform gap across every (model × cadence_mode) trajectory** (not a
     per-model contamination): the curve loses the points that isolate each match's information.
     **D.1 Strand 4 reconstructed the 3 intermediate snapshots** (plus the R16 gap below) with
-    synthetic timestamps; merged series in `data/analysis/rq2_entropy.csv` (3,532 rows =
-    3,500 Strand-2 cycles + 32 Strand-4 synthetic rows).
+    synthetic timestamps; merged series in `data/analysis/rq2_entropy.csv` (3,532 rows as of
+    the Strand-4 merge = 3,500 Strand-2 cycles + 32 Strand-4 synthetic rows). Strand 2 is now
+    3,376 rows after dropping pre-`ANALYSIS_START` dry runs; RQ2 will be rebuilt in Strand 5.
   - **Not affected:** RQ1/monitoring — `_select_pre_kickoff_run` just falls back to the most
     recent snapshot strictly before each kickoff (no leakage; all-pairs λ barely depend on
     other teams' results). The R32 per-round refit gate is unaffected (it only fires after
@@ -796,11 +797,11 @@ self-leakage invariant and the batch shape. Audit after rerun: **83 pass / 7 war
 Replayed each cycle's DVC-versioned per-match predictions through corrected
 `simulate_tournament` (same seeds, locked KO results). Outputs:
 `data/reconstruction/strand2_brackets/` (per-cycle advancement + ko_pairings) and
-`entropy_trajectory.csv` (3,500 rows). Merged with Strand 4 into
-`data/analysis/rq2_entropy.csv` (3,532 rows). Also regenerates the mid-R32 unlocked cycle and
+`entropy_trajectory.csv` (3,376 rows after `ANALYSIS_START`). Merged with Strand 4 into
+`data/analysis/rq2_entropy.csv` (3,532 rows as of that merge). Also regenerates the mid-R32 unlocked cycle and
 the Jul 7–`20260712a` pen-winner contamination uniformly. Audit caveats (Strand 2): 5 warns —
 cadence-asymmetric cycle deltas under silent skips; entropy monotonicity violations on
-577/3500 rows (worst upward jump 0.0048). 0 fail.
+577/3500 rows of the pre-window trajectory (worst upward jump 0.0048). 0 fail.
 
 Why (record): the sim swapped already-correct host-home rates (scramble bug, see MD3 Jun 27),
 invalidating host-path advancement probabilities and the RQ2 Shannon-entropy trajectories
@@ -808,6 +809,21 @@ built from them. Per-match predictions, RQ1/RQ3, monitoring, Gold are clean. Als
 the one already-logged mid-R32 cycle that stayed unlocked under the Jun 29 KO-results
 locking bug (fixed live in `20260629a`), and the pen-winner bracket bug (fixed live in
 `20260712a`).
+
+### Analysis window — drop pre-tournament dry runs
+
+Replay drivers share `ANALYSIS_START = 2026-06-11 16:27:37 UTC` (the last frozen
+cycle before first kickoff at 19:00). That timestamp, defined in
+`src/analysis/rq_datasets/paths.py` and applied by `inference_cycles_for`, drops 34 of
+the 879 logged cycles (20 frozen, 14 per_round). They are dry runs against an empty
+tournament and answer none of the RQs; three of them also logged neither a
+`simulation_seed` nor a `matchday_label`, so `simulate_tournament(seed=None)` drew from
+OS entropy and could never be reproduced. Keeping the 16:27 frozen cycle
+(`4f6ce4f0…`) and its 16:35 per_round twin (`5272ce72…`) leaves one pre-tournament
+baseline per cadence. Cycle indexes in `rq2_entropy.csv` are dense ranks *within this
+window*, not the live logged sequence — any earlier citation of a cycle number is
+stale. Strand 2's `entropy_trajectory.csv` is 3,376 rows (423 frozen + 422 per_round
+cycles × up to four roster models).
 
 ### DONE — backfill dropped never-refit shadow rows (data completeness)
 
@@ -852,7 +868,8 @@ later (`negbin_glm` Jul 13 08:15, `ridge` Jul 13 08:17, `random_forest` Jul 14 2
 **STATUS: DONE (Aug 15) — D.1 Strand 4.** Driver: `src/analysis/strand4_entropy.py`.
 Output: `data/reconstruction/strand4_entropy/reconstructed_entropy_snapshots.csv`
 (32 rows = 4 snapshots × 2 cadences × 4 models; `synthetic=True`). Inserted into
-`data/analysis/rq2_entropy.csv` alongside Strand 2's 3,500 cycle rows. Seeds:
+`data/analysis/rq2_entropy.csv` alongside Strand 2's cycle rows (3,376 after the
+analysis-window cut). Seeds:
 `_seed_from_string("R32")` / `"R16"`. Audit caveats (Strand 4): 2 warns — entropy ordering
 7/32 rows; continuity jumps (45 neighbour jumps exceed real p95). 0 fail.
 
