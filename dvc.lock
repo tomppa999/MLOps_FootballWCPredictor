@@ -10,9 +10,9 @@ stages:
       nfiles: 8773
     - path: src/silver/
       hash: md5
-      md5: 479f03c67f1afcc49827a012fcda0582.dir
-      size: 91644
-      nfiles: 10
+      md5: ed8cc06a56b5062b32b6512bc1ba7010.dir
+      size: 39049
+      nfiles: 5
     outs:
     - path: data/silver
       hash: md5
@@ -29,12 +29,445 @@ stages:
       nfiles: 10
     - path: src/gold/
       hash: md5
-      md5: f7ce6773f646b6984dd495c31e99be9a.dir
-      size: 71135
-      nfiles: 16
+      md5: 055c1b6c9cb030ba5e9d208ab98de14e.dir
+      size: 40548
+      nfiles: 10
     outs:
     - path: data/gold
       hash: md5
       md5: 05f917a78cd204a515c140789bec7500.dir
       size: 513790
       nfiles: 1
+  strand1:
+    cmd: python -m src.analysis.run_d1 --strands 1 --skip-tag-check
+    deps:
+    - path: data/analysis/live
+      hash: md5
+      md5: 5b184046078cafbd91337d039e039d8c.dir
+      size: 591258
+      nfiles: 4
+    - path: data/raw
+      hash: md5
+      md5: 7fc63b6797826be6d566b30b5149c6b4.dir
+      size: 34529234
+      nfiles: 8773
+    - path: data/reconstruction/inputs
+      hash: md5
+      md5: e83ccbcd6ab06fa7d606873446ff9599.dir
+      size: 80507282
+      nfiles: 76
+    - path: src/analysis/replay_common.py
+      hash: md5
+      md5: 39a1f75a14caf247e0b1153ee95a14d6
+      size: 38381
+    - path: src/analysis/rq_datasets/paths.py
+      hash: md5
+      md5: a8601cfabecec751240bf6800f343530
+      size: 3465
+    - path: src/analysis/run_d1.py
+      hash: md5
+      md5: e59eb459e5421bacf7d0ee40670b76af
+      size: 3966
+    - path: src/analysis/strand1_frozen_shadow.py
+      hash: md5
+      md5: 8d3d624817327d6575a088fd4d4218ea
+      size: 5239
+    - path: src/gold/
+      hash: md5
+      md5: 055c1b6c9cb030ba5e9d208ab98de14e.dir
+      size: 40548
+      nfiles: 10
+    - path: src/inference/
+      hash: md5
+      md5: 72e568bc3b877a38d92f04742dc65d89.dir
+      size: 105085
+      nfiles: 7
+    - path: src/models/
+      hash: md5
+      md5: b2e46dfff056c87faff2e5aa6c38d492.dir
+      size: 161462
+      nfiles: 23
+    - path: src/monitoring/
+      hash: md5
+      md5: 28a5d8df75d88b022f3a44b87ed5abac.dir
+      size: 23762
+      nfiles: 4
+    - path: src/silver/
+      hash: md5
+      md5: ed8cc06a56b5062b32b6512bc1ba7010.dir
+      size: 39049
+      nfiles: 5
+    outs:
+    - path: data/reconstruction/strand1_frozen_shadow
+      hash: md5
+      md5: 97a176a44dad1c6a62abc59d3dd21b82.dir
+      size: 112098
+      nfiles: 6
+  strand2:
+    cmd: python -m src.analysis.run_d1 --strands 2 --skip-tag-check
+    deps:
+    - path: data/analysis/live
+      hash: md5
+      md5: 5b184046078cafbd91337d039e039d8c.dir
+      size: 591258
+      nfiles: 4
+    - path: data/raw
+      hash: md5
+      md5: 7fc63b6797826be6d566b30b5149c6b4.dir
+      size: 34529234
+      nfiles: 8773
+    - path: data/reconstruction/inputs
+      hash: md5
+      md5: e83ccbcd6ab06fa7d606873446ff9599.dir
+      size: 80507282
+      nfiles: 76
+    - path: src/analysis/replay_common.py
+      hash: md5
+      md5: 39a1f75a14caf247e0b1153ee95a14d6
+      size: 38381
+    - path: src/analysis/rq_datasets/paths.py
+      hash: md5
+      md5: a8601cfabecec751240bf6800f343530
+      size: 3465
+    - path: src/analysis/run_d1.py
+      hash: md5
+      md5: e59eb459e5421bacf7d0ee40670b76af
+      size: 3966
+    - path: src/analysis/strand2_brackets.py
+      hash: md5
+      md5: c149fa42b9142cb6d31500c064a3f409
+      size: 8658
+    - path: src/gold/
+      hash: md5
+      md5: 055c1b6c9cb030ba5e9d208ab98de14e.dir
+      size: 40548
+      nfiles: 10
+    - path: src/inference/
+      hash: md5
+      md5: 72e568bc3b877a38d92f04742dc65d89.dir
+      size: 105085
+      nfiles: 7
+    - path: src/models/
+      hash: md5
+      md5: b2e46dfff056c87faff2e5aa6c38d492.dir
+      size: 161462
+      nfiles: 23
+    - path: src/monitoring/
+      hash: md5
+      md5: 28a5d8df75d88b022f3a44b87ed5abac.dir
+      size: 23762
+      nfiles: 4
+    - path: src/silver/
+      hash: md5
+      md5: ed8cc06a56b5062b32b6512bc1ba7010.dir
+      size: 39049
+      nfiles: 5
+    outs:
+    - path: data/reconstruction/strand2_brackets
+      hash: md5
+      md5: 3fc3f44129805556db351a23288c91c4.dir
+      size: 156143036
+      nfiles: 6753
+  strand3:
+    cmd: python -m src.analysis.run_d1 --strands 3 --skip-tag-check
+    deps:
+    - path: data/analysis/live
+      hash: md5
+      md5: 5b184046078cafbd91337d039e039d8c.dir
+      size: 591258
+      nfiles: 4
+    - path: src/analysis/replay_common.py
+      hash: md5
+      md5: 39a1f75a14caf247e0b1153ee95a14d6
+      size: 38381
+    - path: src/analysis/rq_datasets/export_live.py
+      hash: md5
+      md5: fd65e0f654386d08a670638ea39cd334
+      size: 7308
+    - path: src/analysis/rq_datasets/paths.py
+      hash: md5
+      md5: a8601cfabecec751240bf6800f343530
+      size: 3465
+    - path: src/analysis/run_d1.py
+      hash: md5
+      md5: e59eb459e5421bacf7d0ee40670b76af
+      size: 3966
+    - path: src/analysis/strand3_backfill.py
+      hash: md5
+      md5: 33dc1b58fc9662fcfa267104acf16a6a
+      size: 3420
+    - path: src/gold/
+      hash: md5
+      md5: 055c1b6c9cb030ba5e9d208ab98de14e.dir
+      size: 40548
+      nfiles: 10
+    - path: src/inference/
+      hash: md5
+      md5: 72e568bc3b877a38d92f04742dc65d89.dir
+      size: 105085
+      nfiles: 7
+    - path: src/models/
+      hash: md5
+      md5: b2e46dfff056c87faff2e5aa6c38d492.dir
+      size: 161462
+      nfiles: 23
+    - path: src/monitoring/
+      hash: md5
+      md5: 28a5d8df75d88b022f3a44b87ed5abac.dir
+      size: 23762
+      nfiles: 4
+    - path: src/silver/
+      hash: md5
+      md5: ed8cc06a56b5062b32b6512bc1ba7010.dir
+      size: 39049
+      nfiles: 5
+    outs:
+    - path: data/reconstruction/strand3_backfill
+      hash: md5
+      md5: f30b5e875a052eb838f75e370ed1e553.dir
+      size: 1270
+      nfiles: 1
+  strand5:
+    cmd: python -m src.analysis.run_d1 --strands 5 --skip-tag-check
+    deps:
+    - path: data/analysis/live
+      hash: md5
+      md5: 5b184046078cafbd91337d039e039d8c.dir
+      size: 591258
+      nfiles: 4
+    - path: data/raw
+      hash: md5
+      md5: 7fc63b6797826be6d566b30b5149c6b4.dir
+      size: 34529234
+      nfiles: 8773
+    - path: data/reconstruction/inputs
+      hash: md5
+      md5: e83ccbcd6ab06fa7d606873446ff9599.dir
+      size: 80507282
+      nfiles: 76
+    - path: src/analysis/replay_common.py
+      hash: md5
+      md5: 39a1f75a14caf247e0b1153ee95a14d6
+      size: 38381
+    - path: src/analysis/rq_datasets/paths.py
+      hash: md5
+      md5: a8601cfabecec751240bf6800f343530
+      size: 3465
+    - path: src/analysis/run_d1.py
+      hash: md5
+      md5: e59eb459e5421bacf7d0ee40670b76af
+      size: 3966
+    - path: src/analysis/strand4_entropy.py
+      hash: md5
+      md5: c9c93f25688be0f9c2583be7a7cc266b
+      size: 7242
+    - path: src/analysis/strand5_frozen_entropy.py
+      hash: md5
+      md5: 9b87c9e163f5174eea3024ab72c523a5
+      size: 15364
+    - path: src/gold/
+      hash: md5
+      md5: 055c1b6c9cb030ba5e9d208ab98de14e.dir
+      size: 40548
+      nfiles: 10
+    - path: src/inference/
+      hash: md5
+      md5: 72e568bc3b877a38d92f04742dc65d89.dir
+      size: 105085
+      nfiles: 7
+    - path: src/models/
+      hash: md5
+      md5: b2e46dfff056c87faff2e5aa6c38d492.dir
+      size: 161462
+      nfiles: 23
+    - path: src/monitoring/
+      hash: md5
+      md5: 28a5d8df75d88b022f3a44b87ed5abac.dir
+      size: 23762
+      nfiles: 4
+    - path: src/silver/
+      hash: md5
+      md5: ed8cc06a56b5062b32b6512bc1ba7010.dir
+      size: 39049
+      nfiles: 5
+    outs:
+    - path: data/reconstruction/strand5_frozen_entropy
+      hash: md5
+      md5: c4cfb99d836e616ca7e8a993a31059bd.dir
+      size: 106690105
+      nfiles: 3451
+  rq_datasets:
+    cmd: python -m src.analysis.rq_datasets
+    deps:
+    - path: data/analysis/live
+      hash: md5
+      md5: 5b184046078cafbd91337d039e039d8c.dir
+      size: 591258
+      nfiles: 4
+    - path: data/reconstruction/strand1_frozen_shadow
+      hash: md5
+      md5: 97a176a44dad1c6a62abc59d3dd21b82.dir
+      size: 112098
+      nfiles: 6
+    - path: data/reconstruction/strand2_brackets
+      hash: md5
+      md5: 3fc3f44129805556db351a23288c91c4.dir
+      size: 156143036
+      nfiles: 6753
+    - path: data/reconstruction/strand3_backfill
+      hash: md5
+      md5: f30b5e875a052eb838f75e370ed1e553.dir
+      size: 1270
+      nfiles: 1
+    - path: data/reconstruction/strand5_frozen_entropy
+      hash: md5
+      md5: c4cfb99d836e616ca7e8a993a31059bd.dir
+      size: 106690105
+      nfiles: 3451
+    - path: src/analysis/replay_common.py
+      hash: md5
+      md5: 39a1f75a14caf247e0b1153ee95a14d6
+      size: 38381
+    - path: src/analysis/rq_datasets/
+      hash: md5
+      md5: 6e102dc01a06df9d207be85f2e80d809.dir
+      size: 38974
+      nfiles: 6
+    outs:
+    - path: data/analysis/rq1_matches.csv
+      hash: md5
+      md5: be5985ea2fc6c949e42dc22e34b1d840
+      size: 534194
+    - path: data/analysis/rq2_entropy.csv
+      hash: md5
+      md5: 3b4eb88bbb20e556abb94a15615c1a1d
+      size: 796823
+    - path: data/analysis/rq3_calibration.csv
+      hash: md5
+      md5: 9a9c446b5c529acd7ad10c24e585977f
+      size: 767988
+  audit:
+    cmd: python -m src.analysis.audit_reconstruction
+    deps:
+    - path: data/analysis/live
+      hash: md5
+      md5: 5b184046078cafbd91337d039e039d8c.dir
+      size: 591258
+      nfiles: 4
+    - path: data/analysis/rq2_entropy.csv
+      hash: md5
+      md5: 3b4eb88bbb20e556abb94a15615c1a1d
+      size: 796823
+    - path: data/reconstruction/inputs
+      hash: md5
+      md5: e83ccbcd6ab06fa7d606873446ff9599.dir
+      size: 80507282
+      nfiles: 76
+    - path: data/reconstruction/strand1_frozen_shadow
+      hash: md5
+      md5: 97a176a44dad1c6a62abc59d3dd21b82.dir
+      size: 112098
+      nfiles: 6
+    - path: data/reconstruction/strand2_brackets
+      hash: md5
+      md5: 3fc3f44129805556db351a23288c91c4.dir
+      size: 156143036
+      nfiles: 6753
+    - path: data/reconstruction/strand3_backfill
+      hash: md5
+      md5: f30b5e875a052eb838f75e370ed1e553.dir
+      size: 1270
+      nfiles: 1
+    - path: data/reconstruction/strand5_frozen_entropy
+      hash: md5
+      md5: c4cfb99d836e616ca7e8a993a31059bd.dir
+      size: 106690105
+      nfiles: 3451
+    - path: src/analysis/audit_reconstruction.py
+      hash: md5
+      md5: de6e0cc7c0ecc5d950fed580f7c246e8
+      size: 73895
+    - path: src/analysis/replay_common.py
+      hash: md5
+      md5: 39a1f75a14caf247e0b1153ee95a14d6
+      size: 38381
+    - path: src/analysis/rq_datasets/paths.py
+      hash: md5
+      md5: a8601cfabecec751240bf6800f343530
+      size: 3465
+    - path: src/gold/
+      hash: md5
+      md5: 055c1b6c9cb030ba5e9d208ab98de14e.dir
+      size: 40548
+      nfiles: 10
+    outs:
+    - path: data/reconstruction/audit_report.json
+      hash: md5
+      md5: 92bbb73762357c78477729d52c89dd36
+      size: 16614
+  leaderboards:
+    cmd: python -m src.analysis.round_leaderboards
+    deps:
+    - path: data/analysis/rq1_matches.csv
+      hash: md5
+      md5: be5985ea2fc6c949e42dc22e34b1d840
+      size: 534194
+    - path: src/analysis/round_leaderboards.py
+      hash: md5
+      md5: 0aa530019c1758ead3290dbd8aa72f73
+      size: 4080
+    - path: src/analysis/rq_datasets/paths.py
+      hash: md5
+      md5: a8601cfabecec751240bf6800f343530
+      size: 3465
+    outs:
+    - path: data/analysis/round_leaderboards.csv
+      hash: md5
+      md5: d0cdf8860cf7ef7283f82f3cfdb9d45f
+      size: 18414
+  figures:
+    cmd:
+    - python -m src.analysis.plot_entropy_trajectory
+    - python -m src.analysis.rq3_calibration_overview
+    deps:
+    - path: data/analysis/round_leaderboards.csv
+      hash: md5
+      md5: d0cdf8860cf7ef7283f82f3cfdb9d45f
+      size: 18414
+    - path: data/analysis/rq1_matches.csv
+      hash: md5
+      md5: be5985ea2fc6c949e42dc22e34b1d840
+      size: 534194
+    - path: data/analysis/rq2_entropy.csv
+      hash: md5
+      md5: 3b4eb88bbb20e556abb94a15615c1a1d
+      size: 796823
+    - path: data/analysis/rq3_calibration.csv
+      hash: md5
+      md5: 9a9c446b5c529acd7ad10c24e585977f
+      size: 767988
+    - path: data/reconstruction/audit_report.json
+      hash: md5
+      md5: 92bbb73762357c78477729d52c89dd36
+      size: 16614
+    - path: src/analysis/plot_entropy_trajectory.py
+      hash: md5
+      md5: f6c5caa5b9fe2c989db109f1383737c2
+      size: 6226
+    - path: src/analysis/rq3_calibration_overview.py
+      hash: md5
+      md5: 608f10beffcc7d239e6a5a76a55302e4
+      size: 6801
+    - path: src/analysis/rq_datasets/paths.py
+      hash: md5
+      md5: a8601cfabecec751240bf6800f343530
+      size: 3465
+    outs:
+    - path: docs/figures/calibration-group-vs-ko.png
+      hash: md5
+      md5: 70b86235aa62b834fc3b208ce8aca1c0
+      size: 287067
+    - path: docs/figures/entropy-trajectory.png
+      hash: md5
+      md5: 1ee2529d8e839ccfb82cc08a19cefb2d
+      size: 243072

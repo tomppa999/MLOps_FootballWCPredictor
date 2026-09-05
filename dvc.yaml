@@ -1,6 +1,16 @@
+# Bronze -> Silver -> Gold builds the live pipeline; the strand* stages below
+# reconstruct the post-tournament D.1 analysis offline from DVC-tracked inputs.
+#
+# `dvc repro figures` is the single master command: `figures` depends on the
+# audit report and the round leaderboards even though it does not read them, so
+# that one target walks the whole DAG instead of silently skipping the checks.
+#
+# silver and gold are frozen: the analysis reads historical Gold at the commit
+# each inference cycle actually served, never a freshly rebuilt one.
 stages:
   silver:
     cmd: python -m src.silver.build_silver
+    frozen: true
     deps:
       - data/raw
       - src/silver/
@@ -9,8 +19,148 @@ stages:
 
   gold:
     cmd: python -m src.gold.build_gold
+    frozen: true
     deps:
       - data/silver
       - src/gold/
     outs:
       - data/gold
+
+  # inputs/fixture_settlement.csv is a dep of every strand that parses results
+  # and never an out: only `snapshot_inputs --only settlement` can produce it,
+  # and that needs online DVC access to historical Bronze.
+  strand1:
+    cmd: python -m src.analysis.run_d1 --strands 1 --skip-tag-check
+    deps:
+      - data/analysis/live
+      - data/raw
+      - data/reconstruction/inputs
+      - src/analysis/replay_common.py
+      - src/analysis/rq_datasets/paths.py
+      - src/analysis/run_d1.py
+      - src/analysis/strand1_frozen_shadow.py
+      - src/gold/
+      - src/inference/
+      - src/models/
+      - src/monitoring/
+      - src/silver/
+    outs:
+      - data/reconstruction/strand1_frozen_shadow
+
+  strand2:
+    cmd: python -m src.analysis.run_d1 --strands 2 --skip-tag-check
+    deps:
+      - data/analysis/live
+      - data/raw
+      - data/reconstruction/inputs
+      - src/analysis/replay_common.py
+      - src/analysis/rq_datasets/paths.py
+      - src/analysis/run_d1.py
+      - src/analysis/strand2_brackets.py
+      - src/gold/
+      - src/inference/
+      - src/models/
+      - src/monitoring/
+      - src/silver/
+    outs:
+      - data/reconstruction/strand2_brackets
+
+  strand3:
+    cmd: python -m src.analysis.run_d1 --strands 3 --skip-tag-check
+    deps:
+      - data/analysis/live
+      - src/analysis/replay_common.py
+      - src/analysis/rq_datasets/export_live.py
+      - src/analysis/rq_datasets/paths.py
+      - src/analysis/run_d1.py
+      - src/analysis/strand3_backfill.py
+      - src/gold/
+      - src/inference/
+      - src/models/
+      - src/monitoring/
+      - src/silver/
+    outs:
+      - data/reconstruction/strand3_backfill
+
+  strand5:
+    cmd: python -m src.analysis.run_d1 --strands 5 --skip-tag-check
+    deps:
+      - data/analysis/live
+      - data/raw
+      - data/reconstruction/inputs
+      - src/analysis/replay_common.py
+      - src/analysis/rq_datasets/paths.py
+      - src/analysis/run_d1.py
+      - src/analysis/strand4_entropy.py
+      - src/analysis/strand5_frozen_entropy.py
+      - src/gold/
+      - src/inference/
+      - src/models/
+      - src/monitoring/
+      - src/silver/
+    outs:
+      - data/reconstruction/strand5_frozen_entropy
+
+  rq_datasets:
+    cmd: python -m src.analysis.rq_datasets
+    deps:
+      - data/analysis/live
+      - data/reconstruction/strand1_frozen_shadow
+      - data/reconstruction/strand2_brackets
+      - data/reconstruction/strand3_backfill
+      - data/reconstruction/strand5_frozen_entropy
+      - src/analysis/replay_common.py
+      - src/analysis/rq_datasets/
+    outs:
+      - data/analysis/rq1_matches.csv
+      - data/analysis/rq2_entropy.csv
+      - data/analysis/rq3_calibration.csv
+
+  # s5.champion_identity diffs strand 5 predictions against the logged lambdas
+  # in inputs/logged_predictions/, so both must be pulled for the audit to mean
+  # anything.  "Same numbers" is 0 fails; the warns are expected.
+  audit:
+    cmd: python -m src.analysis.audit_reconstruction
+    deps:
+      - data/analysis/live
+      - data/analysis/rq2_entropy.csv
+      - data/reconstruction/inputs
+      - data/reconstruction/strand1_frozen_shadow
+      - data/reconstruction/strand2_brackets
+      - data/reconstruction/strand3_backfill
+      - data/reconstruction/strand5_frozen_entropy
+      - src/analysis/audit_reconstruction.py
+      - src/analysis/replay_common.py
+      - src/analysis/rq_datasets/paths.py
+      - src/gold/
+    outs:
+      - data/reconstruction/audit_report.json
+
+  leaderboards:
+    cmd: python -m src.analysis.round_leaderboards
+    deps:
+      - data/analysis/rq1_matches.csv
+      - src/analysis/round_leaderboards.py
+      - src/analysis/rq_datasets/paths.py
+    outs:
+      - data/analysis/round_leaderboards.csv
+
+  figures:
+    cmd:
+      - python -m src.analysis.plot_entropy_trajectory
+      - python -m src.analysis.rq3_calibration_overview
+    deps:
+      - data/analysis/rq1_matches.csv
+      - data/analysis/rq2_entropy.csv
+      - data/analysis/rq3_calibration.csv
+      - data/analysis/round_leaderboards.csv
+      - data/reconstruction/audit_report.json
+      - src/analysis/plot_entropy_trajectory.py
+      - src/analysis/rq3_calibration_overview.py
+      - src/analysis/rq_datasets/paths.py
+    outs:
+      # Committed to Git for the thesis, so DVC tracks them without caching.
+      - docs/figures/entropy-trajectory.png:
+          cache: false
+      - docs/figures/calibration-group-vs-ko.png:
+          cache: false
