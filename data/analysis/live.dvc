@@ -1,0 +1,6 @@
+outs:
+- md5: 5b184046078cafbd91337d039e039d8c.dir
+  size: 591258
+  nfiles: 4
+  hash: md5
+  path: live

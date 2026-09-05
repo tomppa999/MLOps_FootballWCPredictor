@@ -1,6 +1,0 @@
-outs:
-- md5: c265c9504576df6c0c89a679d7f47487.dir
-  size: 343470405
-  nfiles: 10288
-  hash: md5
-  path: reconstruction

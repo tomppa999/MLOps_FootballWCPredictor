@@ -46,8 +46,12 @@ data/raw/
 data/silver/
 data/gold/
 data/interim/
-data/reconstruction/
-data/analysis/
+# The analysis inputs are DVC-added inside these trees, so their .dvc sidecars
+# have to stay visible to Git while the data itself does not.
+data/reconstruction/*
+!data/reconstruction/*.dvc
+data/analysis/*
+!data/analysis/*.dvc
 
 # Notebooks
 *.ipynb
