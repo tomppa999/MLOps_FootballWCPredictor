@@ -270,9 +270,12 @@ class TestIntegrationOffline:
         assert not fails, [f"{r.name}: {r.detail}" for r in fails]
 
     def test_full_offline_audit_runs(self):
-        results = run_audit(strands=("1", "3", "2", "4"), root=OUTPUT_ROOT)
+        # Strand 4 is superseded by Strand 5 and its data dir is gone, so the
+        # default roster is 1,2,3,5.
+        results = run_audit(strands=("1", "3", "2", "5"), root=OUTPUT_ROOT)
         assert results
         # Integration documents current state — must not crash; fails are reported.
         assert all(r.status in {"pass", "warn", "fail"} for r in results)
         assert any(r.strand == "1" for r in results)
         assert any(r.strand == "2" for r in results)
+        assert any(r.strand == "5" for r in results)

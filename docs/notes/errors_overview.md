@@ -7,15 +7,22 @@ cross-cutting view that feeds Chapter 3 (threats to validity) and Chapter 6 (lim
 Ten live-pipeline defects fall into four buckets: one silently invalidated a *result*, four cost
 *artifacts* that can be rebuilt, four cost *operations* that self-healed, and one was a silent
 train/serve skew (§8). Only the first bucket threatens a research question. **All four artifact
-holes were rebuilt in D.1 (Aug 15); the result-invalidating bug was corrected offline and in
-code; the train/serve skew is documented rather than repaired.**
+holes were rebuilt in D.1 (Aug 15) and regenerated Sep 4 once the repair's own defects (§2.3,
+§2.4) were fixed; the result-invalidating bug was corrected offline and in code, for RQ1 by
+Strand 1 and for RQ2 only by Strand 5; the train/serve skew is documented rather than repaired.**
+The whole reconstruction now re-derives offline from DVC-tracked inputs via
+`dvc pull && dvc repro figures` — see the README.
 
-Two further defects belong to the *repair* rather than the pipeline: the first version of the
+Four further defects belong to the *repair* rather than the pipeline. The first version of the
 D.1 backfill re-predicted rows it should have copied, briefly introducing a spurious effect of
-its own (§2.1), and the first version of the frozen-shadow replay leaked each match's own result
-into its features, briefly reversing the RQ1 finding (§2.2). Both are recorded here because a
-reconstruction that manufactures — or inverts — signal is a sharper threat to validity than any
-of the outages.
+its own (§2.1); the first version of the frozen-shadow replay leaked each match's own result
+into its features, briefly reversing the RQ1 finding (§2.2); the constant that fixed that leak
+was itself a guess, and admitted results for matches still being played (§2.3); and the first
+reconstruction of the four missing entropy snapshots filled them with end-of-tournament models
+(§2.4). All four are recorded here because a reconstruction that manufactures — or inverts —
+signal is a sharper threat to validity than any of the outages. §2.5 records the mirror case: the
+one place where the replay is *right* and the log is wrong, so reproducing the log would be the
+error.
 
 ---
 
@@ -44,6 +51,18 @@ decision: its λ spread across the tournament is ~2e-3 and symmetric, so refit-v
 noise there. As-logged, `xgboost` was the only clean contrast; after D.1, `poisson_glm` and
 `bayesian_poisson` also have separable frozen↔per_round columns.
 
+**But Strand 1 only cleaned RQ1.** It rebuilds per-match metrics, and RQ1 is a match-level
+question. RQ2 asks how tournament-level uncertainty resolves, so it reads entropy off the
+bracket simulations — and Strand 2 replays the *logged* λ values, which for every frozen cycle
+are the per_round artifact this section describes. The frozen entropy trajectory therefore
+stayed contaminated for the three weeks between the two repairs (Aug 15 → Sep 4): RQ1 said
+"frozen and per_round differ for three models", while RQ2 was still comparing per_round against
+itself for all but `xgboost`. **Corrected by Strand 5 (§2.4)**, which re-predicts all ~1,128
+pairings on each of the 423 frozen cycles from the pre-tournament pin instead of trusting the
+log. The
+effect it recovers is real but small — `poisson_glm` frozen-minus-per_round `entropy_winner`
+mean +0.0080 nats — and it did not exist in the data at all before Strand 5.
+
 ---
 
 ## 2. Artifact-level: four holes, one replay
@@ -54,15 +73,28 @@ rebuild each match's pre-kickoff feature row from the DVC-versioned Gold snapsho
 is a pure copy and must not be re-predicted at all, for the reason given in §2.1. They were
 folded into a single D.1 pass rather than four separate jobs.
 
-**STATUS: DONE (Aug 15) — all four holes replayed.** Audit: 83 pass / 7 warn / 0 fail
-(`data/reconstruction/audit_report.json`). RQ-ready merges in `data/analysis/`.
+**STATUS: DONE — all four holes replayed (Aug 15), then regenerated Sep 4 under the corrected
+settlement rule of §2.3 and the regime-pinned Strand 5 of §2.4.** Audit: **67 pass / 10 warn /
+0 fail** (`data/reconstruction/audit_report.json`, 77 checks: 20 Strand 1, 33 Strand 2, 15
+Strand 3, 7 Strand 5, 2 RQ2 provenance). These totals are not comparable line-for-line with the
+Aug 15 figure of 83 / 7 / 0: Strand 4 was retired as an input, so its checks left the roster and
+Strand 5's took their place.
+
+The 10 warns are expected and none of them is a numerical disagreement. Seven are visibility
+limits in the offline audit rather than findings — the monitoring export it reads covers 54 of
+104 matches, so it cannot confirm the 832/832 coverage claim or the byte identity of the four
+Strand 3 cadence copies from that source alone. Two are the cadence-asymmetric cycle counts left
+by the silent skips of §3 (frozen 423 vs per_round 422). The last is entropy monotonicity:
+577 of 3,376 rows violate `entropy_r32 ≥ … ≥ entropy_winner`, worst upward jump 0.0048 nats,
+which is Monte Carlo noise at 10k simulations and not a resolution failure. **"Same numbers"
+means 0 fails, not 0 warns.** RQ-ready merges in `data/analysis/`.
 
 | Hole | Cause | Missing | Replay action | Status |
 |---|---|---|---|---|
 | Frozen shadow column | shadow-resolution bug (§1) | True frozen rows, `poisson_glm` + `bayesian_poisson`, all rounds | Predict with the untagged `stage=shadow-refit` versions; recompute RPS / NLL / RMSE | **DONE** Strand 1 |
-| Bracket artifacts | host-rate scramble, KO-locking bug, pen-winner bug (Jul 7 → `20260712a`) | Valid `tournament_probabilities.csv`, `ko_pairings.csv`, `ko_fixtures.csv` from Jul 7 on, and the RQ2 entropy curves derived from them | Re-run `simulate_tournament` on corrected code, same seeds, locked KO results. Analysis window starts at the last pre-tournament frozen cycle (`ANALYSIS_START`, 2026-06-11 16:27:37 UTC); 34 dry-run cycles are excluded. | **DONE** Strand 2 (3,376 cycle entropy rows) |
+| Bracket artifacts | host-rate scramble, KO-locking bug, pen-winner bug (Jul 7 → `20260712a`) | Valid `tournament_probabilities.csv`, `ko_pairings.csv`, `ko_fixtures.csv` from Jul 7 on, and the RQ2 entropy curves derived from them | Re-run `simulate_tournament` on corrected code, same seeds, locked KO results. Analysis window starts at the last pre-tournament frozen cycle (`ANALYSIS_START`, 2026-06-11 16:27:37 UTC); 34 dry-run cycles are excluded. | **DONE** Strand 2 (3,376 cycle entropy rows); its frozen half replays the logged λ and so inherits §1, re-predicted by Strand 5 (§2.4) |
 | Four dropped rows | `_safe_shadow_predict` 120 s load timeout on a last pre-kickoff cycle | 2 × `ridge` per_round (MD3), 1 × `random_forest` frozen (R32), 1 × `mean_rate_poisson` frozen (MD1) — 830/832 as-logged | Copy each row byte-for-byte from its twin in the other cadence; never-refit ⇒ the twin *is* what the missing cycle would have logged | **DONE** Strand 3 → **832/832** |
-| Four entropy snapshots | R32 scheduler pause (3), R16 IPv6 stall (1) | Intermediate locked states in the RQ2 trajectory | Re-run `run_inference_and_simulation` per state with the round's `_seed_from_string` seed | **DONE** Strand 4 (32 synthetic rows) |
+| Four entropy snapshots | R32 scheduler pause (3), R16 IPv6 stall (1) | Intermediate locked states in the RQ2 trajectory | Re-simulate each state with the round's `_seed_from_string` seed and the model versions that served that round | **DONE** Strand 5 (32 synthetic rows). Strand 4 did this first with terminal models and is superseded — §2.4 |
 
 All three models in the dropped-row hole (`ridge`, `random_forest`, `mean_rate_poisson`) are
 never refitted, so the backfill reduced in practice to four cadence copies and no prediction at
@@ -98,7 +130,9 @@ matches. `ridge` differed on exactly 2.
 time-travel imports are gone from that driver. `audit_reconstruction` gained `s3.all_copied`,
 which fails if any backfill row is not a cadence copy, and its twin-identity check now resolves
 the source cadence per spec (so the `--frozen-monitoring` export is consulted for `ridge`).
-Strand 3 audit: 14 pass / 0 warn / 0 fail. Downstream `rq1` / `rq3` / `round_leaderboards` were
+Strand 3 audit: 14 pass / 0 warn / 0 fail against the full exports; 8 pass / 7 warn / 0 fail in
+the committed report, where the audit sees only the 54-match monitoring snapshot and reports the
+unverifiable half as warns. Downstream `rq1` / `rq3` / `round_leaderboards` were
 rebuilt; `ridge` now shows 0/104 cadence differences and its tournament RPS is 0.1589 in both
 modes.
 
@@ -203,6 +237,21 @@ confined to RQ2.
 replay-input error rather than a model difference. Against the pre-fix outputs it failed on
 exactly 7/423.
 
+**Acceptance evidence (Sep 4 re-run).** Both identity checks flipped, which is what makes them
+regression tests rather than tautologies:
+
+| check | before the settlement fix | after |
+|---|---|---|
+| `s5.champion_identity` | FAIL, 7 of 423 cycles, worst \|Δλ\| 1.301e-01 | **PASS**, all 423, max 4.441e-16 |
+| `s5.host_identity` | FAIL, worst \|Δλ\| 9.951e-02 | **PASS**, 33,276 pairings, max 4.441e-16 |
+
+Measured scope after the re-run matches the prediction made before it: Strand 2 moved 56 of
+3,376 rows — exactly the 14 cycles × 4 models — with `entropy_winner` shifting up to 0.0896 nats,
+and Strand 1 moved zero rows. `s5.post_refit_divergence` still passes, with the frozen GLMs
+diverging from live's contaminated rows by 4.76e-01 (`poisson_glm`), 3.72e-01
+(`bayesian_poisson`) and 2.02e-03 (`mean_rate_poisson`); had the settlement fix flattened that
+divergence it would have meant Strand 5 was reproducing the bug rather than correcting it.
+
 **Lesson for Chapter 3.** §2.2 concluded that the as-of cutoff is the most dangerous parameter
 in a point-in-time replay; the sequel is that *replacing a leaky default with a plausible
 constant is still a guess*. Two hours was defensible for a 90-minute match and wrong for extra
@@ -211,6 +260,60 @@ versioned Bronze, committed atomically with the Gold it produced — the replay 
 record instead of modelling it. The reconstruction is only as trustworthy as its worst
 assumption about the past, and an assumption that is right 831 times out of 845 is still an
 assumption.
+
+### 2.4 The replay that filled a gap with models from the future
+
+**What.** Strand 4 reconstructed the four missing entropy snapshots (§2, row 4) by calling
+`run_inference_and_simulation` at reconstruction time with an overridden timestamp and a
+truncated result set. Overriding *when* the cycle claims to run does not change *which* models
+it loads: that call resolves the champion and shadow registries through their live aliases, so
+in August it picked up the terminal, end-of-tournament versions. The R32 and R16 gaps were
+therefore filled by models fitted on rounds that had not yet been played at the state being
+reconstructed.
+
+**Why it matters.** It is the same class of defect as §2.2 — future information in a
+point-in-time replay — but arriving through the model rather than the features, which makes it
+easier to miss. It also lands precisely where it does the most damage: the four snapshots exist
+only to give RQ2's entropy trajectory resolution across the knockout rounds, so an
+over-informed model at those four points flatters exactly the "uncertainty resolves as the
+tournament progresses" claim the trajectory is evidence for.
+
+**Addressed by.** **DONE (Sep 4) — superseded by Strand 5.** Strand 5 pins each snapshot to the
+versions that actually served that regime, read from
+`data/reconstruction/inputs/models/manifest.csv`: R32 gets `wc_production` v19 plus `wc_shadow`
+v104–106, R16 gets v20 plus v107–109, and the frozen arm always gets the pre-tournament pin
+(v15, v88–90). Strand 4's data directory was deleted; `src/analysis/strand4_entropy.py` remains
+importable because `build_entropy_snapshot_specs` is still the source of truth for *which* four
+states are missing, and its `run_strand4_entropy` docstring records the supersession.
+`audit_strand4` stays dispatchable via `--strand 4` and now reports `s4.exists` as a fail, which
+is the correct answer: those outputs should not come back.
+
+**Lesson for Chapter 3.** A replay has two clocks, not one — the as-of date of the data and the
+as-of version of the model — and overriding the first does nothing to the second. Pin model
+versions explicitly from a recorded manifest; an alias is a mutable pointer and will always
+resolve to the present.
+
+### 2.5 Where the replay is right and live was wrong: host orientation
+
+**What.** Commit `01942e41` (Jun 27, "orient host KO rates without swapping; emit host-vs-host
+dual predictions") fixed how `src/inference/features.py` handles the three World Cup hosts. Every
+frozen cycle before Jun 27 16:08 UTC was served by the pre-fix code, so a faithful replay on
+corrected code *must* differ from the log on the 2–4 pairings per cycle that involve a
+`WC_2026_HOSTS` team, and emits 1,131 pairings where live logged 1,128 (three extra host-vs-host
+reverse rows).
+
+**Why it is recorded here.** Not as a defect to repair — Strand 5 is the correct side of this
+disagreement — but because it is the one place where "the reconstruction reproduces the log" is
+the *wrong* acceptance criterion. Stated carelessly, an identity check would either be relaxed
+until it stopped catching real errors, or would push the replay back onto buggy code to match a
+log that was already known to be wrong.
+
+**Addressed by.** `s5.host_identity` excludes host pairings before the Jun 27 fix and expects
+exactly three unmatched rows per affected cycle, then requires exact agreement everywhere else:
+33,276 pairings, max |Δλ| = 4.441e-16. The host exclusion is scoped by timestamp, so it stops
+applying the moment the fixed code went live. `METRIC_TOL` stays at 1e-9 and there is no skip
+list — if identity ever fails for a model outside this exclusion, the pinned version is wrong
+and the fix belongs in `manifest.csv`, not in the tolerance.
 
 ---
 

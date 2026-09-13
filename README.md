@@ -150,7 +150,7 @@ docs/
 # 1. Clone and install
 git clone https://github.com/tomppa999/MLOps_FootballWCPredictor.git
 cd MLOps_FootballWCPredictor
-pip install -e ".[dev]"
+pip install -e ".[dev]"          # or: conda env create -f environment.yml
 
 # 2. Configure credentials
 cp .env.example .env
@@ -159,8 +159,11 @@ cp .env.example .env
 # 3. Pull versioned data artifacts
 dvc pull
 
-# 4. Rebuild Silver and Gold from raw data
-dvc repro
+# 4. Silver and Gold arrive with the pull above — the `silver` and `gold`
+#    stages are frozen, so there is nothing to rebuild here. Do NOT run a bare
+#    `dvc repro`: the thesis reconstruction stages depend on src/gold/,
+#    src/inference/, src/models/, src/monitoring/ and src/silver/, so any local
+#    edit there triggers a 4 h 40 rebuild. See "Reproduce the thesis analysis".
 
 # 5. Run the full pipeline (ingest → features → train → inference → simulate)
 python -m src.pipeline.trigger
@@ -185,9 +188,73 @@ The pipeline runs fully locally without GCP. Set `SKIP_DVC_PULL=1` if you have d
 
 Data (Bronze/Silver/Gold) and trained model artifacts are versioned with DVC. The remote is hosted on DagsHub alongside the MLflow experiment registry.
 
-- `dvc repro` — rebuild Silver + Gold from raw (runs `build_silver` → `build_gold`)
 - `dvc push` / `dvc pull` — sync artifacts with the DagsHub remote
-- `data/raw.dvc` and `dvc.lock` are committed to Git; the actual data files are gitignored
+- `dvc.yaml` holds the Silver/Gold build plus the thesis reconstruction stages. `silver` and `gold` are `frozen: true`, so a `dvc repro` never rebuilds them; pull them instead
+- `dvc repro figures` — re-derive the whole thesis analysis (see below). Force individual stages with `dvc repro -f -s <stage>`; a bare `dvc repro -f` propagates upstream and costs 4 h 40
+- `data/raw.dvc`, the nested `data/reconstruction/inputs.dvc` / `data/analysis/live.dvc` sidecars and `dvc.lock` are committed to Git; the actual data files are gitignored
+
+---
+
+## Reproduce the thesis analysis
+
+The post-tournament analysis behind thesis section D.1 re-derives offline from DVC-tracked inputs. One command rebuilds all of it: the three research-question datasets (`rq1_matches.csv`, `rq2_entropy.csv`, `rq3_calibration.csv`), the round leaderboards, the faithfulness audit, and the two thesis figures.
+
+### Prerequisites
+
+- The environment, either way round: `conda env create -f environment.yml` (creates `modelops`, Python 3.14) or `pip install -e ".[dev]"` into an existing Python ≥ 3.11.
+- DagsHub credentials for the DVC remote — a username and a token. No API-Football key is needed: the analysis never calls the live API.
+- ~350 MB of disk for `data/reconstruction`, plus Bronze/Silver/Gold.
+
+### Run it
+
+```bash
+# 1. Clone the thesis branch. The `-b` matters: the default branch (main) is
+#    stale and its data hashes were never pushed, which surfaces later as a
+#    confusing "missing cache files" error.
+git clone -b thesis https://dagshub.com/tomppa999/MLOps_FootballWCPredictor.git
+cd MLOps_FootballWCPredictor
+
+# 2. Point DVC at the remote with your own credentials (writes .dvc/config.local,
+#    which is gitignored).
+dvc remote modify --local origin auth basic
+dvc remote modify --local origin user <dagshub-username>
+dvc remote modify --local origin password <dagshub-token>
+
+# 3. Pull the inputs and re-derive everything.
+dvc pull && dvc repro figures
+```
+
+`dvc pull` checks out ~19,080 files. `dvc repro figures` then reports *"didn't change, skipping"* for every stage, because the outputs in the pull set already match — that is the expected result, not a failure to do work. To watch the analysis actually run, force the cheap tail, which takes about a minute:
+
+```bash
+dvc repro -f -s rq_datasets audit leaderboards figures
+```
+
+Always pass `-s` when forcing. A bare `dvc repro -f` propagates upstream into the strand stages, which is a 4 h 40 rebuild (Strand 1 17 min, Strand 2 2 h 01, Strand 5 2 h 37).
+
+### What "same numbers" means
+
+Two built-in checks, both of which passed on a fresh clone on Sep 13:
+
+- `git diff --quiet dvc.lock` and an empty `dvc status` — the re-derived outputs hash to what is committed.
+- The audit report at `data/reconstruction/audit_report.json`: **0 fails**. It currently reads 67 pass / 10 warn / 0 fail across 77 checks. Judge it on `n_fail`, not on the warns — all 10 warns are expected, and none is a numerical disagreement: 7 are visibility limits in the offline audit (its monitoring export covers 54 of 104 matches), 2 are the cadence-asymmetric cycle counts left by live's silent shadow skips, and 1 is entropy monotonicity under Monte Carlo noise (worst upward jump 0.0048 nats at 10k simulations).
+
+The load-bearing check is `s5.champion_identity`: the frozen champion (`wc_production` v15) was never touched by any of the bugs the reconstruction had to fix, so the replay must reproduce its logged λ values on all 423 frozen cycles. It does, at max |Δλ| = 4.441e-16. That check diffs `data/reconstruction/inputs/logged_predictions/all_models.parquet` against `data/reconstruction/strand5_frozen_entropy/predictions.parquet` (1.95 M rows) — **trimming either path out of the pull set silently removes the only evidence that the reconstruction is faithful**, and the audit will still report 0 fails.
+
+One known cosmetic exception: `docs/figures/entropy-trajectory.png` does not come out byte-identical across working directories. The whole plot shifts ~5 px vertically from a `tight_layout` difference; every series, glyph and input is otherwise identical. It is `cache: false`, so it never dirties `dvc.lock`.
+
+### Run the tests
+
+```bash
+pytest tests/analysis -q   # 63 tests covering the reconstruction
+pytest                     # full suite, ~5 min
+```
+
+### What is not reproducible
+
+The live run itself. The every-2h Cloud Run cycles ingested from a paid API against a mutable fixture list, and the champion/shadow models were refitted as the tournament progressed. That history cannot be re-executed. What *is* reproducible is the replay: the exact model versions each cycle served are pinned in `data/reconstruction/inputs/models/manifest.csv`, their artifacts are snapshotted alongside, and the Gold table is read back at the commit that cycle actually served. `snapshot_inputs.py` is the one step that needs online DagsHub access, and its outputs are DVC-tracked so nobody has to re-run it.
+
+Note the deliberate version skew: the pinned models were trained on Python 3.11.15 / scikit-learn 1.9.0 in the Cloud Run image and are replayed on Python 3.14.3 / scikit-learn 1.8.0. Verified harmless — see the header of `environment.yml` and the Strand 5 subsection of [`docs/notes/wc_live.md`](docs/notes/wc_live.md).
 
 ---
 

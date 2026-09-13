@@ -200,10 +200,10 @@ Pipeline:
     per-match entropy-resolution steps collapse into a single jump in the advancement-entropy
     trajectory. It is a **uniform gap across every (model × cadence_mode) trajectory** (not a
     per-model contamination): the curve loses the points that isolate each match's information.
-    **D.1 Strand 4 reconstructed the 3 intermediate snapshots** (plus the R16 gap below) with
-    synthetic timestamps; merged series in `data/analysis/rq2_entropy.csv` (3,532 rows as of
-    the Strand-4 merge = 3,500 Strand-2 cycles + 32 Strand-4 synthetic rows). Strand 2 is now
-    3,376 rows after dropping pre-`ANALYSIS_START` dry runs; RQ2 will be rebuilt in Strand 5.
+    **D.1 Strand 5 reconstructed the 3 intermediate snapshots** (plus the R16 gap below) with
+    synthetic timestamps and the models that served R32; merged series in
+    `data/analysis/rq2_entropy.csv` (3,412 rows = 3,380 cycle rows + 32 synthetic). Strand 4
+    filled these first with terminal models and is superseded — `errors_overview.md` §2.4.
   - **Not affected:** RQ1/monitoring — `_select_pre_kickoff_run` just falls back to the most
     recent snapshot strictly before each kickoff (no leakage; all-pairs λ barely depend on
     other teams' results). The R32 per-round refit gate is unaffected (it only fires after
@@ -214,9 +214,10 @@ Pipeline:
     europe-west1`, then one manual catch-up execution (`gcloud scheduler jobs run
     wc-pipeline-trigger …` / `gcloud run jobs execute wc-mlops-trigger …`) to lock all three
     results and refresh predictions/monitoring/probabilities live.
-  - **Offline reconstruction (D.1, DONE):** Strand 4 rebuilt the 3 intermediate locked sets by
-    kickoff cutoff and re-ran both cadence modes with `simulation_seed = _seed_from_string("R32")`;
-    outputs in `data/reconstruction/strand4_entropy/reconstructed_entropy_snapshots.csv`.
+  - **Offline reconstruction (D.1, DONE):** Strand 5 rebuilt the 3 intermediate locked sets by
+    kickoff cutoff and re-simulated both cadence modes with
+    `simulation_seed = _seed_from_string("R32")` and the R32-regime model pins; outputs in
+    `data/reconstruction/strand5_frozen_entropy/`.
 
 Observations:
 
@@ -282,8 +283,8 @@ Pipeline:
     wc-pipeline-trigger --location europe-west1`); resume after the redeploy passes one successful
     catch-up execution.
   - **What got lost (as-logged):** the Brazil–Norway ↔ Mexico–England intermediate R16 snapshot.
-    **D.1 Strand 4 reconstructed it** (1 state × 2 cadences × 4 models) alongside the 3 R32
-    gaps. RQ1/monitoring unaffected (`_select_pre_kickoff_run` falls back to the
+    **D.1 Strand 5 reconstructed it** (1 state × 2 cadences × 4 models, pinned to the R16-regime
+    versions) alongside the 3 R32 gaps. RQ1/monitoring unaffected (`_select_pre_kickoff_run` falls back to the
     most recent snapshot strictly before each kickoff). R16 refit gate unaffected (fires only after
     all 8 R16 fixtures settle). Gold/Bronze did not mutate during the failed windows (each run
     died mid-freshness check, before any ingestion) — no data corruption risk; the post-fix run
@@ -722,11 +723,12 @@ shadow-skip path. **After D.1 Strand 3: 832/832 (100%) per cadence.**
 **Both modes produced complete snapshot sets? Y, with two documented caveats (both now
 addressed by D.1).** Every match has a pre-kickoff snapshot in both modes. The caveats were
 (1) the frozen mode's snapshots for `poisson_glm` / `bayesian_poisson` / `mean_rate_poisson`
-were not genuinely frozen (shadow-resolution bug — Strand 1 rebuilt the first two; mean_rate
-dropped by decision), and (2) four intermediate *entropy-trajectory* snapshots were missing
-from both modes (3 from the R32 scheduler pause, 1 from the R16 IPv6 stall) — a uniform gap
-across every model × cadence, affecting RQ2 only (Strand 2 regenerated curves; Strand 4
-inserted the four snapshots).
+were not genuinely frozen (shadow-resolution bug — Strand 1 rebuilt the first two for RQ1;
+RQ2's frozen curves stayed contaminated until Strand 5 re-predicted all four models), and
+(2) four intermediate *entropy-trajectory* snapshots were missing from both modes (3 from the
+R32 scheduler pause, 1 from the R16 IPv6 stall) — a uniform gap across every model × cadence,
+affecting RQ2 only (Strand 2 regenerated the cycle curves; Strand 5 supplied the four
+snapshots, regime-pinned, after Strand 4's first attempt used terminal models).
 
 ### DONE — offline frozen-shadow reconstruction (shadow-resolution bug)
 
@@ -789,7 +791,9 @@ zero results known and Gold at 6945 rows.
 
 **Guard.** New `s1.leakage` audit check fails if any match sees its own or an unsettled result;
 `tests/analysis/test_strand1_frozen_shadow.py` pins the settle-delta pass-through, the
-self-leakage invariant and the batch shape. Audit after rerun: **83 pass / 7 warn / 0 fail**.
+self-leakage invariant and the batch shape. Audit after rerun (Aug 15 roster, with Strand 4
+still an input): **83 pass / 7 warn / 0 fail**. The current roster reads 67 / 10 / 0 — see the
+Strand 5 subsection.
 
 ### DONE — host-advantage fix regeneration (RQ2 entropy)
 
@@ -797,11 +801,16 @@ self-leakage invariant and the batch shape. Audit after rerun: **83 pass / 7 war
 Replayed each cycle's DVC-versioned per-match predictions through corrected
 `simulate_tournament` (same seeds, locked KO results). Outputs:
 `data/reconstruction/strand2_brackets/` (per-cycle advancement + ko_pairings) and
-`entropy_trajectory.csv` (3,376 rows after `ANALYSIS_START`). Merged with Strand 4 into
-`data/analysis/rq2_entropy.csv` (3,532 rows as of that merge). Also regenerates the mid-R32 unlocked cycle and
-the Jul 7–`20260712a` pen-winner contamination uniformly. Audit caveats (Strand 2): 5 warns —
-cadence-asymmetric cycle deltas under silent skips; entropy monotonicity violations on
-577/3500 rows of the pre-window trajectory (worst upward jump 0.0048). 0 fail.
+`entropy_trajectory.csv` (3,376 rows after `ANALYSIS_START`). Now merged with **Strand 5** into
+`data/analysis/rq2_entropy.csv` (3,412 rows; Strand 4 dropped as an input). Also regenerates the
+mid-R32 unlocked cycle and the Jul 7–`20260712a` pen-winner contamination uniformly. Audit
+(Strand 2): 30 pass / 3 warn / 0 fail — two cadence-asymmetric cycle deltas under silent skips,
+and entropy monotonicity violations on 577/3,376 rows (worst upward jump 0.0048 nats, Monte
+Carlo noise at 10k simulations).
+
+Scope note: Strand 2 replays the **logged** λ values, so its frozen rows carry the
+shadow-resolution bug of the frozen-shadow section above. That is why RQ2 takes its frozen half
+from Strand 5 instead — see the Strand 5 subsection.
 
 Why (record): the sim swapped already-correct host-home rates (scramble bug, see MD3 Jun 27),
 invalidating host-path advancement probabilities and the RQ2 Shannon-entropy trajectories
@@ -809,6 +818,59 @@ built from them. Per-match predictions, RQ1/RQ3, monitoring, Gold are clean. Als
 the one already-logged mid-R32 cycle that stayed unlocked under the Jun 29 KO-results
 locking bug (fixed live in `20260629a`), and the pen-winner bracket bug (fixed live in
 `20260712a`).
+
+### DONE — Strand 5: cadence-correct frozen entropy (supersedes Strand 4)
+
+**STATUS: DONE (Sep 4) — D.1 Strand 5.** Driver: `src/analysis/strand5_frozen_entropy.py`.
+Outputs under `data/reconstruction/strand5_frozen_entropy/`: `entropy_trajectory.csv`
+(1,724 rows = 1,692 live frozen + 32 synthetic), `predictions.parquet` (1.95 M rows, 27.9 MB),
+`summary.json`, and per-model `frozen/` + `per_round/` advancement and `ko_pairings` directories.
+423 live frozen cycles, 18.56 s per cycle, 2 h 37 total, **0 cycles skipped for missing Gold**.
+
+Strand 5 exists because RQ2 had two independent problems that Strands 1–4 did not touch:
+
+1. **Strand 2's frozen half was never frozen.** Strand 2 re-simulates from the *logged* λ
+   values, and for every frozen cycle those are the per_round shadow artifact
+   (shadow-resolution bug). Strand 1 fixed this for RQ1's match-level metrics only. Strand 5
+   re-predicts all ~1,128 pairings on each frozen cycle with the pre-tournament pin the frozen
+   cadence should have used, then re-simulates.
+2. **Strand 4 filled the four gap snapshots with terminal models** (`errors_overview.md` §2.4).
+   Strand 5 pins each gap to the regime that served it.
+
+All pins come from `data/reconstruction/inputs/models/manifest.csv`: frozen `wc_production` v15
+plus `wc_shadow` v88 (`poisson_glm`) / v89 (`mean_rate_poisson`) / v90 (`bayesian_poisson`);
+per_round R32 v19 + v104–106; per_round R16 v20 + v107–109. Gold is read back at the commit each
+cycle actually served (`resolve_gold_commit`), and results come from the settlement snapshot
+described below, not the 2-hour proxy.
+
+**RQ2 merge.** `build_rq2` combines Strand 2 and Strand 5 with Strand 5 winning on `RQ2_KEY`, and
+records where each row came from in a `provenance` column: 3,412 rows = 1,688 per_round
+`live_replay` + 1,692 frozen `reconstructed_frozen_shadow` + 32 `reconstructed_snapshot`
+(16 per cadence). Strand 4 is no longer an input. Cycles where a model is missing upstream are
+tolerated rather than dropped, which is why the per-model counts differ by one or two.
+
+**Audit: Strand 5 7 pass / 0 warn / 0 fail**, plus 2 RQ2 provenance checks. The load-bearing one
+is `s5.champion_identity`: the frozen champion (v15) was never touched by the shadow-resolution
+bug, so the replay must reproduce its logged λ on **all 423** frozen cycles — achieved at max
+|Δλ| = 4.441e-16 against a `METRIC_TOL` of 1e-9. `s5.baseline_identity` requires all four models
+to be exact on the single pre-refit cycle; `s5.host_identity` requires exact agreement on 33,276
+pairings once host pairings before the Jun 27 orientation fix are excluded (`errors_overview.md`
+§2.5); `s5.post_refit_divergence` requires the GLMs *not* to reproduce live's contaminated frozen
+rows, which is the whole point of the strand.
+
+**Headline result.** Frozen carries more residual uncertainty than per_round for all four models,
+but by amounts two orders of magnitude apart, and every model flips sign somewhere in the
+tournament: `poisson_glm` frozen-minus-per_round `entropy_winner` mean **+0.0080** nats
+(median +0.0122, n = 422 paired cycles), against `xgboost` +0.0552, `bayesian_poisson` +0.0244
+and `mean_rate_poisson` +0.0004. **No claim that the models agree on the cadence effect is
+supportable.** Full table in `docs/plans/thesis.md` D.1; figure at
+`docs/figures/entropy-trajectory.png`.
+
+**Version skew, verified harmless.** The pinned models were trained and saved on Python 3.11.15 /
+scikit-learn 1.9.0 / numpy 2.4.6 (Cloud Run image) and are replayed locally on Python 3.14.3 /
+scikit-learn 1.8.0 / numpy 2.4.3. Wherever the inputs are identical the replayed λ match the
+logged ones to ~1e-16, which is what the identity checks above measure. Reproduce with
+`dvc pull && dvc repro figures` — see the README.
 
 ### Analysis window — drop pre-tournament dry runs
 
@@ -834,15 +896,19 @@ fires at kickoff + ~2 h 06 min — so for a match still being played the replay 
 handed a result live did not have. Seven frozen cycles and their seven per_round
 twins were affected:
 
-| cycle (UTC) | just-played match | round | status live saw | first visible |
-|---|---|---|---|---|
-| Jun 23 00:06 | France–Iraq | Group 2 | `INT` (interrupted) | Jun 23 02:05 |
-| Jul 1 22:06 | Belgium–Senegal | R32 | `BT` → AET | Jul 2 00:10 |
-| Jul 2 02:06 | USA–Bosnia | R32 | in play | Jul 2 04:09 |
-| Jul 3 20:06 | Australia–Egypt | R32 | in play → PEN | Jul 3 22:10 |
-| Jul 4 00:06 | Argentina–Cape Verde | R32 | `1H` → AET | Jul 4 02:09 |
-| Jul 7 18:06 | Argentina–Egypt | R16 | `2H` elapsed 90 | Jul 7 20:10 |
-| Jul 7 22:06 | Switzerland–Colombia | R16 | `ET` elapsed 95 | Jul 8 00:10 |
+| cycle (UTC) | just-played match | round | status live saw | first visible | max ΔH frozen / per_round |
+|---|---|---|---|---|---|
+| Jun 23 00:06 | France–Iraq | Group 2 | `INT` (interrupted) | Jun 23 02:05 | 0.0179 / 0.0242 |
+| Jul 1 22:06 | Belgium–Senegal | R32 | `BT` → AET | Jul 2 00:10 | 0.0412 / 0.0412 |
+| Jul 2 02:06 | USA–Bosnia | R32 | in play | Jul 2 04:09 | 0.0452 / 0.0452 |
+| Jul 3 20:06 | Australia–Egypt | R32 | in play → PEN | Jul 3 22:10 | 0.0466 / 0.0466 |
+| Jul 4 00:06 | Argentina–Cape Verde | R32 | `1H` → AET | Jul 4 02:09 | 0.0458 / 0.0502 |
+| Jul 7 18:06 | Argentina–Egypt | R16 | `2H` elapsed 90 | Jul 7 20:10 | 0.0835 / 0.0835 |
+| Jul 7 22:06 | Switzerland–Colombia | R16 | `ET` elapsed 95 | Jul 8 00:10 | 0.0896 / 0.0896 |
+
+`ΔH` is the largest `entropy_winner` shift across the four models on that cycle, measured
+against the pre-fix output; the second value is the paired per_round twin cycle. In total the
+correction moved 56 of Strand 2's 3,376 rows (14 cycles × 4 models) and none of Strand 1's.
 
 Six of seven are knockout ties that went to extra time or penalties; one was
 interrupted; Argentina–Egypt finished in normal time but was still in stoppage at
@@ -866,9 +932,12 @@ Output: `data/reconstruction/strand3_backfill/backfill_rows.csv` (4 rows). Achie
 **832/832 per cadence** in `data/analysis/rq1_matches.csv` (1,664 total). All three models
 involved are never refitted, so every row is copied byte-for-byte from its twin in the other
 cadence: 2 MD3 per_round `ridge` rows from frozen; R32 frozen `random_forest` from per_round;
-MD1 frozen `mean_rate_poisson` from per_round. Audit (Strand 3, against the
-`data/analysis/live/monitoring_*.csv` exports): 14 pass, 0 warn, 0 fail — coverage 832/832 and
-all four copy byte-identity checks verified.
+MD1 frozen `mean_rate_poisson` from per_round. Audit (Strand 3): 8 pass / 7 warn / 0 fail. The
+seven warns are visibility limits, not disagreements: verified end to end against the full
+frozen/per_round exports (coverage 832/832, all four copies byte-identical), but the
+`data/analysis/live/monitoring_*.csv` snapshot the offline audit reads covers only 54 of 104
+matches, so from that source alone it can neither confirm the 832/832 claim nor find the twins
+of the four copied rows.
 
 Revision (Aug 15): the first version re-predicted the two `ridge` rows offline from pinned
 `wc_shadow` + a DVC Gold snapshot rather than copying them. That drifted on the feature
@@ -899,13 +968,22 @@ later (`negbin_glm` Jul 13 08:15, `ridge` Jul 13 08:17, `random_forest` Jul 14 2
 
 ### DONE — reconstruct missed entropy-trajectory snapshots (pipeline outages)
 
-**STATUS: DONE (Aug 15) — D.1 Strand 4.** Driver: `src/analysis/strand4_entropy.py`.
-Output: `data/reconstruction/strand4_entropy/reconstructed_entropy_snapshots.csv`
-(32 rows = 4 snapshots × 2 cadences × 4 models; `synthetic=True`). Inserted into
-`data/analysis/rq2_entropy.csv` alongside Strand 2's cycle rows (3,376 after the
-analysis-window cut). Seeds:
-`_seed_from_string("R32")` / `"R16"`. Audit caveats (Strand 4): 2 warns — entropy ordering
-7/32 rows; continuity jumps (45 neighbour jumps exceed real p95). 0 fail.
+**STATUS: DONE (Sep 4) — D.1 Strand 5. Strand 4 did this first and is superseded.**
+Driver: `src/analysis/strand5_frozen_entropy.py`; outputs under
+`data/reconstruction/strand5_frozen_entropy/` (32 `synthetic=True` rows = 4 snapshots ×
+2 cadences × 4 models, alongside the 1,692 live frozen rows of the Strand 5 subsection above).
+Seeds unchanged: `_seed_from_string("R32")` / `"R16"`, and the four states still come from
+`build_entropy_snapshot_specs`, which is why `src/analysis/strand4_entropy.py` stays importable
+even though its data directory was deleted.
+
+Why Strand 4 was superseded: it filled the gaps by calling `run_inference_and_simulation` at
+reconstruction time. Overriding the cycle timestamp does not override which models get loaded —
+that path resolves the registries through their live aliases — so the R32 and R16 gaps were
+filled with terminal, end-of-tournament models. Strand 5 pins each snapshot to the versions that
+actually served that regime (R32: `wc_production` v19 + `wc_shadow` v104–106; R16: v20 +
+v107–109; frozen always v15 + v88–90). Full write-up in `errors_overview.md` §2.4.
+`audit_strand4` remains dispatchable via `--strand 4` and now reports `s4.exists` as a fail,
+which is the intended answer.
 
 Why (record): a pipeline outage collapses per-match resolution steps into a single jump in the
 RQ2 advancement-entropy trajectory. Affects **every (model × cadence_mode) trajectory

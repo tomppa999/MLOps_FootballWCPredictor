@@ -198,7 +198,8 @@ plumbing pass (Jun 9) and a final experiment pass (Jun 10). See
 
 ### Post-WC (July onward)
 
-- [ ] **D.1** Trajectory extraction and entropy analysis
+- [x] **D.1** Trajectory extraction and entropy analysis — reconstructed offline and
+  reproducible with `dvc pull && dvc repro figures` (audit 67 pass / 10 warn / 0 fail)
 - [ ] **D.2** Structural-driver regression
 - [ ] **D.3** WC 2022 frozen-model retrospective
 - [ ] **D.4** Thesis writing
@@ -683,14 +684,51 @@ from Secret Manager in favour of IAM). Revisit after the tournament.
 
 ### D.1. Trajectory and entropy analysis
 
-- [ ] Extract per-model `tournament_probabilities` from all tagged MLflow
+**STATUS: DONE (Sep 4), verified reproducible on a fresh clone (Sep 13).**
+
+- [x] Extract per-model `tournament_probabilities` from all tagged MLflow
   snapshots, keyed by `(model_name, cadence_mode)` → build trajectory DataFrames
-  (4 roster models × 2 modes, per Option A)
-- [ ] Compute Shannon entropy per snapshot: normalise 48-team advancement
-  vector to `p_i / 32`, then `H = -Σ p_i log(p_i)`. Decompose per-group.
-- [ ] Plot entropy resolution curves: frozen vs per-round **for each roster
+  (4 roster models × 2 modes, per Option A). Landed as `data/analysis/rq2_entropy.csv`,
+  3,412 rows (853 per model), with a `provenance` column: 1,688 per_round
+  `live_replay`, 1,692 frozen `reconstructed_frozen_shadow` (the logged frozen rows could not
+  be used — see `errors_overview.md` §1), 32 `reconstructed_snapshot` for the outage gaps.
+- [x] Compute Shannon entropy per snapshot: normalise 48-team advancement
+  vector to `p_i / 32`, then `H = -Σ p_i log(p_i)`.
+- [~] Decomposition is by **round reached**, not per group: `entropy_r32`, `entropy_r16`,
+  `entropy_qf`, `entropy_sf`, `entropy_final`, `entropy_winner`. The per-group decomposition in
+  the original plan was not implemented; note it as a deviation if the write-up needs it.
+- [x] Plot entropy resolution curves: frozen vs per-round **for each roster
   model** (cross-family robustness of the cadence effect), with mean_rate_poisson
-  as the flat floor
+  as the flat floor → `docs/figures/entropy-trajectory.png`.
+
+**Result: frozen carries more residual uncertainty than per_round for all four models, but the
+four disagree by two orders of magnitude on how much.** Frozen minus per_round `entropy_winner`,
+in nats, pairing each per_round cycle to the nearest frozen cycle within 30 minutes, live cycles
+only, n = 422 paired cycles:
+
+| model | mean | median | min | max |
+|---|---|---|---|---|
+| xgboost | +0.0552 | +0.0345 | −0.0298 | +0.1902 |
+| bayesian_poisson | +0.0244 | +0.0220 | −0.0277 | +0.0802 |
+| poisson_glm | +0.0080 | +0.0122 | −0.0808 | +0.0807 |
+| mean_rate_poisson | +0.0004 | +0.0001 | −0.0060 | +0.0055 |
+
+The sign is consistent in the mean, and `mean_rate_poisson` behaves as the intended floor
+(+0.0004 nats — no information enters the model, so there is nothing for a refit to resolve).
+But the spread runs from +0.0004 to +0.0552, and **every model changes sign somewhere in the
+tournament**: each row's min is negative. So the cadence effect on uncertainty resolution is
+real and directionally robust, while its magnitude is model-specific. **Any claim that the
+models agree on the size of the effect is unsupported by this table** — write the result as
+"consistent in sign, model-specific in magnitude", and report the per-model numbers rather than
+a pooled average.
+
+Caveat to carry into the write-up: the frozen half of this table is a *reconstruction*, not the
+live log. The frozen entropy that the pipeline logged was contaminated by the shadow-resolution
+bug for three of the four models, so the comparison only exists because Strand 5 re-predicted
+every frozen cycle from the pre-tournament pin. Faithfulness rests on
+`s5.champion_identity` (max |Δλ| = 4.441e-16 on all 423 frozen cycles) — see
+`docs/notes/errors_overview.md` §1 and §2.4 and the Strand 5 subsection of
+`docs/notes/wc_live.md`.
 
 ### D.2. Structural-driver regression
 

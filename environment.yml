@@ -8,7 +8,7 @@
 # pyproject.toml via the pip section below, so there is one dependency list to
 # maintain, not two. The Cloud Run image uses requirements.txt instead.
 #
-# Version skew, verified harmless (see docs/notes/errors_overview.md):
+# Version skew, verified harmless (see the Strand 5 subsection of docs/notes/wc_live.md):
 # the pinned models replayed by the D.1 reconstruction were trained and saved
 # on Python 3.11.15 / scikit-learn 1.9.0 / numpy 2.4.6 / xgboost 3.2.0 /
 # pymc 5.28.5 / statsmodels 0.14.6, and are replayed here on Python 3.14.3 /
