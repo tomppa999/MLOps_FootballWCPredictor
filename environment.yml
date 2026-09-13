@@ -1,0 +1,31 @@
+# Conda environment for the local/analysis side of the project.
+#
+#   conda env create -f environment.yml     # run from the repo root: the pip
+#   conda activate modelops                 # section's `-e .` is relative to cwd
+#
+# Only the packages that were installed with conda are listed here (this is a
+# `conda env export --from-history` export); everything else comes from
+# pyproject.toml via the pip section below, so there is one dependency list to
+# maintain, not two. The Cloud Run image uses requirements.txt instead.
+#
+# Version skew, verified harmless (see docs/notes/errors_overview.md):
+# the pinned models replayed by the D.1 reconstruction were trained and saved
+# on Python 3.11.15 / scikit-learn 1.9.0 / numpy 2.4.6 / xgboost 3.2.0 /
+# pymc 5.28.5 / statsmodels 0.14.6, and are replayed here on Python 3.14.3 /
+# scikit-learn 1.8.0 / numpy 2.4.3 / xgboost 3.2.0 / pymc 5.28.3 /
+# statsmodels 0.14.6. Wherever the inputs are identical, the replayed lambdas
+# match the logged ones to ~1e-16, and the audit check `s5.champion_identity`
+# holds on all 423 frozen cycles at max |Δλ| = 4.441e-16.
+name: modelops
+channels:
+  - conda-forge
+  - https://repo.anaconda.com/pkgs/main
+  - https://repo.anaconda.com/pkgs/r
+dependencies:
+  - python=3.14
+  - pip
+  - ipykernel
+  - openpyxl
+  - mlflow
+  - pip:
+      - -e ".[dev]"

@@ -17,6 +17,7 @@ dependencies = [
   "keras>=3.0.0",
   "jax>=0.4.0",
   "jaxlib>=0.4.0",
+  "matplotlib>=3.8.0",
   "plotly>=5.22.0",
   "requests>=2.32.0",
   "python-dotenv>=1.0.0",
@@ -36,6 +37,9 @@ dashboard = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "betting/tests"]
+# Put the repo root on sys.path so `pytest tests/analysis` imports `src.*`
+# without an editable install (tests/analysis has no __init__.py).
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 100
