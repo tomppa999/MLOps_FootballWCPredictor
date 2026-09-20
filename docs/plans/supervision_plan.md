@@ -91,16 +91,21 @@ Design and implementation of a reproducible, local-first MLOps pipeline for prob
    - Structure of the thesis
 
 2. **Background** (8–12 pages)
+   - Focus on interjection; clustering 1+2 and 3+4
+   - Umbrella intro statistics
    - 2.1 Probabilistic prediction in football
    - 2.2 Goal-count models (Poisson family, tree-based methods)
+   - Umbrella intro software engineering
    - 2.3 Retraining and concept drift in sequential prediction
    - 2.4 MLOps: principles and relevance to ML experiments
 
 3. **Methodology** (5–8 pages)
-   - 3.1 Experimental design (frozen vs per-round)
-   - 3.2 Evaluation metrics (RPS, NLL, Shannon entropy)
-   - 3.3 Pipeline architecture and implementation method
-   - 3.4 Data sources and feature engineering
+   - intro; Mention errors, refer to chapter 5 and 6.2
+   - 3.1 (DataOps) Data sources and feature engineering
+   - 3.2 (DevOps) Pipeline architecture and implementation method
+   - 3.3 (ModelOps)
+      - 3.3.1 Experimental design (frozen vs per-round)
+      - 3.3.2 Evaluation metrics (RPS, NLL, Shannon entropy)
 
 4. **System Design and Implementation** (8–12 pages)
    - 4.1 Data pipeline (Bronze / Silver / Gold)
@@ -115,7 +120,10 @@ Design and implementation of a reproducible, local-first MLOps pipeline for prob
    - 5.2 RQ1: Accuracy comparison (RPS, NLL by phase)
    - 5.3 RQ2: Entropy resolution trajectories
    - 5.4 RQ3: Drift detection and calibration analysis
-   - 5.5 WC 2022 retrospective
+   - 5.5 Operational reliability
+      - Incident table (date, symptom, root cause, fix, time to recovery, whether predictions were affected)
+      - Few paragraphs on patterns behind them
+      - Fixes
 
 6. **Discussion** (5–8 pages)
    - 6.1 Interpretation of results
