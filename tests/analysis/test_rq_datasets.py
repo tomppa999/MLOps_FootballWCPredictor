@@ -9,10 +9,12 @@ import pandas as pd
 import pytest
 
 from src.analysis.rq_datasets.build_rq_datasets import (
+    PROVENANCE_MD1_FROZEN_COPY,
     assert_unique_keys,
     build_rq1,
     build_rq2,
     build_rq3,
+    neutralise_md1_per_round,
 )
 from src.analysis.rq_datasets.loaders import load_rq1, load_rq2, load_rq3, validate_rq1
 from src.analysis.rq_datasets.paths import (
@@ -235,11 +237,24 @@ class TestBuildRq1:
         assert len(backfills) == 2
         assert backfills["source_run_id"].isna().all()
 
+        # MD1 (match 1001) per_round rows are overwritten with their frozen
+        # twin, including the strand1-reconstructed poisson_glm values.
+        md1_pr = rq1[(rq1["match_id"] == 1001) & (rq1["cadence_mode"] == "per_round")]
+        assert len(md1_pr) == 2
+        assert (md1_pr["provenance"] == PROVENANCE_MD1_FROZEN_COPY).all()
+        pg = md1_pr[md1_pr["model_name"] == "poisson_glm"].iloc[0]
+        assert pg["rps"] == pytest.approx(0.11)
+        assert pg["inference_run_id"] == "reconstruction"
+        assert pg["source_run_id"] == "live_per_round_1001_poisson_glm"
+        md2_pr = rq1[(rq1["match_id"] == 1002) & (rq1["cadence_mode"] == "per_round")]
+        assert (md2_pr["provenance"] == PROVENANCE_LIVE).all()
+
         assert set(rq1["provenance"]) <= {
             PROVENANCE_LIVE,
             PROVENANCE_FROZEN_SHADOW,
             PROVENANCE_BACKFILL_REPRED,
             PROVENANCE_BACKFILL_COPIED,
+            PROVENANCE_MD1_FROZEN_COPY,
         }
         assert rq1["round_label"].notna().all()
         assert_unique_keys(rq1, RQ1_KEY, label="test")
@@ -272,6 +287,55 @@ class TestBuildRq1:
                 strand1_path=s1_path,
                 strand3_path=s3_path,
             )
+
+
+class TestNeutraliseMd1:
+    @staticmethod
+    def _frame(rows: list[dict], round_labels: dict[int, str]) -> pd.DataFrame:
+        df = pd.DataFrame(rows)
+        df["provenance"] = PROVENANCE_LIVE
+        df["source_run_id"] = df["inference_run_id"]
+        df["round_label"] = df["match_id"].map(round_labels)
+        return df
+
+    def test_copies_frozen_values_and_keeps_other_rounds(self):
+        df = self._frame(
+            [
+                _monitoring_row(1, "xgboost", "frozen", inference_run_id="f1", rps=0.10, nll=1.0),
+                _monitoring_row(1, "xgboost", "per_round", inference_run_id="p1", rps=0.30, nll=3.0),
+                _monitoring_row(2, "xgboost", "frozen", inference_run_id="f2", rps=0.10),
+                _monitoring_row(2, "xgboost", "per_round", inference_run_id="p2", rps=0.30),
+            ],
+            {1: "1", 2: "2"},
+        )
+        out = neutralise_md1_per_round(df)
+        md1 = out[(out["match_id"] == 1) & (out["cadence_mode"] == "per_round")].iloc[0]
+        assert md1["rps"] == pytest.approx(0.10) and md1["nll"] == pytest.approx(1.0)
+        assert md1["inference_run_id"] == "f1" and md1["source_run_id"] == "p1"
+        assert md1["provenance"] == PROVENANCE_MD1_FROZEN_COPY
+        frozen_md1 = out[(out["match_id"] == 1) & (out["cadence_mode"] == "frozen")].iloc[0]
+        assert frozen_md1["provenance"] == PROVENANCE_LIVE
+        md2 = out[(out["match_id"] == 2) & (out["cadence_mode"] == "per_round")].iloc[0]
+        assert md2["rps"] == pytest.approx(0.30) and md2["provenance"] == PROVENANCE_LIVE
+        assert len(out) == len(df)
+
+    def test_missing_frozen_twin_raises(self):
+        df = self._frame(
+            [_monitoring_row(1, "xgboost", "per_round", inference_run_id="p1")],
+            {1: "1"},
+        )
+        with pytest.raises(ValueError, match="without a frozen twin"):
+            neutralise_md1_per_round(df)
+
+    def test_noop_without_md1_per_round_rows(self):
+        df = self._frame(
+            [
+                _monitoring_row(2, "xgboost", "frozen", inference_run_id="f2"),
+                _monitoring_row(2, "xgboost", "per_round", inference_run_id="p2", rps=0.3),
+            ],
+            {2: "2"},
+        )
+        pd.testing.assert_frame_equal(neutralise_md1_per_round(df), df)
 
 
 def _entropy_row(

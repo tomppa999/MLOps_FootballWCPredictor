@@ -11,12 +11,14 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.analysis.rq_datasets.build_rq_datasets import assert_unique_keys
+from src.analysis.rq_datasets.build_rq_datasets import (
+    RQ1_PROVENANCE_VALUES,
+    assert_unique_keys,
+)
 from src.analysis.rq_datasets.paths import (
     ANALYSIS_ROOT,
     CADENCE_MODES,
     EXPECTED_ROWS_PER_CADENCE,
-    PROVENANCE_VALUES,
     RQ1_KEY,
     RQ1_PATH,
     RQ2_KEY,
@@ -49,7 +51,7 @@ def validate_rq1(df: pd.DataFrame) -> None:
             raise AssertionError(
                 f"rq1 {cadence}: expected {EXPECTED_ROWS_PER_CADENCE} rows, got {n}",
             )
-    unknown = set(df["provenance"]) - PROVENANCE_VALUES
+    unknown = set(df["provenance"]) - RQ1_PROVENANCE_VALUES
     if unknown:
         raise AssertionError(f"Unexpected provenance values: {unknown}")
     if df["round_label"].isna().any():

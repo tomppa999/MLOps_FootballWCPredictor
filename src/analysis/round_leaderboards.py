@@ -46,7 +46,8 @@ _BLOCK_MAP: Final[dict[str, str]] = {
 ROUND_LEADERBOARDS_PATH: Final[Path] = ANALYSIS_ROOT / "round_leaderboards.csv"
 
 
-def _assign_block(round_label: str) -> str:
+def assign_block(round_label: str) -> str:
+    """Map an rq1 ``round_label`` to its leaderboard block (Final + 3rd place merge)."""
     try:
         return _BLOCK_MAP[str(round_label)]
     except KeyError as exc:
@@ -62,7 +63,7 @@ def build_round_leaderboards(rq1_path: Path = RQ1_PATH) -> pd.DataFrame:
         raise ValueError(f"{rq1_path}: missing columns {sorted(missing)}")
 
     df = df.copy()
-    df["block"] = df["round_label"].map(_assign_block)
+    df["block"] = df["round_label"].map(assign_block)
     df["rmse"] = (df["rmse_h"] + df["rmse_a"]) / 2.0
 
     round_rows = (

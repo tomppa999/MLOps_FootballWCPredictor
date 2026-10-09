@@ -53,6 +53,28 @@ from src.analysis.rq_datasets.paths import (
 
 logger = logging.getLogger(__name__)
 
+# The per_round champion refit fired prematurely on Jun 12 (after Match 1, on
+# 6946 Gold rows; wc_live.md MD1, chronology.md).  The first correctly gated
+# refit ran after MD1, so by design frozen ≡ per_round on MD1.  The analysis
+# convention (wc_live.md MD1: "use champion_frozen predictions for both cadence
+# modes") is applied here at source: every per_round MD1 row takes its frozen
+# twin's predictions and metrics.  Defined in this module rather than in
+# paths.py because paths.py is a dep of every D.1 strand stage.
+PROVENANCE_MD1_FROZEN_COPY = "md1_frozen_copied"
+RQ1_PROVENANCE_VALUES: frozenset[str] = PROVENANCE_VALUES | {PROVENANCE_MD1_FROZEN_COPY}
+MD1_ROUND_LABEL = "1"
+_PREDICTION_COLUMNS = (
+    "lambda_h",
+    "lambda_a",
+    "p_home",
+    "p_draw",
+    "p_away",
+    "rps",
+    "nll",
+    "rmse_h",
+    "rmse_a",
+)
+
 _ENTROPY_COLS = (
     "entropy_r32",
     "entropy_r16",
@@ -128,6 +150,45 @@ def assert_rps_nll_recomputable(df: pd.DataFrame, *, tol: float = METRIC_TOL) ->
         )
 
 
+def neutralise_md1_per_round(rq1: pd.DataFrame) -> pd.DataFrame:
+    """Overwrite every per_round MD1 row with its frozen twin (premature-refit fix).
+
+    Copies predictions and metrics plus ``inference_run_id`` (the values' true
+    origin); the replaced live per_round run id is kept in ``source_run_id``.
+    Raises if any per_round MD1 row has no frozen twin.
+    """
+    md1 = rq1["round_label"].astype(str) == MD1_ROUND_LABEL
+    target = md1 & (rq1["cadence_mode"] == "per_round")
+    if not target.any():
+        return rq1
+
+    twins = (
+        rq1.loc[md1 & (rq1["cadence_mode"] == "frozen"), ["match_id", "model_name", "inference_run_id", *_PREDICTION_COLUMNS]]
+        .set_index(["match_id", "model_name"])
+    )
+    keys = pd.MultiIndex.from_frame(rq1.loc[target, ["match_id", "model_name"]])
+    missing = keys[~keys.isin(twins.index)]
+    if len(missing):
+        raise ValueError(f"per_round MD1 rows without a frozen twin: {missing.tolist()[:5]}")
+    twin_rows = twins.loc[keys]
+
+    out = rq1.copy()
+    n_changed = 0
+    for col in _PREDICTION_COLUMNS:
+        new = twin_rows[col].to_numpy()
+        n_changed = max(n_changed, int((np.abs(out.loc[target, col].to_numpy() - new) > METRIC_TOL).sum()))
+        out.loc[target, col] = new
+    out.loc[target, "source_run_id"] = out.loc[target, "inference_run_id"]
+    out.loc[target, "inference_run_id"] = twin_rows["inference_run_id"].to_numpy()
+    out.loc[target, "provenance"] = PROVENANCE_MD1_FROZEN_COPY
+    logger.info(
+        "rq1: %d per_round MD1 rows set to their frozen twin (%d carried different values)",
+        int(target.sum()),
+        n_changed,
+    )
+    return out
+
+
 def build_rq1(
     *,
     live_root: Path = LIVE_ROOT,
@@ -194,7 +255,9 @@ def build_rq1(
         missing_ids = rq1.loc[rq1["round_label"].isna(), "match_id"].unique().tolist()
         raise ValueError(f"round_label missing for match_ids: {missing_ids[:10]}")
 
-    unknown = set(rq1["provenance"]) - PROVENANCE_VALUES
+    rq1 = neutralise_md1_per_round(rq1)
+
+    unknown = set(rq1["provenance"]) - RQ1_PROVENANCE_VALUES
     if unknown:
         raise AssertionError(f"Unexpected provenance values: {unknown}")
 
