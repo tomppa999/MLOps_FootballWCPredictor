@@ -1,0 +1,9 @@
+model_name,n_pairs,n_diff,frac_diff,is_contrast
+bayesian_poisson,104,80,0.769231,True
+mean_rate_poisson,104,0,0,False
+negbin_glm,104,0,0,False
+poisson_glm,104,80,0.769231,True
+random_forest,104,0,0,False
+ridge,104,0,0,False
+sarimax,104,0,0,False
+xgboost,104,80,0.769231,True

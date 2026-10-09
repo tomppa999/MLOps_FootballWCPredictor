@@ -330,22 +330,22 @@ stages:
       size: 38381
     - path: src/analysis/rq_datasets/
       hash: md5
-      md5: 6e102dc01a06df9d207be85f2e80d809.dir
-      size: 38974
+      md5: 4fc0b3e10a76e8af3c098a10763ec0f1.dir
+      size: 41534
       nfiles: 6
     outs:
     - path: data/analysis/rq1_matches.csv
       hash: md5
-      md5: be5985ea2fc6c949e42dc22e34b1d840
-      size: 534194
+      md5: d66354508fece87b7a3bbd71dd8658e8
+      size: 535801
     - path: data/analysis/rq2_entropy.csv
       hash: md5
       md5: 3b4eb88bbb20e556abb94a15615c1a1d
       size: 796823
     - path: data/analysis/rq3_calibration.csv
       hash: md5
-      md5: 9a9c446b5c529acd7ad10c24e585977f
-      size: 767988
+      md5: d3926ad951475a2428f22e395dc81844
+      size: 767877
   audit:
     cmd: python -m src.analysis.audit_reconstruction
     deps:
@@ -410,12 +410,12 @@ stages:
     deps:
     - path: data/analysis/rq1_matches.csv
       hash: md5
-      md5: be5985ea2fc6c949e42dc22e34b1d840
-      size: 534194
+      md5: d66354508fece87b7a3bbd71dd8658e8
+      size: 535801
     - path: src/analysis/round_leaderboards.py
       hash: md5
-      md5: 0aa530019c1758ead3290dbd8aa72f73
-      size: 4080
+      md5: a7547f9dd9f80c55daef68d24078f15a
+      size: 4167
     - path: src/analysis/rq_datasets/paths.py
       hash: md5
       md5: a8601cfabecec751240bf6800f343530
@@ -423,51 +423,212 @@ stages:
     outs:
     - path: data/analysis/round_leaderboards.csv
       hash: md5
-      md5: d0cdf8860cf7ef7283f82f3cfdb9d45f
-      size: 18414
+      md5: 90ffccaed7c3e2538dc7a604a4d3e56c
+      size: 18407
   figures:
     cmd:
     - python -m src.analysis.plot_entropy_trajectory
+    - python -m src.analysis.plot_entropy_stages
     - python -m src.analysis.rq3_calibration_overview
     deps:
     - path: data/analysis/round_leaderboards.csv
       hash: md5
-      md5: d0cdf8860cf7ef7283f82f3cfdb9d45f
-      size: 18414
+      md5: 90ffccaed7c3e2538dc7a604a4d3e56c
+      size: 18407
     - path: data/analysis/rq1_matches.csv
       hash: md5
-      md5: be5985ea2fc6c949e42dc22e34b1d840
-      size: 534194
+      md5: d66354508fece87b7a3bbd71dd8658e8
+      size: 535801
     - path: data/analysis/rq2_entropy.csv
       hash: md5
       md5: 3b4eb88bbb20e556abb94a15615c1a1d
       size: 796823
     - path: data/analysis/rq3_calibration.csv
       hash: md5
-      md5: 9a9c446b5c529acd7ad10c24e585977f
-      size: 767988
+      md5: d3926ad951475a2428f22e395dc81844
+      size: 767877
     - path: data/reconstruction/audit_report.json
       hash: md5
       md5: 92bbb73762357c78477729d52c89dd36
       size: 16614
+    - path: docs/tables/rq1_paired_phase.csv
+      hash: md5
+      md5: ed39212682baea9faac63a33609852ee
+      size: 6821
+    - path: docs/tables/rq1_paired_rounds.csv
+      hash: md5
+      md5: 880bd4f66a0df9908b4d667b14e98531
+      size: 13923
+    - path: docs/tables/rq1_pairing_coverage.csv
+      hash: md5
+      md5: 33b47fb00b9116537cf401dc91145188
+      size: 275
+    - path: docs/tables/rq2_paired_matchday.csv
+      hash: md5
+      md5: d7f9c6443a7f0e9849432e166da177cc
+      size: 37932
+    - path: docs/tables/rq2_paired_stage.csv
+      hash: md5
+      md5: 346dc1777c753b8a9f752b1ea669c0e4
+      size: 22973
+    - path: docs/tables/rq2_pairing_coverage.csv
+      hash: md5
+      md5: b002ff12649514e6636aba12d09cb3ae
+      size: 360
+    - path: docs/tables/rq3_calibration_phase.csv
+      hash: md5
+      md5: 67b57ac7baf00574579e1ddfae26c6f8
+      size: 11526
+    - path: docs/tables/rq3_calibration_rounds.csv
+      hash: md5
+      md5: ed3726d4d9474c43a6d373f46b77ea20
+      size: 22313
+    - path: docs/tables/rq3_trend.csv
+      hash: md5
+      md5: 34555e7560ad10943a8272f2b3d86762
+      size: 2046
+    - path: src/analysis/plot_entropy_stages.py
+      hash: md5
+      md5: 08a083b1220231a5651d0dc51f8f1e9d
+      size: 5205
     - path: src/analysis/plot_entropy_trajectory.py
       hash: md5
       md5: f6c5caa5b9fe2c989db109f1383737c2
       size: 6226
     - path: src/analysis/rq3_calibration_overview.py
       hash: md5
-      md5: 608f10beffcc7d239e6a5a76a55302e4
-      size: 6801
+      md5: ff2bef60d55fe084c2802bed73aa78c1
+      size: 11663
     - path: src/analysis/rq_datasets/paths.py
       hash: md5
       md5: a8601cfabecec751240bf6800f343530
       size: 3465
     outs:
+    - path: docs/figures/calibration-contrast-group-vs-ko.png
+      hash: md5
+      md5: fa59a63c530415620bc0b833d4385523
+      size: 385381
     - path: docs/figures/calibration-group-vs-ko.png
       hash: md5
-      md5: 70b86235aa62b834fc3b208ce8aca1c0
-      size: 287067
+      md5: 27e33c89d8337d1322b72bcfa6e1e6c4
+      size: 286889
+    - path: docs/figures/entropy-stages.png
+      hash: md5
+      md5: be864039d45e9f2944f705410c10e832
+      size: 303046
     - path: docs/figures/entropy-trajectory.png
       hash: md5
-      md5: 1ee2529d8e839ccfb82cc08a19cefb2d
-      size: 243072
+      md5: 750708df42b1a526cb3483635b5f9787
+      size: 243347
+  rq1:
+    cmd: python -m src.analysis.rq1_paired
+    deps:
+    - path: data/analysis/rq1_matches.csv
+      hash: md5
+      md5: d66354508fece87b7a3bbd71dd8658e8
+      size: 535801
+    - path: src/analysis/round_leaderboards.py
+      hash: md5
+      md5: a7547f9dd9f80c55daef68d24078f15a
+      size: 4167
+    - path: src/analysis/rq1_paired.py
+      hash: md5
+      md5: a1e42b09c58819a854c26a84585a8dee
+      size: 13522
+    - path: src/analysis/rq_datasets/paths.py
+      hash: md5
+      md5: a8601cfabecec751240bf6800f343530
+      size: 3465
+    outs:
+    - path: data/analysis/rq1_paired_diffs.csv
+      hash: md5
+      md5: 8625ee7d34305d58163391e8d4190e5e
+      size: 40259
+    - path: docs/tables/rq1_paired_phase.csv
+      hash: md5
+      md5: ed39212682baea9faac63a33609852ee
+      size: 6821
+    - path: docs/tables/rq1_paired_rounds.csv
+      hash: md5
+      md5: 880bd4f66a0df9908b4d667b14e98531
+      size: 13923
+    - path: docs/tables/rq1_pairing_coverage.csv
+      hash: md5
+      md5: 33b47fb00b9116537cf401dc91145188
+      size: 275
+  rq2:
+    cmd: python -m src.analysis.rq2_paired
+    deps:
+    - path: data/analysis/rq2_entropy.csv
+      hash: md5
+      md5: 3b4eb88bbb20e556abb94a15615c1a1d
+      size: 796823
+    - path: src/analysis/rq1_paired.py
+      hash: md5
+      md5: a1e42b09c58819a854c26a84585a8dee
+      size: 13522
+    - path: src/analysis/rq2_paired.py
+      hash: md5
+      md5: df2c4e1a0fdad7ceb327ad814fc51873
+      size: 17153
+    - path: src/analysis/rq_datasets/paths.py
+      hash: md5
+      md5: a8601cfabecec751240bf6800f343530
+      size: 3465
+    outs:
+    - path: data/analysis/rq2_paired_diffs.csv
+      hash: md5
+      md5: 305930b59a1b4cfff8007713fbeb3096
+      size: 535755
+    - path: docs/tables/rq2_paired_matchday.csv
+      hash: md5
+      md5: d7f9c6443a7f0e9849432e166da177cc
+      size: 37932
+    - path: docs/tables/rq2_paired_stage.csv
+      hash: md5
+      md5: 346dc1777c753b8a9f752b1ea669c0e4
+      size: 22973
+    - path: docs/tables/rq2_pairing_coverage.csv
+      hash: md5
+      md5: b002ff12649514e6636aba12d09cb3ae
+      size: 360
+  rq3:
+    cmd: python -m src.analysis.rq3_calibration_drift
+    deps:
+    - path: data/analysis/rq1_matches.csv
+      hash: md5
+      md5: d66354508fece87b7a3bbd71dd8658e8
+      size: 535801
+    - path: data/analysis/rq3_calibration.csv
+      hash: md5
+      md5: d3926ad951475a2428f22e395dc81844
+      size: 767877
+    - path: src/analysis/round_leaderboards.py
+      hash: md5
+      md5: a7547f9dd9f80c55daef68d24078f15a
+      size: 4167
+    - path: src/analysis/rq1_paired.py
+      hash: md5
+      md5: a1e42b09c58819a854c26a84585a8dee
+      size: 13522
+    - path: src/analysis/rq3_calibration_drift.py
+      hash: md5
+      md5: 09c205278e18a680273a0bb0eed25963
+      size: 26906
+    - path: src/analysis/rq_datasets/paths.py
+      hash: md5
+      md5: a8601cfabecec751240bf6800f343530
+      size: 3465
+    outs:
+    - path: docs/tables/rq3_calibration_phase.csv
+      hash: md5
+      md5: 67b57ac7baf00574579e1ddfae26c6f8
+      size: 11526
+    - path: docs/tables/rq3_calibration_rounds.csv
+      hash: md5
+      md5: ed3726d4d9474c43a6d373f46b77ea20
+      size: 22313
+    - path: docs/tables/rq3_trend.csv
+      hash: md5
+      md5: 34555e7560ad10943a8272f2b3d86762
+      size: 2046

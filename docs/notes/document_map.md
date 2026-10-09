@@ -94,6 +94,7 @@ Paper section names are placeholders for the future condensed paper (not the old
 | File | Status | Feeds | Note |
 |------|--------|-------|------|
 | [docs/figures/entropy-trajectory.png](../figures/entropy-trajectory.png) | `generated` | results RQ2; paper | DVC `figures` stage |
+| [docs/figures/entropy-stages.png](../figures/entropy-stages.png) | `generated` | results RQ2; paper | DVC `figures` stage; 2×3 stage panels |
 | [docs/figures/calibration-group-vs-ko.png](../figures/calibration-group-vs-ko.png) | `generated` | results RQ3; paper | DVC `figures` stage |
 | [docs/figures/Architecture.png](../figures/Architecture.png) | `source-only` | system (Ch 4) | Pre-thesis diagram |
 | [docs/figures/Architecture_final.png](../figures/Architecture_final.png) | `source-only` | system (Ch 4); paper | Prefer over Architecture.png |
@@ -132,7 +133,7 @@ Paper section names are placeholders for the future condensed paper (not the old
 
 1. **Literature on retraining cadence / concept drift / continuous training** is absent from `literature_review.md` and `references.bib` (16 entries, all football goal modeling or general MLOps). Needed before paper related-work / discussion.
 2. **D.2** (structural-driver regression) and **D.3** (WC 2022 frozen retrospective) are open in `thesis.md`.
-3. **No findings memo** yet — RQ1 paired stats, RQ2/RQ3 claim language for the paper.
+3. **Findings memo** (`docs/notes/findings_memo.md`) has RQ1 and RQ2 — RQ3 claim language still open.
 4. **Stale LaTeX** (`paper.tex`, optionally `wc_mlops_report.tex`) not yet moved under `docs/archive/` — marked only; move is a follow-up.
 5. **University thesis guidelines** (page/word limits) unchecked (D.4 item).
 6. **New paper Overleaf file** does not exist; do not revise the course `paper.tex` in place.

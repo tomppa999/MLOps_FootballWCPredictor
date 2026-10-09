@@ -1,0 +1,7 @@
+grain,key,n_cycles,n_paired,n_synthetic,n_unpaired,offset_min,offset_median,offset_max,n_live_pairs,n_states
+cadence,frozen,427,422,4,1,7.53996,8.6874,14.9777,422,
+cadence,per_round,426,422,4,0,7.53996,8.6874,14.9777,422,
+model,xgboost,,,,,,,,422,122
+model,bayesian_poisson,,,,,,,,422,122
+model,poisson_glm,,,,,,,,422,122
+model,mean_rate_poisson,,,,,,,,422,88

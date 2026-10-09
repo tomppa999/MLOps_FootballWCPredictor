@@ -145,9 +145,70 @@ stages:
     outs:
       - data/analysis/round_leaderboards.csv
 
+  # RQ1 main table: paired per_round - frozen differences per match for the
+  # three models whose cadences actually diverge, with bootstrap CIs and
+  # sign-flip permutation p-values.  The docs/tables CSVs are the paper's and
+  # thesis's single source, so they are committed to Git like the figures.
+  rq1:
+    cmd: python -m src.analysis.rq1_paired
+    deps:
+      - data/analysis/rq1_matches.csv
+      - src/analysis/round_leaderboards.py
+      - src/analysis/rq1_paired.py
+      - src/analysis/rq_datasets/paths.py
+    outs:
+      - data/analysis/rq1_paired_diffs.csv
+      - docs/tables/rq1_paired_phase.csv:
+          cache: false
+      - docs/tables/rq1_paired_rounds.csv:
+          cache: false
+      - docs/tables/rq1_pairing_coverage.csv:
+          cache: false
+
+  # RQ2: paired frozen − per_round Shannon-entropy differences on twin
+  # inference cycles (nearest frozen within 30 min), cycle and distinct-state
+  # grains, with bootstrap CIs and sign-flip permutation p-values.
+  rq2:
+    cmd: python -m src.analysis.rq2_paired
+    deps:
+      - data/analysis/rq2_entropy.csv
+      - src/analysis/rq1_paired.py
+      - src/analysis/rq2_paired.py
+      - src/analysis/rq_datasets/paths.py
+    outs:
+      - data/analysis/rq2_paired_diffs.csv
+      - docs/tables/rq2_paired_stage.csv:
+          cache: false
+      - docs/tables/rq2_paired_matchday.csv:
+          cache: false
+      - docs/tables/rq2_pairing_coverage.csv:
+          cache: false
+
+  # RQ3: ECE + 3-way Brier decomposition over time (frozen vs per_round),
+  # with paired match bootstrap / arm-swap inference and a trend test for
+  # frozen calibration degradation.  rq3_calibration.csv is a consistency
+  # check against the pre-binned reliability rows.
+  rq3:
+    cmd: python -m src.analysis.rq3_calibration_drift
+    deps:
+      - data/analysis/rq1_matches.csv
+      - data/analysis/rq3_calibration.csv
+      - src/analysis/round_leaderboards.py
+      - src/analysis/rq1_paired.py
+      - src/analysis/rq3_calibration_drift.py
+      - src/analysis/rq_datasets/paths.py
+    outs:
+      - docs/tables/rq3_calibration_rounds.csv:
+          cache: false
+      - docs/tables/rq3_calibration_phase.csv:
+          cache: false
+      - docs/tables/rq3_trend.csv:
+          cache: false
+
   figures:
     cmd:
       - python -m src.analysis.plot_entropy_trajectory
+      - python -m src.analysis.plot_entropy_stages
       - python -m src.analysis.rq3_calibration_overview
     deps:
       - data/analysis/rq1_matches.csv
@@ -155,12 +216,26 @@ stages:
       - data/analysis/rq3_calibration.csv
       - data/analysis/round_leaderboards.csv
       - data/reconstruction/audit_report.json
+      - docs/tables/rq1_paired_phase.csv
+      - docs/tables/rq1_paired_rounds.csv
+      - docs/tables/rq1_pairing_coverage.csv
+      - docs/tables/rq2_paired_stage.csv
+      - docs/tables/rq2_paired_matchday.csv
+      - docs/tables/rq2_pairing_coverage.csv
+      - docs/tables/rq3_calibration_rounds.csv
+      - docs/tables/rq3_calibration_phase.csv
+      - docs/tables/rq3_trend.csv
       - src/analysis/plot_entropy_trajectory.py
+      - src/analysis/plot_entropy_stages.py
       - src/analysis/rq3_calibration_overview.py
       - src/analysis/rq_datasets/paths.py
     outs:
       # Committed to Git for the thesis, so DVC tracks them without caching.
       - docs/figures/entropy-trajectory.png:
           cache: false
+      - docs/figures/entropy-stages.png:
+          cache: false
       - docs/figures/calibration-group-vs-ko.png:
+          cache: false
+      - docs/figures/calibration-contrast-group-vs-ko.png:
           cache: false
