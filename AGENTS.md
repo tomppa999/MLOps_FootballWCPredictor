@@ -34,6 +34,8 @@ This repository implements a minimal but serious MLOps pipeline for football Wor
 - DagsHub is integrated as MLflow tracking remote and DVC artifact remote.
 - GCP Cloud Run deployment is in progress (target June 10, 2026).
 - The project must work fully locally without cloud.
+- Run commands in the conda env `modelops` from `environment.yml` (`conda run -n modelops`).
+- Current MLflow rejects the default `file:./mlruns` store unless `MLFLOW_ALLOW_FILE_STORE=true`. Set it on the env with `conda env config vars set MLFLOW_ALLOW_FILE_STORE=true -n modelops`.
 
 ## Disallowed additions without explicit approval
 - Databricks
