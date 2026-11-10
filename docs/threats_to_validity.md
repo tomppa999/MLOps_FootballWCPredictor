@@ -112,6 +112,59 @@ dataset is substantially smaller than comparable club football datasets. Models 
 
 ---
 
+## Evaluation threats
+
+**Model selection under frozen conditions**
+Model selection used pre-tournament holdout performance under frozen fitted parameters,
+together with model-family diversity. Strong performance under that scheme does not imply
+the greatest benefit from per-round refitting. The experiment measures the effect of
+refitting for the selected models with fixed hyperparameters; it does not identify the
+model class or hyperparameters best suited to repeated refitting.
+
+**Dependence in accuracy and entropy comparisons**
+RQ1 pairs the two forecasts on each match. RQ2 pairs snapshots and gives
+each changed state one observation. Individual-observation bootstrap draws
+and independent sign flips rely on assumptions about the joint distribution
+of the paired observations. Matches can share teams and model fits.
+Successive entropy states share tournament results and fitted parameters
+even after deduplication. Pointwise interval coverage and permutation
+p-values are conditional on the validity of those resampling assumptions.
+
+**Post-result correction families**
+The four [Holm families](notes/multiple_comparisons.md) were revised after
+inspection of the results. The reporting hierarchy is exploratory. Holm's
+within-family error control assumes valid individual p-values and a fixed
+family. It addresses dependence among tests within such a family, while
+dependence within the original resampling units remains a separate issue.
+
+**Calibration trends in one tournament**
+The analysis has 104 total matches, 80 treated matches, and four or five
+trend periods, with small late-round cells. Shuffling period labels assumes
+exchangeability across periods despite changing opponents, outcomes, and
+forecast difficulty. Forecast arm swaps also require exchangeability under
+their null. Binned ECE is sensitive to sample size and bin composition.
+Observed calibration changes may reflect case mix or sampling variation.
+These constraints limit inference about concept drift and whether
+refitting mitigated it. Results concern two policies in one tournament,
+with generalisation to other tournaments and policies left open.
+
+## Limits of interpretation and reporting
+
+- Separate comparisons within group and knockout phases leave the
+  between-phase difference untested.
+- RQ2 entropy describes the concentration of team probabilities. The
+  comparison of levels leaves resolution speed and forecast quality open.
+- Pointwise bootstrap intervals and Holm-adjusted p-values use different
+  error criteria. For XGBoost knockout ECE the raw arm-swap p-value and
+  bootstrap CI also disagree. They use different resampling procedures.
+  Report both and qualify the inference as in the
+  [findings memo](notes/findings_memo.md#levels-and-the-knockout-ece-result).
+- The audited reconstruction and its identity checks belong in Methods
+  as forecast provenance. See the
+  [reconstruction record](notes/wc_live.md#done--strand-5-cadence-correct-frozen-entropy-supersedes-strand-4).
+
+---
+
 ## Monitoring and deployment threats
 
 **Alert threshold may be too permissive**
@@ -131,27 +184,12 @@ the last validated snapshot. This introduces staleness risk precisely when curre
 
 **No automated data drift detection**
 The pipeline does not implement statistical drift detection (e.g. PSI, KS tests, or KL divergence
-monitors) on incoming features. This is a deliberate omission justified by the nature of the data:
-
-- *Goal counts* are inherently Poisson-distributed with low, stable rate parameters (~1.3–1.5 per
-  team per match across decades of international football). The distribution's shape is governed by
-  the rules of the game and changes only on generational timescales.
-- *Elo ratings* are normally distributed by construction — the system is zero-sum and mean-reverting
-  around ~1500. Drift in Elo would require a systematic change in the rating algorithm itself, not
-  in match outcomes.
-- *Context features* (`is_neutral`, `is_knockout`, `competition_tier`) are categorical and
-  schema-defined; they cannot drift in the distributional sense.
-
-Additionally, the World Cup tournament window (~30 matches over 4 weeks) is far too short to
-detect meaningful distributional shift with any statistical power. A KS test or similar would
-require hundreds of observations to distinguish real drift from sampling noise at conventional
-significance levels. Any alert fired during such a short window would almost certainly be a
-false positive, adding operational noise without actionable signal.
-
-The residual risk is that a slow, multi-year shift in international football's scoring patterns
-(e.g. from rule changes or tactical evolution) could go unnoticed between tournaments. This is
-mitigated by retraining on the full updated dataset before each major tournament, which implicitly
-absorbs any gradual distributional change.
+monitors) on incoming features. The live monitoring measures forecast performance
+on settled matches. Team strength and the mix of context features can change as
+the field narrows. Over the short tournament, expected changes in fixture mix and
+small period samples complicate interpretation of shifts. The offline RQ3
+analysis therefore reports calibration diagnostics and their limits as described
+under [evaluation threats](#evaluation-threats).
 
 **API-Football rate limits and silent failures**
 The ingestion pipeline is rate-limited by the API-Football subscription tier. Silent failures

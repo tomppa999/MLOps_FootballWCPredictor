@@ -117,17 +117,19 @@ operational audit trail.
 
 ### Model and cadence scope
 
-After reconstruction, `xgboost` remains the only model with a clean frozen↔per_round
-contrast across the full tournament. The three other refit-eligible roster shadows had
-contaminated frozen columns due to the resolution bug; `mean_rate_poisson` frozen
-reconstruction was dropped by decision (λ spread ~2e-3 is noise). Cross-family cadence
-comparisons for RQ2 entropy therefore rely on four roster models × two modes, with the
-caveat that three frozen columns required offline correction.
+XGBoost supplies a live match-level contrast for the treated rounds. Poisson
+GLM and Bayesian Poisson supply contrasts using audited frozen match forecasts
+reconstructed in Strand 1. The frozen entropy trajectory uses the Strand 5
+reconstruction. The three refitting models enter the core RQ2 comparisons,
+and mean-rate Poisson serves as a non-refitting diagnostic. See the
+[findings memo](findings_memo.md#provenance-and-follow-up-scope) for provenance
+and audit evidence.
 
 ### Entropy trajectory gaps
 
 Four intermediate entropy-trajectory snapshots are missing from both cadence modes (three
 from the R32 scheduler pause, one from the R16 IPv6 stall). These affect RQ2 resolution
-curves only; RQ1 per-match monitoring and refit gates are untouched. D.1 reconstructs
-the four points by re-running inference and simulation at synthetic intermediate locked
-states with the round's fixed seed.
+curves. D.1 reconstructs the four points by re-running inference and simulation
+at synthetic intermediate locked states with the round's fixed seed. The
+canonical RQ2 comparison uses observed cycles and excludes these four
+synthetic snapshots.

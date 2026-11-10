@@ -858,13 +858,16 @@ pairings once host pairings before the Jun 27 orientation fix are excluded (`err
 §2.5); `s5.post_refit_divergence` requires the GLMs *not* to reproduce live's contaminated frozen
 rows, which is the whole point of the strand.
 
-**Headline result.** Frozen carries more residual uncertainty than per_round for all four models,
+**Earlier descriptive result across all cycles.** Frozen carries more residual uncertainty than per_round for all four models,
 but by amounts two orders of magnitude apart, and every model flips sign somewhere in the
 tournament: `poisson_glm` frozen-minus-per_round `entropy_winner` mean **+0.0080** nats
 (median +0.0122, n = 422 paired cycles), against `xgboost` +0.0552, `bayesian_poisson` +0.0244
 and `mean_rate_poisson` +0.0004. **No claim that the models agree on the cadence effect is
 supportable.** Full table in `docs/plans/thesis.md` D.1; figure at
 `docs/figures/entropy-trajectory.png`.
+
+The [findings memo](findings_memo.md#rq2--tournament-uncertainty-and-forecast-concentration)
+gives the approved state-weighted treated-window results and their interpretation.
 
 **Version skew, verified harmless.** The pinned models were trained and saved on Python 3.11.15 /
 scikit-learn 1.9.0 / numpy 2.4.6 (Cloud Run image) and are replayed locally on Python 3.14.3 /

@@ -19,9 +19,9 @@ Paper section names are placeholders for the future condensed paper (not the old
 
 | File | Status | Feeds | Note |
 |------|--------|-------|------|
-| [README.md](../../README.md) | `canonical` | journal; method (Ch 3) | Public how-to-run; reproduce path for D.1 figures |
+| [README.md](../../README.md) | `canonical` | journal; method (Ch 3) | Targeted reproduction of the RQ tables and figures |
 | [AGENTS.md](../../AGENTS.md) | `reference` | — | Agent/contributor constraints; not cited in thesis |
-| [dvc.yaml](../../dvc.yaml) | `canonical` | method (Ch 3); timeline (Ch 4) | Pipeline + post-WC analysis stages (`rq_datasets`, `audit`, `leaderboards`, `figures`) |
+| [dvc.yaml](../../dvc.yaml) | `canonical` | method (Ch 3); timeline (Ch 4) | Pipeline, reconstruction, RQ analyses, and figures |
 
 ---
 
@@ -43,6 +43,8 @@ Paper section names are placeholders for the future condensed paper (not the old
 | [docs/notes/errors_overview.md](errors_overview.md) | `canonical` | method (Ch 3); incident (§5.5); discussion (Ch 6) | Cross-cutting defects + reconstruction threats |
 | [docs/notes/wc_live.md](wc_live.md) | `canonical` | results (Ch 5); incident (§5.5); journal | Per-matchday live log + post-tournament D.1 |
 | [docs/notes/results_pre_wc.md](results_pre_wc.md) | `canonical` | results §5.1; journal | Pre-WC model selection numbers |
+| [docs/notes/findings_memo.md](findings_memo.md) | `canonical` | results §5.2–5.4; discussion (Ch 6) | Agreed interpretations of RQ1–RQ3 and their limits |
+| [docs/notes/multiple_comparisons.md](multiple_comparisons.md) | `canonical` | method (Ch 3); results (Ch 5) | Four approved Holm families and decision timing |
 | [docs/notes/writing_hooks.md](writing_hooks.md) | `canonical` | intro; discussion (Ch 6) | Framings that do not live in code |
 | [docs/notes/thesis_prose.md](thesis_prose.md) | `canonical` | method (Ch 3); discussion (Ch 6) | Draft paragraphs on defects / observability |
 | [docs/notes/document_map.md](document_map.md) | `canonical` | journal | This file |
@@ -133,7 +135,7 @@ Paper section names are placeholders for the future condensed paper (not the old
 
 1. **Literature on retraining cadence / concept drift / continuous training** is absent from `literature_review.md` and `references.bib` (16 entries, all football goal modeling or general MLOps). Needed before paper related-work / discussion.
 2. **D.2** (structural-driver regression) and **D.3** (WC 2022 frozen retrospective) are open in `thesis.md`.
-3. **Findings memo** (`docs/notes/findings_memo.md`) has RQ1 and RQ2 — RQ3 claim language still open.
+3. **Fresh-clone check** of the final Holm tables and figures remains separate from the local regeneration.
 4. **Stale LaTeX** (`paper.tex`, optionally `wc_mlops_report.tex`) not yet moved under `docs/archive/` — marked only; move is a follow-up.
 5. **University thesis guidelines** (page/word limits) unchecked (D.4 item).
 6. **New paper Overleaf file** does not exist; do not revise the course `paper.tex` in place.

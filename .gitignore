@@ -90,6 +90,15 @@ TAU template EN.pptx
 .pptx_deps2/
 docs/presentation/logs/
 logs/
+# Local seminar materials and evaluation timeline
+/docs/seminar/
+/docs/figures/evaluation-timeline.pdf
+/docs/figures/evaluation-timeline.png
+/docs/figures/evaluation-timeline.svg
+/src/analysis/build_seminar_slides.mjs
+/src/analysis/build_seminar_slides.py
+/src/analysis/plot_evaluation_timeline.py
+/tests/analysis/test_evaluation_timeline.py
 
 # Betting feature: track code under betting/, ignore generated data/outputs
 betting/scorelines/

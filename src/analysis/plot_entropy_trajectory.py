@@ -65,6 +65,13 @@ def first_kickoff(path: Path = RQ1_PATH) -> pd.Timestamp:
     return pd.to_datetime(kickoffs, utc=True, format="mixed").min()
 
 
+def load_round_kickoffs(path: Path = RQ1_PATH) -> dict[str, pd.Timestamp]:
+    """Return the first scheduled kickoff in each tournament round."""
+    matches = pd.read_csv(path, usecols=["round_label", "kickoff_utc"], dtype={"round_label": str})
+    matches["kickoff_utc"] = pd.to_datetime(matches["kickoff_utc"], utc=True, format="mixed")
+    return matches.groupby("round_label")["kickoff_utc"].min().to_dict()
+
+
 def matchday_boundaries(df: pd.DataFrame) -> dict[str, pd.Timestamp]:
     """First cycle timestamp of each matchday after the first, in order."""
     firsts = df.groupby("matchday_label")["inference_timestamp"].min()
@@ -72,7 +79,9 @@ def matchday_boundaries(df: pd.DataFrame) -> dict[str, pd.Timestamp]:
     return {label: firsts[label] for label in present[1:]}
 
 
-def plot_entropy(df: pd.DataFrame, *, x_start: pd.Timestamp) -> plt.Figure:
+def plot_entropy(
+    df: pd.DataFrame, *, x_start: pd.Timestamp, round_kickoffs: dict[str, pd.Timestamp],
+) -> plt.Figure:
     """Render winner-entropy trajectories for both cadence modes.
 
     Pre-tournament cycles stay in the data but are cropped from view, so the
@@ -80,15 +89,19 @@ def plot_entropy(df: pd.DataFrame, *, x_start: pd.Timestamp) -> plt.Figure:
     """
     fig, ax = plt.subplots(figsize=(13, 6.5))
 
-    for label, boundary in matchday_boundaries(df).items():
+    for label, cycle_start in matchday_boundaries(df).items():
+        boundary = cycle_start if label == "Complete" else round_kickoffs[label]
         ax.axvline(boundary, color="0.85", linewidth=0.8, zorder=1)
+        # Place Final to the left of its line so it clears the Complete label.
+        is_final = label == "Final"
         ax.annotate(
             label,
             xy=(boundary, ENTROPY_H_MAX * 1.02),
-            xytext=(3, 0),
+            xytext=(-3 if is_final else 3, 0),
             textcoords="offset points",
             fontsize=7,
             color="0.45",
+            ha="right" if is_final else "left",
             va="center",
         )
 
@@ -167,10 +180,11 @@ def main() -> None:
         f"for {df['model_name'].nunique()} models",
     )
 
-    x_start = first_kickoff()
+    round_kickoffs = load_round_kickoffs()
+    x_start = min(round_kickoffs.values())
     print(f"Cropping x-axis to the tournament window, from {x_start}")
 
-    figure = plot_entropy(df, x_start=x_start)
+    figure = plot_entropy(df, x_start=x_start, round_kickoffs=round_kickoffs)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(args.output, dpi=200)
     plt.close(figure)

@@ -30,22 +30,20 @@ acknowledge in limitations.
 
 ## Entropy normalisation trap (critical for D.1 / RQ2)
 
-Advancement probabilities sum to 32 (one per R16 slot), not 1.
-Normalise before computing Shannon entropy: p_i = P_advance_i / 32.
-Otherwise H is inflated by log(32) ≈ 3.47 nats across all snapshots.
-
-Mean-rate Poisson baseline provides the flat entropy floor: no information
-enters the model, so entropy never resolves. Use this as the lower bound
-in entropy resolution plots.
+Normalise each advancement probability vector by its own sum, which equals
+the number of slots in the target field. The R32 denominator is 32 and
+winner probabilities sum to 1. Entropy measures concentration across teams.
+A locked field of k teams has entropy ln(k). A settled winner has entropy
+zero. Mean-rate Poisson is a non-refitting diagnostic. Its tournament
+trajectory still changes as match results settle.
 
 ## The thesis experiment does not require beating Ley et al.
 
-The experiment tests whether per-round retraining moves the needle versus a
-frozen model. The null hypothesis is: frozen RPS ≈ per-round RPS across all
-phases. A model that is 0.02 worse than Ley et al. in absolute terms can still
-produce a clean cadence effect if the effect size is consistent. Absolute RPS
-only matters for the model selection step (Chapter 5.1); the cadence comparison
-is entirely within the same model family.
+The experiment compares paired forecasts from frozen and per-round policies
+within each selected model. Absolute scores help explain model selection
+(Chapter 5.1). The cadence comparison uses score differences on the same
+matches. The [findings memo](findings_memo.md#rq1--predictive-accuracy)
+records the scope and interpretation of the individual comparisons.
 
 ## The correct peer RPS benchmark is Groll et al., not Ley et al.
 
@@ -66,19 +64,18 @@ For KO rounds: venue assigned from `data/tournament/wc2026.json`.
 ## Frozen vs per-round: both modes start from the identical pre-WC champion
 
 Both `champion_frozen` and `champion_per_round` aliases point to the same
-pre-tournament model at the start of WC. They diverge only if per-round
-refit produces a new `champion_per_round` artifact after MD1. This design
-ensures any observed difference is attributable solely to cadence, not to
-different initial conditions.
+pre-tournament model at the start of WC. The intended design changes the
+model at the gated per-round refit, holding the starting model fixed.
+The [findings memo](findings_memo.md#rq1--predictive-accuracy) explains the
+MD1 convention following the premature refit and the analysis scope.
 
 ## RQ3 (concept drift) is the hardest to answer definitively
 
-Drift is measured via calibration degradation over time, not via a formal
-drift test (no automated statistical drift detection in the pipeline — see
-`threats_to_validity.md`). The argument is: if frozen calibration degrades
-as the tournament progresses and per-round calibration does not, this is
-consistent with concept drift mitigation. Cannot claim causal identification
-without a third arm.
+Calibration levels and trends are exploratory evidence about drift.
+Their interpretation depends on fixture composition, sample size, and
+resampling assumptions. In these data concept drift and its mitigation
+remain unresolved. See the [findings memo](findings_memo.md#rq3--calibration-and-evidence-about-drift)
+and [validity discussion](../threats_to_validity.md#evaluation-threats).
 
 ## WC 2022 retrospective (D.3) is descriptive, not causal
 

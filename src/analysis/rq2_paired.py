@@ -40,10 +40,12 @@ import numpy as np
 import pandas as pd
 
 from src.analysis.rq1_paired import (
+    CONTRAST_MODELS,
     DEFAULT_N_BOOT,
     DEFAULT_SEED,
     SUMMARY_COLUMNS,
     TABLES_ROOT,
+    holm_core_families,
     summarise,
 )
 from src.analysis.rq_datasets.paths import ANALYSIS_ROOT, METRIC_TOL, RQ2_PATH
@@ -88,6 +90,15 @@ ROSTER_MODELS: Final[tuple[str, ...]] = (
     "poisson_glm",
     "mean_rate_poisson",
 )
+
+HOLM_FAMILIES: Final[dict[str, dict[str, tuple[str, ...]]]] = {
+    "rq2_entropy": {
+        "window": ("treated",),
+        "grain": ("state",),
+        "model_name": CONTRAST_MODELS,
+        "stage": STAGES,
+    },
+}
 
 
 def _cycle_frame(df: pd.DataFrame, cadence: str) -> pd.DataFrame:
@@ -440,6 +451,8 @@ def main(argv: list[str] | None = None) -> None:
     coverage = pairing_coverage(df, pairs)
     stage = stage_table(pairs, n_boot=args.n_boot, seed=args.seed)
     matchday = matchday_table(pairs, n_boot=args.n_boot, seed=args.seed)
+    stage = holm_core_families(stage, HOLM_FAMILIES)
+    matchday = matchday.assign(p_holm=np.nan)
 
     for path, table in (
         (args.diffs_out, pairs),

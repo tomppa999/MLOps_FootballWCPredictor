@@ -190,14 +190,17 @@ Data (Bronze/Silver/Gold) and trained model artifacts are versioned with DVC. Th
 
 - `dvc push` / `dvc pull` — sync artifacts with the DagsHub remote
 - `dvc.yaml` holds the Silver/Gold build plus the thesis reconstruction stages. `silver` and `gold` are `frozen: true`, so a `dvc repro` never rebuilds them; pull them instead
-- `dvc repro figures` — re-derive the whole thesis analysis (see below). Force individual stages with `dvc repro -f -s <stage>`; a bare `dvc repro -f` propagates upstream and costs 4 h 40
+- Use the targeted [thesis analysis workflow](#reproduce-the-thesis-analysis). Pass `-s` whenever forcing a stage to avoid rebuilding the upstream reconstruction
 - `data/raw.dvc`, the nested `data/reconstruction/inputs.dvc` / `data/analysis/live.dvc` sidecars and `dvc.lock` are committed to Git; the actual data files are gitignored
 
 ---
 
 ## Reproduce the thesis analysis
 
-The post-tournament analysis behind thesis section D.1 re-derives offline from DVC-tracked inputs. One command rebuilds all of it: the three research-question datasets (`rq1_matches.csv`, `rq2_entropy.csv`, `rq3_calibration.csv`), the round leaderboards, the faithfulness audit, and the two thesis figures.
+The post-tournament analysis uses DVC-tracked reconstruction inputs and prepared
+datasets. Stages `rq1`, `rq2`, and `rq3` produce the research-question tables.
+The `figures` stage generates the plots. The
+[findings memo](docs/notes/findings_memo.md) explains the interpretation.
 
 ### Prerequisites
 
@@ -220,33 +223,45 @@ dvc remote modify --local origin auth basic
 dvc remote modify --local origin user <dagshub-username>
 dvc remote modify --local origin password <dagshub-token>
 
-# 3. Pull the inputs and re-derive everything.
-dvc pull && dvc repro figures
+# 3. Pull the locked artifacts and check the analysis stages.
+dvc pull
+dvc status rq1 rq2 rq3 figures
 ```
 
-`dvc pull` checks out ~19,080 files. `dvc repro figures` then reports *"didn't change, skipping"* for every stage, because the outputs in the pull set already match — that is the expected result, not a failure to do work. To watch the analysis actually run, force the cheap tail, which takes about a minute:
+`dvc pull` restores cached artifacts. An up-to-date status confirms that the
+local dependencies and outputs match the lock. To check regeneration from
+the prepared datasets, force only these analysis and presentation stages:
 
 ```bash
-dvc repro -f -s rq_datasets audit leaderboards figures
+dvc repro -f -s rq1 rq2 rq3
+dvc repro -f -s figures
 ```
 
 Always pass `-s` when forcing. A bare `dvc repro -f` propagates upstream into the strand stages, which is a 4 h 40 rebuild (Strand 1 17 min, Strand 2 2 h 01, Strand 5 2 h 37).
 
 ### What "same numbers" means
 
-Two built-in checks, both of which passed on a fresh clone on Sep 13:
+For the separate fresh-clone check, use the final Git revision and its matching
+DVC artifacts. The September 13 check covered the earlier reconstruction.
+Verification of the final Holm tables and figures on a fresh clone is pending.
 
-- `git diff --quiet dvc.lock` and an empty `dvc status` — the re-derived outputs hash to what is committed.
+- Compare the regenerated tables and figures with the Git versions. Check
+  `git diff -- dvc.lock` and `dvc status rq1 rq2 rq3 figures` for
+  discrepancies. Verify the original statistics and the four correction
+  families against the [findings memo](docs/notes/findings_memo.md).
 - The audit report at `data/reconstruction/audit_report.json`: **0 fails**. It currently reads 67 pass / 10 warn / 0 fail across 77 checks. Judge it on `n_fail`, not on the warns — all 10 warns are expected, and none is a numerical disagreement: 7 are visibility limits in the offline audit (its monitoring export covers 54 of 104 matches), 2 are the cadence-asymmetric cycle counts left by live's silent shadow skips, and 1 is entropy monotonicity under Monte Carlo noise (worst upward jump 0.0048 nats at 10k simulations).
 
 The load-bearing check is `s5.champion_identity`: the frozen champion (`wc_production` v15) was never touched by any of the bugs the reconstruction had to fix, so the replay must reproduce its logged λ values on all 423 frozen cycles. It does, at max |Δλ| = 4.441e-16. That check diffs `data/reconstruction/inputs/logged_predictions/all_models.parquet` against `data/reconstruction/strand5_frozen_entropy/predictions.parquet` (1.95 M rows) — **trimming either path out of the pull set silently removes the only evidence that the reconstruction is faithful**, and the audit will still report 0 fails.
 
-One known cosmetic exception: `docs/figures/entropy-trajectory.png` does not come out byte-identical across working directories. The whole plot shifts ~5 px vertically from a `tight_layout` difference; every series, glyph and input is otherwise identical. It is `cache: false`, so it never dirties `dvc.lock`.
+An earlier check found an approximately five-pixel layout shift in
+`docs/figures/entropy-trajectory.png` across working directories. If the
+image hash differs, compare the plotted series and distinguish changes in
+the analysis from changes in rendering.
 
 ### Run the tests
 
 ```bash
-pytest tests/analysis -q   # 63 tests covering the reconstruction
+pytest tests/analysis -q
 pytest                     # full suite, ~5 min
 ```
 

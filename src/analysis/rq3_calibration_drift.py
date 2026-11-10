@@ -38,6 +38,7 @@ from src.analysis.rq1_paired import (
     DEFAULT_SEED,
     SUMMARY_COLUMNS,
     TABLES_ROOT,
+    holm_core_families,
     summarise,
 )
 from src.analysis.rq_datasets.paths import (
@@ -78,6 +79,15 @@ PAIR_METRICS: Final[tuple[str, ...]] = ("bs",)  # per-match means
 # UNC is outcome-only (identical across arms); reported as levels only.
 
 PROB_COLS: Final[tuple[str, ...]] = ("p_home", "p_draw", "p_away")
+
+HOLM_FAMILIES: Final[dict[str, dict[str, tuple[str, ...]]]] = {
+    "rq3_calibration": {
+        "phase_scheme": ("group_ko",),
+        "phase": ("all", "group", "KO"),
+        "model_name": CONTRAST_MODELS,
+        "metric": ("ece", "rel"),
+    },
+}
 
 
 def calibration_stats(
@@ -723,6 +733,9 @@ def main(argv: list[str] | None = None) -> None:
         noise_floor_draws=args.noise_floor_draws,
     )
     trend = trend_table(paired, n_boot=args.n_boot, seed=args.seed)
+    phase = holm_core_families(phase, HOLM_FAMILIES)
+    rounds = rounds.assign(p_holm=np.nan)
+    trend = trend.assign(p_holm=np.nan)
 
     for path, table in (
         (args.rounds_out, rounds),

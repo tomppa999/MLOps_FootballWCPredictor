@@ -28,11 +28,13 @@ Usage:
 from __future__ import annotations
 
 import argparse
+from itertools import product
 from pathlib import Path
 from typing import Final
 
 import numpy as np
 import pandas as pd
+from statsmodels.stats.multitest import multipletests
 
 from src.analysis.round_leaderboards import ROUND_BLOCKS, assign_block
 from src.analysis.rq_datasets.paths import ANALYSIS_ROOT, METRIC_TOL, RQ1_PATH
@@ -77,6 +79,16 @@ PHASE_SCHEMES: Final[dict[str, tuple[tuple[str, ...], dict[str, str]]]] = {
 }
 ALL_PHASE: Final[str] = "all"
 
+HOLM_FAMILIES: Final[dict[str, dict[str, tuple[str, ...]]]] = {
+    f"rq1_{metric}": {
+        "phase_scheme": ("group_ko",),
+        "phase": ("all", "group", "KO"),
+        "model_name": CONTRAST_MODELS,
+        "metric": (metric,),
+    }
+    for metric in ("rps", "nll")
+}
+
 DEFAULT_N_BOOT: Final[int] = 10_000
 DEFAULT_SEED: Final[int] = 0
 CI_LEVEL: Final[float] = 0.95
@@ -92,6 +104,46 @@ SUMMARY_COLUMNS: Final[tuple[str, ...]] = (
     "frac_improved",
     "frac_tied",
 )
+
+
+def holm_core_families(
+    table: pd.DataFrame,
+    families: dict[str, dict[str, tuple[str, ...]]],
+) -> pd.DataFrame:
+    """Append Holm p-values only for complete canonical core families.
+
+    Each selector defines a Cartesian product of scientific comparisons.
+    Missing/duplicate cells or invalid core p-values fail rather than changing
+    the family. Other rows remain unadjusted. See multiple_comparisons.md.
+    """
+    out = table.assign(p_holm=np.nan)
+    for name, selectors in families.items():
+        missing = {"p_perm", *selectors} - set(table.columns)
+        if missing:
+            raise ValueError(f"{name}: missing columns {sorted(missing)}")
+        mask = np.ones(len(out), dtype=bool)
+        for column, levels in selectors.items():
+            mask &= out[column].isin(levels).to_numpy()
+        positions = np.flatnonzero(mask)
+        expected = set(product(*selectors.values()))
+        cells = out.iloc[positions][list(selectors)]
+        actual = set(cells.itertuples(index=False, name=None))
+        if len(cells) != len(expected) or actual != expected:
+            raise ValueError(
+                f"{name}: expected exactly {len(expected)} unique core comparisons, "
+                f"got {len(cells)} rows and {len(actual)} unique comparisons"
+            )
+        try:
+            p_values = out.iloc[positions]["p_perm"].to_numpy(dtype=float)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{name}: core p_perm must be finite and in [0, 1]") from exc
+        if not np.all(np.isfinite(p_values) & (p_values >= 0) & (p_values <= 1)):
+            raise ValueError(f"{name}: core p_perm must be finite and in [0, 1]")
+        if out.iloc[positions]["p_holm"].notna().any():
+            raise ValueError(f"{name}: overlapping core families")
+        adjusted = multipletests(p_values, alpha=0.05, method="holm")[1]
+        out.iloc[positions, out.columns.get_loc("p_holm")] = adjusted
+    return out
 
 
 def paired_differences(df: pd.DataFrame, models: tuple[str, ...] = CONTRAST_MODELS) -> pd.DataFrame:
@@ -303,6 +355,8 @@ def main(argv: list[str] | None = None) -> None:
     diffs = paired_differences(df)
     phase = phase_table(diffs, n_boot=args.n_boot, seed=args.seed)
     rounds = round_table(diffs, n_boot=args.n_boot, seed=args.seed)
+    phase = holm_core_families(phase, HOLM_FAMILIES)
+    rounds = rounds.assign(p_holm=np.nan)
 
     for path, table in (
         (args.diffs_out, diffs),

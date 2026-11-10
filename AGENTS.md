@@ -32,8 +32,13 @@ This repository implements a minimal but serious MLOps pipeline for football Wor
 
 ## Current project state
 - DagsHub is integrated as MLflow tracking remote and DVC artifact remote.
-- GCP Cloud Run deployment is in progress (target June 10, 2026).
-- The project must work fully locally without cloud.
+- The live WC 2026 experiment is finished; the pipeline is retired. No new deployment work.
+- Work happens on the `thesis` branch.
+- Focus: statistical analysis (RQ1–RQ3) and reproducibility. See HANDOFF.md for open tasks.
+- Do not change reconstructed datasets, model states, or upstream pipeline stages without explicit approval.
+- All analysis outputs must be produced by DVC stages (`dvc repro <stage>`), never by ad-hoc scripts.
+- Never run `dvc repro -f` without `-s` (a bare forced repro runs upstream strands for ~4h40).
+- Run `pytest tests/analysis -q` after any analysis change.
 
 ## Disallowed additions without explicit approval
 - Databricks

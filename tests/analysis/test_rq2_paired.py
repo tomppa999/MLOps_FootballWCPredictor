@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -314,6 +316,36 @@ def test_table_columns_and_determinism() -> None:
     md = matchday_table(pairs, n_boot=100, seed=0)
     assert list(md.columns) == ["matchday_label", "grain", "model_name", "stage", *SUMMARY_COLUMNS]
     assert list(md["matchday_label"].unique()) == [lab for lab, _ in _LABEL_SCHEDULE]
+
+
+def test_winner_entropy_markers_use_round_kickoffs(tmp_path: Path) -> None:
+    import matplotlib.pyplot as plt
+
+    from src.analysis.plot_entropy_trajectory import load_round_kickoffs, plot_entropy
+
+    df = _rq2_frame()
+    df["inference_timestamp"] = pd.to_datetime(df["inference_timestamp"], utc=True)
+    complete = df.loc[df["matchday_label"] == "Complete", "inference_timestamp"].min()
+    x_start = df["inference_timestamp"].min()
+    schedule = {
+        label: x_start + pd.Timedelta(hours=i + 1)
+        for i, (label, _) in enumerate(_LABEL_SCHEDULE)
+        if label != "Complete"
+    }
+    fixtures = tmp_path / "matches.csv"
+    rows = list(schedule.items()) + [("2", x_start + pd.Timedelta(hours=24))]
+    pd.DataFrame(rows, columns=["round_label", "kickoff_utc"]).to_csv(fixtures, index=False)
+
+    fig = plot_entropy(df, x_start=x_start, round_kickoffs=load_round_kickoffs(fixtures))
+    expected = {label: kickoff for label, kickoff in schedule.items() if label != "1"}
+    expected["Complete"] = complete
+    try:
+        markers = {annotation.get_text(): annotation.xy[0] for annotation in fig.axes[0].texts}
+        assert markers == expected
+        for line, kickoff in zip(fig.axes[0].lines, expected.values()):
+            assert list(line.get_xdata()) == [kickoff, kickoff]
+    finally:
+        plt.close(fig)
 
 
 def test_plot_entropy_stages_smoke() -> None:

@@ -684,7 +684,9 @@ from Secret Manager in favour of IAM). Revisit after the tournament.
 
 ### D.1. Trajectory and entropy analysis
 
-**STATUS: DONE (Sep 4), verified reproducible on a fresh clone (Sep 13).**
+**STATUS:** The September 4 reconstruction was verified on a fresh clone
+on September 13. The final Holm results and their interpretation are in the
+[findings memo](../notes/findings_memo.md). Their fresh-clone check is pending.
 
 - [x] Extract per-model `tournament_probabilities` from all tagged MLflow
   snapshots, keyed by `(model_name, cadence_mode)` → build trajectory DataFrames
@@ -692,19 +694,17 @@ from Secret Manager in favour of IAM). Revisit after the tournament.
   3,412 rows (853 per model), with a `provenance` column: 1,688 per_round
   `live_replay`, 1,692 frozen `reconstructed_frozen_shadow` (the logged frozen rows could not
   be used — see `errors_overview.md` §1), 32 `reconstructed_snapshot` for the outage gaps.
-- [x] Compute Shannon entropy per snapshot: normalise 48-team advancement
-  vector to `p_i / 32`, then `H = -Σ p_i log(p_i)`.
+- [x] Compute Shannon entropy per snapshot. Divide each advancement vector
+  by its own sum (32 for R32 and 1 for winner), then compute `H = -Σ p_i log(p_i)`.
 - [~] Decomposition is by **round reached**, not per group: `entropy_r32`, `entropy_r16`,
   `entropy_qf`, `entropy_sf`, `entropy_final`, `entropy_winner`. The per-group decomposition in
   the original plan was not implemented; note it as a deviation if the write-up needs it.
-- [x] Plot entropy resolution curves: frozen vs per-round **for each roster
-  model** (cross-family robustness of the cadence effect), with mean_rate_poisson
-  as the flat floor → `docs/figures/entropy-trajectory.png`.
+- [x] Plot frozen and per-round entropy for each roster model, with
+  mean-rate Poisson as a non-refitting diagnostic → `docs/figures/entropy-trajectory.png`.
 
-**Result: frozen carries more residual uncertainty than per_round for all four models, but the
-four disagree by two orders of magnitude on how much.** Frozen minus per_round `entropy_winner`,
-in nats, pairing each per_round cycle to the nearest frozen cycle within 30 minutes, live cycles
-only, n = 422 paired cycles:
+**Earlier descriptive view:** frozen minus per-round winner entropy in nats
+over 422 paired cycles. Each per-round cycle is paired to its preceding frozen
+cycle within 30 minutes. This view weights cycles and includes the early window.
 
 | model | mean | median | min | max |
 |---|---|---|---|---|
@@ -713,14 +713,12 @@ only, n = 422 paired cycles:
 | poisson_glm | +0.0080 | +0.0122 | −0.0808 | +0.0807 |
 | mean_rate_poisson | +0.0004 | +0.0001 | −0.0060 | +0.0055 |
 
-The sign is consistent in the mean, and `mean_rate_poisson` behaves as the intended floor
-(+0.0004 nats — no information enters the model, so there is nothing for a refit to resolve).
-But the spread runs from +0.0004 to +0.0552, and **every model changes sign somewhere in the
-tournament**: each row's min is negative. So the cadence effect on uncertainty resolution is
-real and directionally robust, while its magnitude is model-specific. **Any claim that the
-models agree on the size of the effect is unsupported by this table** — write the result as
-"consistent in sign, model-specific in magnitude", and report the per-model numbers rather than
-a pooled average.
+Each cycle-weighted mean is positive and each model's gap changes sign
+somewhere in the tournament. The approved main comparison instead weights
+changed states in the treated window. It shows lower mean winner entropy for
+XGBoost and Bayesian Poisson and a near-zero difference for Poisson GLM.
+Use the [findings memo](../notes/findings_memo.md#rq2--tournament-uncertainty-and-forecast-concentration)
+for the headline estimates and interpretation.
 
 Caveat to carry into the write-up: the frozen half of this table is a *reconstruction*, not the
 live log. The frozen entropy that the pipeline logged was contaminated by the shadow-resolution
@@ -760,8 +758,8 @@ every frozen cycle from the pre-tournament pin. Faithfulness rests on
 - Advancement probabilities sum to 32, not 1 — normalise before entropy
 - Keep "who advances" vs "who wins" uncertainty separate
 - Reuse existing `round_advancement_probabilities` artifacts
-- Mean-rate Poisson baseline provides the flat entropy floor (no information
-  enters the model, so entropy never resolves)
+- Mean-rate Poisson is a non-refitting diagnostic whose forecast probabilities
+  still change as results settle
 - **Goal correlation in Monte Carlo simulation:** Independent Poisson is
   fine for RPS (goal *difference* distribution is identical regardless of
   covariance — Ley et al. 2019 show this mathematically). But for exact

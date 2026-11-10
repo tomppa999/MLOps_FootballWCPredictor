@@ -1,9 +1,9 @@
 # Bronze -> Silver -> Gold builds the live pipeline; the strand* stages below
 # reconstruct the post-tournament D.1 analysis offline from DVC-tracked inputs.
 #
-# `dvc repro figures` is the single master command: `figures` depends on the
+# `dvc repro figures` walks the reconstruction/RQ DAG: `figures` depends on the
 # audit report and the round leaderboards even though it does not read them, so
-# that one target walks the whole DAG instead of silently skipping the checks.
+# that one target includes the checks.
 #
 # silver and gold are frozen: the analysis reads historical Gold at the commit
 # each inference cycle actually served, never a freshly rebuilt one.
@@ -228,6 +228,8 @@ stages:
       - src/analysis/plot_entropy_trajectory.py
       - src/analysis/plot_entropy_stages.py
       - src/analysis/rq3_calibration_overview.py
+      - src/analysis/rq1_paired.py
+      - src/analysis/rq2_paired.py
       - src/analysis/rq_datasets/paths.py
     outs:
       # Committed to Git for the thesis, so DVC tracks them without caching.
