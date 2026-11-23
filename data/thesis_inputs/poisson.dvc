@@ -1,0 +1,6 @@
+outs:
+- md5: dfd1b57920fdb78af1f3cb7472387f39.dir
+  size: 242249926
+  nfiles: 1704
+  hash: md5
+  path: poisson
