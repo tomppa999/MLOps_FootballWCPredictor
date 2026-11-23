@@ -47,8 +47,12 @@ def load_reliability(path: Path = RQ3_PATH) -> pd.DataFrame:
 def assign_phase(df: pd.DataFrame, group_rounds: frozenset[str]) -> pd.DataFrame:
     """Label rows with tournament phase given a group-round set."""
     out = df.copy()
-    out["phase"] = out["round_label"].astype(str).apply(
-        lambda label: "group" if label in group_rounds else "knockout",
+    out["phase"] = (
+        out["round_label"]
+        .astype(str)
+        .apply(
+            lambda label: "group" if label in group_rounds else "knockout",
+        )
     )
     # Drop rounds that belong to neither (e.g. MD1 when group = MD2–3).
     keep = out["round_label"].astype(str).isin(group_rounds) | (
@@ -82,9 +86,9 @@ def pool_bins(df: pd.DataFrame) -> pd.DataFrame:
 def expected_calibration_error(pooled: pd.DataFrame) -> pd.DataFrame:
     """ECE per model, cadence and phase, pooled over the three outcome classes."""
     pooled = pooled.copy()
-    pooled["abs_gap_mass"] = (
-        pooled["observed_freq"] - pooled["mean_predicted_p"]
-    ).abs() * pooled["n"]
+    pooled["abs_gap_mass"] = (pooled["observed_freq"] - pooled["mean_predicted_p"]).abs() * pooled[
+        "n"
+    ]
 
     ece = pooled.groupby(["model_name", "cadence_mode", "phase"], as_index=False).apply(
         lambda g: pd.Series({"ece": g["abs_gap_mass"].sum() / g["n"].sum()}),
@@ -110,18 +114,20 @@ def _curve(series: pd.DataFrame) -> pd.DataFrame:
     return (
         series.groupby("bin_index")
         .apply(
-            lambda g: pd.Series({
-                "predicted": (g["mean_predicted_p"] * g["n"]).sum() / g["n"].sum(),
-                "observed": g["events"].sum() / g["n"].sum(),
-                "n": g["n"].sum(),
-            }),
+            lambda g: pd.Series(
+                {
+                    "predicted": (g["mean_predicted_p"] * g["n"]).sum() / g["n"].sum(),
+                    "observed": g["events"].sum() / g["n"].sum(),
+                    "n": g["n"].sum(),
+                }
+            ),
             include_groups=False,
         )
         .sort_index()
     )
 
 
-def plot_reliability(pooled: pd.DataFrame) -> plt.Figure:
+def plot_reliability(pooled: pd.DataFrame, *, outcome_label: str = "") -> plt.Figure:
     """Reliability diagram per phase: predicted vs observed, both cadences."""
     fig, axes = plt.subplots(1, 2, figsize=(13, 6.2), sharex=True, sharey=True)
 
@@ -165,7 +171,8 @@ def plot_reliability(pooled: pd.DataFrame) -> plt.Figure:
 
     handles = [
         plt.Line2D(
-            [], [],
+            [],
+            [],
             color=style[mode],
             linestyle="-" if mode == "per_round" else "--",
             marker="o",
@@ -187,13 +194,14 @@ def plot_reliability(pooled: pd.DataFrame) -> plt.Figure:
 
     fig.suptitle(
         "RQ3: calibration by tournament phase, frozen vs per-round retraining\n"
-        "(outcome classes pooled; bins weighted by match count)",
+        + (f"{outcome_label}; " if outcome_label else "")
+        + "(outcome classes pooled; bins weighted by match count)",
     )
     fig.tight_layout(rect=(0, 0.11, 1, 1))
     return fig
 
 
-def plot_contrast_reliability(pooled: pd.DataFrame) -> plt.Figure:
+def plot_contrast_reliability(pooled: pd.DataFrame, *, outcome_label: str = "") -> plt.Figure:
     """2×2 reliability diagram: rows = cadence, columns = group (MD2–3) / KO.
 
     Restricted to ``CONTRAST_MODELS``. Marker area ∝ bin mass; ECE annotated
@@ -237,9 +245,7 @@ def plot_contrast_reliability(pooled: pd.DataFrame) -> plt.Figure:
                     alpha=0.85,
                 )
 
-            ax.set_title(
-                f"{mode.replace('_', '-')} · {phase} (n = {n_by_phase[phase]})"
-            )
+            ax.set_title(f"{mode.replace('_', '-')} · {phase} (n = {n_by_phase[phase]})")
             ax.grid(alpha=0.25)
             ax.set_xlim(0, 1)
             ax.set_ylim(0, 1)
@@ -253,7 +259,8 @@ def plot_contrast_reliability(pooled: pd.DataFrame) -> plt.Figure:
 
     fig.suptitle(
         "RQ3: contrast-model calibration, group (MD2–3) vs knockout\n"
-        "(marker area ∝ bin mass; MD1 placebo excluded)",
+        + (f"{outcome_label}; " if outcome_label else "")
+        + "(marker area ∝ bin mass; MD1 placebo excluded)",
     )
     fig.tight_layout(rect=(0, 0.02, 1, 1))
     return fig
@@ -264,6 +271,7 @@ def main() -> None:
     parser.add_argument("--input", type=Path, default=RQ3_PATH)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--contrast-output", type=Path, default=CONTRAST_OUTPUT)
+    parser.add_argument("--outcome-label", default="")
     args = parser.parse_args()
 
     reliability = load_reliability(args.input)
@@ -281,7 +289,9 @@ def main() -> None:
         print(f"  {phase:9s} " + "  ".join(f"{m}={delta[m]:+.4f}" for m in roster))
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    figure = plot_reliability(pooled_all[pooled_all["model_name"].isin(MODEL_STYLES)])
+    figure = plot_reliability(
+        pooled_all[pooled_all["model_name"].isin(MODEL_STYLES)], outcome_label=args.outcome_label
+    )
     figure.savefig(args.output, dpi=200)
     plt.close(figure)
     print(f"\nSaved figure to {args.output}")
@@ -293,7 +303,7 @@ def main() -> None:
     print("\nContrast models only, group = MD2–3 (MD1 excluded)\n")
     print(ece_c.round(4).to_string())
 
-    contrast_fig = plot_contrast_reliability(pooled_contrast)
+    contrast_fig = plot_contrast_reliability(pooled_contrast, outcome_label=args.outcome_label)
     args.contrast_output.parent.mkdir(parents=True, exist_ok=True)
     contrast_fig.savefig(args.contrast_output, dpi=200)
     plt.close(contrast_fig)

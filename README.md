@@ -198,8 +198,9 @@ Data (Bronze/Silver/Gold) and trained model artifacts are versioned with DVC. Th
 ## Reproduce the thesis analysis
 
 The post-tournament analysis uses DVC-tracked reconstruction inputs and prepared
-datasets. Stages `rq1`, `rq2`, and `rq3` produce the research-question tables.
-The `figures` stage generates the plots. The
+datasets. Stage `regulation_time` produces the current RQ1/RQ3 tables using
+90-minute outcomes and goal counts; `rq2` produces the entropy comparisons.
+The `figures` stage generates entropy plots and 90-minute calibration plots. The
 [findings memo](docs/notes/findings_memo.md) explains the interpretation.
 
 ### Prerequisites
@@ -225,7 +226,7 @@ dvc remote modify --local origin password <dagshub-token>
 
 # 3. Pull the locked artifacts and check the analysis stages.
 dvc pull
-dvc status rq1 rq2 rq3 figures
+dvc status regulation_time rq2 figures
 ```
 
 `dvc pull` restores cached artifacts. An up-to-date status confirms that the
@@ -233,22 +234,41 @@ local dependencies and outputs match the lock. To check regeneration from
 the prepared datasets, force only these analysis and presentation stages:
 
 ```bash
-dvc repro -f -s rq1 rq2 rq3
+dvc repro -f -s regulation_time rq2
 dvc repro -f -s figures
 ```
 
 Always pass `-s` when forcing. A bare `dvc repro -f` propagates upstream into the strand stages, which is a 4 h 40 rebuild (Strand 1 17 min, Strand 2 2 h 01, Strand 5 2 h 37).
 
+Current RQ1/RQ3 tables are in `docs/tables/regulation_time/`; the matching
+calibration graphs are in `docs/figures/regulation-time/`. RQ2 tables and entropy
+figure paths are unchanged. The figures stage also writes a standalone plot
+for each of the six targets to `docs/figures/entropy-targets/`. Those plots use
+target-specific y-axis limits, explicitly labelled when zoomed; the six-panel
+overview retains its common scale. Saved forecasts and model provenance are preserved.
+
+The old `rq1` and `rq3` stages and their tables remain historical. They are not
+dependencies of the current statistical analyses or `figures`.
+An optional correction record can be regenerated with
+`dvc repro -s regulation_time_comparison` once the historical tables are available.
+It writes `docs/tables/regulation_time_comparison/` and
+`docs/notes/regulation_time_comparison.md`; exclude it from the final fresh-clone
+check. The main workflow still reads the original reconstructed forecast table
+as input, then replaces only observed goals/outcomes and derived scores in a
+separate dataset. No reconstruction or fitted model is changed.
+
 ### What "same numbers" means
 
 For the separate fresh-clone check, use the final Git revision and its matching
 DVC artifacts. The September 13 check covered the earlier reconstruction.
-Verification of the final Holm tables and figures on a fresh clone is pending.
+Verification of the final 90-minute tables and updated figures on a fresh
+clone is pending. The routine check reproduces only the current reported
+results, not the superseded extra-time analyses.
 
 - Compare the regenerated tables and figures with the Git versions. Check
-  `git diff -- dvc.lock` and `dvc status rq1 rq2 rq3 figures` for
-  discrepancies. Verify the original statistics and the four correction
-  families against the [findings memo](docs/notes/findings_memo.md).
+  `git diff -- dvc.lock` and `dvc status regulation_time rq2 figures` for
+  discrepancies. Verify the current 90-minute RQ1/RQ3 statistics, unchanged RQ2 statistics,
+  and the four correction families against the [findings memo](docs/notes/findings_memo.md).
 - The audit report at `data/reconstruction/audit_report.json`: **0 fails**. It currently reads 67 pass / 10 warn / 0 fail across 77 checks. Judge it on `n_fail`, not on the warns — all 10 warns are expected, and none is a numerical disagreement: 7 are visibility limits in the offline audit (its monitoring export covers 54 of 104 matches), 2 are the cadence-asymmetric cycle counts left by live's silent shadow skips, and 1 is entropy monotonicity under Monte Carlo noise (worst upward jump 0.0048 nats at 10k simulations).
 
 The load-bearing check is `s5.champion_identity`: the frozen champion (`wc_production` v15) was never touched by any of the bugs the reconstruction had to fix, so the replay must reproduce its logged λ values on all 423 frozen cycles. It does, at max |Δλ| = 4.441e-16. That check diffs `data/reconstruction/inputs/logged_predictions/all_models.parquet` against `data/reconstruction/strand5_frozen_entropy/predictions.parquet` (1.95 M rows) — **trimming either path out of the pull set silently removes the only evidence that the reconstruction is faithful**, and the audit will still report 0 fails.

@@ -456,3 +456,29 @@ untested.
 latent train/serve skew: it is correct in training, correct in unit tests on single rows, and
 wrong in production, with no error raised anywhere. Batch-invariance of feature construction
 deserves an explicit test.
+
+
+## 9. Match scoring included extra-time goals (corrected 2026-11-22)
+
+The monitoring/reconstruction match table used API-Football `goals`, which
+includes extra time. Saved outcome probabilities were derived directly from
+the logged goal rates. The 90-minute draw exploration exposed the mismatch:
+24 draws in the old evaluation versus 29 in `score.fulltime`.
+
+The correction rescored the same forecasts against 90-minute goals and outcomes,
+without changing reconstructed inputs or model states. Five knockout matches
+change: Belgium–Senegal and Argentina–Cape Verde (R32), Norway–England and
+Argentina–Switzerland (QF), and Spain–Argentina (Final).
+
+With the same tests and Holm families, raw RQ1 RPS crossings fall from three
+to two, with none after Holm in either version. The old XGBoost knockout ECE
+crossing disappears (raw p 0.0001 → 0.6010; Holm p 0.0018 → 1).
+The old Poisson GLM ECE mitigation trend crossings also disappear. Supporting
+reliability trends remain exploratory. RQ2 is unaffected.
+
+Current sources are `docs/tables/regulation_time/` and
+`docs/figures/regulation-time/`. The optional
+[comparison note](regulation_time_comparison.md) preserves the old/new numbers.
+Historical live logs and earlier figures retain their original values; they
+are not current thesis results. See the README for the updated-only reproduction
+workflow and the findings memo for interpretation.

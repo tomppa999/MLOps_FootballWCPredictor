@@ -205,26 +205,101 @@ stages:
       - docs/tables/rq3_trend.csv:
           cache: false
 
+  # Current RQ1/RQ3 results: score the saved forecasts against 90-minute outcomes.
+  # Use -s to avoid replaying the retired upstream pipeline.
+  regulation_time:
+    cmd: python -m src.analysis.regulation_time
+    deps:
+      - data/analysis/rq1_matches.csv
+      - data/raw/api_football/fixtures
+      - data/mappings/team_mapping_master_merged.csv
+      - src/analysis/regulation_time.py
+      - src/analysis/rq_datasets/build_rq_datasets.py
+      - src/analysis/rq1_paired.py
+      - src/analysis/rq3_calibration_drift.py
+      - src/analysis/round_leaderboards.py
+      - src/analysis/rq_datasets/paths.py
+      - src/models/evaluation.py
+      - src/inference/features.py
+    outs:
+      - data/analysis/regulation_time
+      - docs/tables/regulation_time:
+          cache: false
+
+  # Optional history only. Neither the current analysis nor figures depend on it.
+  regulation_time_comparison:
+    cmd: python -m src.analysis.regulation_time_comparison
+    deps:
+      - data/analysis/regulation_time/outcome_audit.csv
+      - docs/tables/regulation_time/rq1_paired_phase.csv
+      - docs/tables/regulation_time/rq3_calibration_phase.csv
+      - docs/tables/regulation_time/rq3_trend.csv
+      - docs/tables/rq1_paired_phase.csv
+      - docs/tables/rq3_calibration_phase.csv
+      - docs/tables/rq3_trend.csv
+      - src/analysis/regulation_time_comparison.py
+    outs:
+      - docs/tables/regulation_time_comparison:
+          cache: false
+      - docs/notes/regulation_time_comparison.md:
+          cache: false
+
+  # Isolated diagnosis of the first Poisson refit; historical inputs are pinned
+  # by Git/DVC and model SHA256 in the module. Run with -s to exclude upstream work.
+  poisson_refit_diagnostic:
+    cmd: python -m src.analysis.poisson_refit_diagnostic
+    deps:
+      - src/analysis/poisson_refit_diagnostic.py
+      - src/analysis/replay_common.py
+      - src/models/candidates/poisson_glm.py
+      - src/models/data_split.py
+      - src/models/config.py
+      - src/gold/schema.py
+      - src/inference/features.py
+      - data/reconstruction/inputs/models/wc_shadow/v88/python_model.pkl
+      - data/reconstruction/inputs/logged_predictions/all_models.parquet
+      - data/reconstruction/inputs/fixture_settlement.csv
+      - data/raw/api_football/fixtures
+      - data/mappings/team_mapping_master_merged.csv
+      - data/tournament/wc2026.json
+    outs:
+      - docs/tables/poisson_refit_diagnostic:
+          cache: false
+      - docs/notes/poisson_refit_diagnostic.md:
+          cache: false
+
+  rq2_refit_boundary:
+    cmd: python -m src.analysis.entropy_refit_boundary
+    deps:
+      - data/analysis/rq1_matches.csv
+      - data/analysis/rq2_entropy.csv
+      - src/analysis/entropy_refit_boundary.py
+      - src/analysis/plot_entropy_trajectory.py
+      - src/analysis/rq2_paired.py
+      - src/analysis/rq_datasets/paths.py
+    outs:
+      - docs/tables/rq2_refit_boundary.csv:
+          cache: false
+
   figures:
     cmd:
       - python -m src.analysis.plot_entropy_trajectory
       - python -m src.analysis.plot_entropy_stages
-      - python -m src.analysis.rq3_calibration_overview
+      - python -m src.analysis.rq3_calibration_overview --input data/analysis/regulation_time/rq3_calibration.csv --output docs/figures/regulation-time/calibration-group-vs-ko.png --contrast-output docs/figures/regulation-time/calibration-contrast-group-vs-ko.png --outcome-label "90-minute outcomes"
     deps:
       - data/analysis/rq1_matches.csv
       - data/analysis/rq2_entropy.csv
-      - data/analysis/rq3_calibration.csv
-      - data/analysis/round_leaderboards.csv
+      - data/analysis/regulation_time/rq3_calibration.csv
       - data/reconstruction/audit_report.json
-      - docs/tables/rq1_paired_phase.csv
-      - docs/tables/rq1_paired_rounds.csv
-      - docs/tables/rq1_pairing_coverage.csv
+      - docs/tables/regulation_time/rq1_paired_phase.csv
+      - docs/tables/regulation_time/rq1_paired_rounds.csv
+      - docs/tables/regulation_time/rq1_pairing_coverage.csv
       - docs/tables/rq2_paired_stage.csv
       - docs/tables/rq2_paired_matchday.csv
       - docs/tables/rq2_pairing_coverage.csv
-      - docs/tables/rq3_calibration_rounds.csv
-      - docs/tables/rq3_calibration_phase.csv
-      - docs/tables/rq3_trend.csv
+      - docs/tables/regulation_time/rq3_calibration_rounds.csv
+      - docs/tables/regulation_time/rq3_calibration_phase.csv
+      - docs/tables/regulation_time/rq3_trend.csv
       - src/analysis/plot_entropy_trajectory.py
       - src/analysis/plot_entropy_stages.py
       - src/analysis/rq3_calibration_overview.py
@@ -237,7 +312,9 @@ stages:
           cache: false
       - docs/figures/entropy-stages.png:
           cache: false
-      - docs/figures/calibration-group-vs-ko.png:
+      - docs/figures/entropy-targets:
           cache: false
-      - docs/figures/calibration-contrast-group-vs-ko.png:
+      - docs/figures/regulation-time/calibration-group-vs-ko.png:
+          cache: false
+      - docs/figures/regulation-time/calibration-contrast-group-vs-ko.png:
           cache: false
