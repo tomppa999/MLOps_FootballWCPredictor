@@ -244,6 +244,43 @@ stages:
       - docs/notes/regulation_time_comparison.md:
           cache: false
 
+  # Isolated diagnosis of the first Poisson refit; historical inputs are pinned
+  # by Git/DVC and model SHA256 in the module. Run with -s to exclude upstream work.
+  poisson_refit_diagnostic:
+    cmd: python -m src.analysis.poisson_refit_diagnostic
+    deps:
+      - src/analysis/poisson_refit_diagnostic.py
+      - src/analysis/replay_common.py
+      - src/models/candidates/poisson_glm.py
+      - src/models/data_split.py
+      - src/models/config.py
+      - src/gold/schema.py
+      - src/inference/features.py
+      - data/reconstruction/inputs/models/wc_shadow/v88/python_model.pkl
+      - data/reconstruction/inputs/logged_predictions/all_models.parquet
+      - data/reconstruction/inputs/fixture_settlement.csv
+      - data/raw/api_football/fixtures
+      - data/mappings/team_mapping_master_merged.csv
+      - data/tournament/wc2026.json
+    outs:
+      - docs/tables/poisson_refit_diagnostic:
+          cache: false
+      - docs/notes/poisson_refit_diagnostic.md:
+          cache: false
+
+  rq2_refit_boundary:
+    cmd: python -m src.analysis.entropy_refit_boundary
+    deps:
+      - data/analysis/rq1_matches.csv
+      - data/analysis/rq2_entropy.csv
+      - src/analysis/entropy_refit_boundary.py
+      - src/analysis/plot_entropy_trajectory.py
+      - src/analysis/rq2_paired.py
+      - src/analysis/rq_datasets/paths.py
+    outs:
+      - docs/tables/rq2_refit_boundary.csv:
+          cache: false
+
   figures:
     cmd:
       - python -m src.analysis.plot_entropy_trajectory

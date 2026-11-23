@@ -749,3 +749,101 @@ stages:
       md5: 6d13607b3946341c66678b14f56bd0c4.dir
       size: 39237
       nfiles: 3
+  poisson_refit_diagnostic:
+    cmd: python -m src.analysis.poisson_refit_diagnostic
+    deps:
+    - path: data/mappings/team_mapping_master_merged.csv
+      hash: md5
+      md5: 537a718e90d96ca3b01e2bf332e8898e
+      size: 12958
+    - path: data/raw/api_football/fixtures
+      hash: md5
+      md5: 482e2cdce8d594e1fb6f8e96184f6680.dir
+      size: 14486781
+      nfiles: 118
+    - path: data/reconstruction/inputs/fixture_settlement.csv
+      hash: md5
+      md5: 7c4714c0fbb8ee0936251547a9ba37e8
+      size: 14529
+    - path: data/reconstruction/inputs/logged_predictions/all_models.parquet
+      hash: md5
+      md5: 7634cb538725e7e007dab007ac16eeb2
+      size: 56034454
+    - path: data/reconstruction/inputs/models/wc_shadow/v88/python_model.pkl
+      hash: md5
+      md5: e3890e24b4af436a14af8b9f98680208
+      size: 1523
+    - path: data/tournament/wc2026.json
+      hash: md5
+      md5: 3d9f626849df1ba7b6f864dfd0236d28
+      size: 90793
+    - path: src/analysis/poisson_refit_diagnostic.py
+      hash: md5
+      md5: 606b2647482a5c1f78943cf54986503f
+      size: 18053
+    - path: src/analysis/replay_common.py
+      hash: md5
+      md5: 39a1f75a14caf247e0b1153ee95a14d6
+      size: 38381
+    - path: src/gold/schema.py
+      hash: md5
+      md5: 549dbd2c2d9c7f9f10167502b4f58da0
+      size: 6508
+    - path: src/inference/features.py
+      hash: md5
+      md5: 9c2aae3259878bc681026cff6ff586fa
+      size: 30072
+    - path: src/models/candidates/poisson_glm.py
+      hash: md5
+      md5: 691047dd6cd0f6e46ce96a80fd37f8c6
+      size: 6617
+    - path: src/models/config.py
+      hash: md5
+      md5: 80b34187cab0039244d69d8a1dc16e87
+      size: 8758
+    - path: src/models/data_split.py
+      hash: md5
+      md5: a3ae86bde9251efeb4e67b3ada9d3183
+      size: 9955
+    outs:
+    - path: docs/notes/poisson_refit_diagnostic.md
+      hash: md5
+      md5: e4dce9c1f3855d06023bfdb7ceeefe40
+      size: 3774
+    - path: docs/tables/poisson_refit_diagnostic
+      hash: md5
+      md5: 9edbed4a0cccbede2c69a4170e964d64.dir
+      size: 17006
+      nfiles: 4
+  rq2_refit_boundary:
+    cmd: python -m src.analysis.entropy_refit_boundary
+    deps:
+    - path: data/analysis/rq1_matches.csv
+      hash: md5
+      md5: d66354508fece87b7a3bbd71dd8658e8
+      size: 535801
+    - path: data/analysis/rq2_entropy.csv
+      hash: md5
+      md5: 3b4eb88bbb20e556abb94a15615c1a1d
+      size: 796823
+    - path: src/analysis/entropy_refit_boundary.py
+      hash: md5
+      md5: 208f7825d4239b47578c271acf5f747f
+      size: 2915
+    - path: src/analysis/plot_entropy_trajectory.py
+      hash: md5
+      md5: 77ef3ca872cfdac54696d9a3c1be7f7d
+      size: 8780
+    - path: src/analysis/rq2_paired.py
+      hash: md5
+      md5: 1a6dbbffccc0b14143b687a2dc25f526
+      size: 17517
+    - path: src/analysis/rq_datasets/paths.py
+      hash: md5
+      md5: a8601cfabecec751240bf6800f343530
+      size: 3465
+    outs:
+    - path: docs/tables/rq2_refit_boundary.csv
+      hash: md5
+      md5: 367941a5d3d47bde483422f61b478309
+      size: 2818

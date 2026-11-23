@@ -151,6 +151,51 @@ The earlier D.1 cycle-weighted results are descriptive context. The mean-rate
 Poisson trajectory is a non-refitting simulation diagnostic and changes as
 results settle. It is outside the correction family.
 
+### Entropy at the first valid refit under independent goal sampling
+
+The original tournament simulation drew each team's goals independently from
+the Bivariate Poisson GLM's marginal means. This discarded the fitted score
+covariance. All boundary estimates in this section use that simulation.
+
+At the first valid refit after matchday 1 on 18 June, the plotted per-round
+entropy for Bivariate Poisson GLM increased across all six tournament
+targets. Relative to each target's plotted pre-refit value, the increases
+were R32 +0.28%, R16 +0.45%, QF +0.83%, SF +1.29%, Final +1.36%, and
+Winner +1.67%. R32 increased from 3.7311 to 3.7417 nats (+0.0106 nats),
+whereas Winner increased from 2.6000 to 2.6433 nats (+0.0433 nats).
+The larger relative increase for Winner is less visually prominent because
+the Winner plot uses a broader y-axis range. The pattern therefore extends
+beyond group-stage qualification forecasts.
+
+The [boundary comparison](../tables/rq2_refit_boundary.csv) distinguishes
+the plotted baseline, which follows the frozen-series convention described
+above, from the previous live per-round snapshot. All six targets also
+increased against the live per-round baseline, ranging from +0.32% for R32
+to +2.79% for Winner. These percentages describe changes in entropy, rather
+than percentage-point changes in advancement or title probabilities. The
+[refit diagnostic](poisson_refit_diagnostic.md) verified that the training
+update added exactly the 24 MD1 fixtures, with no changes to existing model
+features or targets. These fixtures accounted for only about 1.5% of total
+training weight, but 38.5% within World Cup matches and 43.3% within neutral
+World Cup group-stage matches, owing to match-importance and recency
+weighting. Diagnostic refits reproduced the parameter shift from both zero
+and frozen-model starting values, including with stricter stopping criteria.
+
+The same relative weighting policy applied to XGBoost and Bayesian Poisson;
+weighting alone therefore does not explain the model-specific response
+of Bivariate Poisson GLM. A plausible explanation is its
+compact, globally shared log-linear parameterization: changes to the
+World Cup context coefficients affect many potential matchups together.
+Its additional common-rate component also permits joint revisions to both
+teams' expected goals. XGBoost represents effects through tree partitions,
+whereas Bayesian Poisson uses separate home and away rate regressions with
+prior-based regularization. These structural differences can produce
+different forecast revisions under the same observation weights. This
+interpretation is consistent with the observed response; the separate
+contributions of model structure and regularization were not isolated.
+The increases describe revisions in forecast concentration, rather than
+establishing a deterioration in predictive performance.
+
 ## RQ3 — Calibration and evidence about drift
 
 [Phase comparisons](../tables/regulation_time/rq3_calibration_phase.csv) ·
