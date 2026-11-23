@@ -685,8 +685,10 @@ from Secret Manager in favour of IAM). Revisit after the tournament.
 ### D.1. Trajectory and entropy analysis
 
 **STATUS:** The September 4 reconstruction was verified on a fresh clone
-on September 13. The final Holm results and their interpretation are in the
-[findings memo](../notes/findings_memo.md). Their fresh-clone check is pending.
+on September 13. Current RQ1/RQ3 results use 90-minute scoring from
+`regulation_time`; RQ2 is unchanged. The results and interpretation are in the
+[findings memo](../notes/findings_memo.md). The final fresh-clone check will
+reproduce only current results and updated figures; it remains pending.
 
 - [x] Extract per-model `tournament_probabilities` from all tagged MLflow
   snapshots, keyed by `(model_name, cadence_mode)` → build trajectory DataFrames

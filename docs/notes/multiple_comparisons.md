@@ -28,8 +28,11 @@ and Holm (1979), *A Simple Sequentially Rejective Multiple Test Procedure*.
 
 ## Shared implementation and reporting rules
 
-- Retain the existing statistical tests, resampling settings, seeds, raw
-  p-values, effect estimates, sample sizes, and bootstrap confidence intervals.
+- Retain the statistical tests, resampling settings, seeds and sample sizes.
+  RQ1/RQ3 were rescored against 90-minute outcomes on 22 November 2026; their
+  estimates, raw p-values and intervals were regenerated, and Holm was then
+  reapplied to the same families. Even unchanged group-stage raw p-values can
+  receive different adjusted values when the other family members change.
 - Apply `statsmodels.stats.multitest.multipletests(method="holm")` only to
   canonical rows in the four core families below, using their original
   full-precision `p_perm` values before CSV serialization.
@@ -60,7 +63,8 @@ replication claims.
 
 ## RQ1: predictive accuracy
 
-Canonical source: `docs/tables/rq1_paired_phase.csv`, produced by stage `rq1`.
+Canonical source: `docs/tables/regulation_time/rq1_paired_phase.csv`, produced
+by stage `regulation_time` using the existing RQ1 implementation.
 Select `phase_scheme = group_ko`, `phase` in `{all, group, KO}`, and the three
 treatment-contrast models.
 
@@ -132,8 +136,8 @@ levels; they do not directly test a change in the rate of entropy resolution.
 
 ## RQ3: calibration and concept-drift probes
 
-Canonical core source: `docs/tables/rq3_calibration_phase.csv`, produced by
-stage `rq3`. Select `phase_scheme = group_ko`, `phase` in `{all, group, KO}`,
+Canonical core source: `docs/tables/regulation_time/rq3_calibration_phase.csv`,
+produced by stage `regulation_time` using the existing RQ3 implementation. Select `phase_scheme = group_ko`, `phase` in `{all, group, KO}`,
 and the three treatment-contrast models. These cells use the same treated
 match counts as RQ1.
 
@@ -151,7 +155,7 @@ calibration drift. Outcome-only uncertainty (`unc`) is excluded because its
 cadence difference is structurally zero.
 
 **Exploratory/descriptive trend set: 24 tests.** The 12 rows in
-`docs/tables/rq3_trend.csv` contain two hypotheses each:
+`docs/tables/regulation_time/rq3_trend.csv` contain two hypotheses each:
 
 - `p_frozen`: frozen ECE/REL slope > 0, by one-sided period-label permutation.
 - `p_diff`: frozen slope − per-round slope > 0, by one-sided per-match arm swap.
@@ -173,8 +177,9 @@ labelled `all5` descriptive trend variant.
 
 ## Reproduction status
 
-The local regeneration verified the original estimates, raw p-values, and
-bootstrap intervals against the previous tables. The separate fresh-clone
-check is pending for the final versioned revision. Use the
-[targeted DVC workflow](../../README.md#reproduce-the-thesis-analysis) and
-the pinned reconstruction inputs.
+The current results use 90-minute scoring for RQ1/RQ3 and the unchanged RQ2
+analysis. The original extra-time results and their comparison are historical;
+`regulation_time_comparison` is optional and outside the final reproduction path.
+The separate fresh-clone check remains pending for the final versioned revision.
+Use the [targeted DVC workflow](../../README.md#reproduce-the-thesis-analysis)
+and the pinned reconstruction inputs.

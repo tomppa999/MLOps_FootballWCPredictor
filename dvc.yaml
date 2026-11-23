@@ -205,6 +205,45 @@ stages:
       - docs/tables/rq3_trend.csv:
           cache: false
 
+  # Current RQ1/RQ3 results: score the saved forecasts against 90-minute outcomes.
+  # Use -s to avoid replaying the retired upstream pipeline.
+  regulation_time:
+    cmd: python -m src.analysis.regulation_time
+    deps:
+      - data/analysis/rq1_matches.csv
+      - data/raw/api_football/fixtures
+      - data/mappings/team_mapping_master_merged.csv
+      - src/analysis/regulation_time.py
+      - src/analysis/rq_datasets/build_rq_datasets.py
+      - src/analysis/rq1_paired.py
+      - src/analysis/rq3_calibration_drift.py
+      - src/analysis/round_leaderboards.py
+      - src/analysis/rq_datasets/paths.py
+      - src/models/evaluation.py
+      - src/inference/features.py
+    outs:
+      - data/analysis/regulation_time
+      - docs/tables/regulation_time:
+          cache: false
+
+  # Optional history only. Neither the current analysis nor figures depend on it.
+  regulation_time_comparison:
+    cmd: python -m src.analysis.regulation_time_comparison
+    deps:
+      - data/analysis/regulation_time/outcome_audit.csv
+      - docs/tables/regulation_time/rq1_paired_phase.csv
+      - docs/tables/regulation_time/rq3_calibration_phase.csv
+      - docs/tables/regulation_time/rq3_trend.csv
+      - docs/tables/rq1_paired_phase.csv
+      - docs/tables/rq3_calibration_phase.csv
+      - docs/tables/rq3_trend.csv
+      - src/analysis/regulation_time_comparison.py
+    outs:
+      - docs/tables/regulation_time_comparison:
+          cache: false
+      - docs/notes/regulation_time_comparison.md:
+          cache: false
+
   figures:
     cmd:
       - python -m src.analysis.plot_entropy_trajectory

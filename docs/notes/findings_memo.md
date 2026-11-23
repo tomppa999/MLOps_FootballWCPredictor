@@ -3,6 +3,14 @@
 Interpretation of the regenerated World Cup 2026 results for thesis Chapters 5
 and 6. Use the DVC-produced CSVs linked below for numerical citations.
 
+RQ1 and RQ3 now use **90-minute outcomes and goal counts**, including stoppage
+time and excluding extra time and shootouts. Five knockout matches change from
+decisive outcomes to draws: 29 draws across 104 matches, rather than 24.
+Saved forecasts, fitted models, pairing, tests and Holm families are unchanged.
+The current source is DVC stage `regulation_time`; the optional
+[historical comparison](regulation_time_comparison.md) records the correction.
+RQ2 results are unchanged.
+
 ## Reading the results
 
 - The comparison is frozen versus per-round refitting for the three selected
@@ -28,9 +36,9 @@ and 6. Use the DVC-produced CSVs linked below for numerical citations.
 
 ## RQ1 — Predictive accuracy
 
-[Phase comparisons](../tables/rq1_paired_phase.csv) ·
-[Round and cumulative comparisons](../tables/rq1_paired_rounds.csv) ·
-[Pairing coverage](../tables/rq1_pairing_coverage.csv)
+[Phase comparisons](../tables/regulation_time/rq1_paired_phase.csv) ·
+[Round and cumulative comparisons](../tables/regulation_time/rq1_paired_rounds.csv) ·
+[Pairing coverage](../tables/regulation_time/rq1_pairing_coverage.csv)
 
 The canonical phase cells cover **80 treated matches**, comprising 48 group
 matches (MD2–MD3) and 32 knockout matches. XGBoost, Poisson GLM, and Bayesian
@@ -42,38 +50,42 @@ raw live artifacts and provenance retain the original incident.
 
 ### Overall treated matches
 
-- **XGBoost RPS.** 0.14147 frozen to 0.13712 per-round, an observed decrease
-  of 0.00436 (3.1%). The pointwise CI is [−0.00830, −0.00033], raw p = 0.0340,
-  and Holm p = 0.2720.
-- **Poisson GLM RPS.** d = −0.00291, CI [−0.00654, +0.00070], raw p = 0.1207,
-  Holm p = 0.5714.
-- **Bayesian Poisson RPS.** d = −0.00260, CI [−0.00550, +0.00033], raw
-  p = 0.0841, Holm p = 0.5045.
-- **NLL.** d = −0.00632 for XGBoost, +0.01166 for Poisson GLM, and −0.00632
-  for Bayesian Poisson. All overall intervals include zero. The signs differ
-  across models and all nine adjusted NLL p-values equal 1.
+- **XGBoost RPS.** 0.14629 frozen to 0.14399 per-round, an observed decrease
+  of 0.00230 (1.6%). The pointwise CI is [−0.00624, +0.00163], raw p = 0.2550,
+  and Holm p = 1.
+- **Poisson GLM RPS.** d = −0.00192, CI [−0.00560, +0.00173], raw p = 0.3106,
+  Holm p = 1.
+- **Bayesian Poisson RPS.** d = −0.00162, CI [−0.00451, +0.00134], raw
+  p = 0.2791, Holm p = 1.
+- **NLL.** d = −0.00171 for XGBoost, +0.01670 for Poisson GLM, and −0.00157
+  for Bayesian Poisson. All overall intervals include zero. All nine adjusted
+  NLL p-values equal 1.
 
-**Interpretation.** Mean RPS was modestly lower under refitting on the observed
-treated matches for all three models. Three RPS rows crossed the nominal
-0.05 threshold and none crossed it after Holm (minimum adjusted p = 0.1548).
-No NLL row crossed either threshold. The nominal XGBoost RPS CI and its
-adjusted p-value use different error criteria. Report both and avoid an
-equivalence claim from a failure to reject.
+**Interpretation.** Mean overall RPS was modestly lower under refitting for all
+three models, but all overall intervals include zero. Two group-stage RPS
+comparisons cross the raw 0.05 threshold: Poisson GLM (p = 0.0487, Holm
+p = 0.3896) and Bayesian Poisson (p = 0.0172, Holm p = 0.1548). None of the
+nine RPS or nine NLL comparisons survives Holm. The earlier nominal overall
+XGBoost result disappears under 90-minute scoring. Failure to reject does not
+establish equivalence.
 
 ### Phase, round, and other score patterns
 
 Group-stage mean RPS differences were −0.00412, −0.00523, and −0.00452 for
 XGBoost, Poisson GLM, and Bayesian Poisson. Knockout means in the same order
-were −0.00470, +0.00057, and +0.00027. The GLMs show a descriptive difference
-in pattern by phase. The approved tests compare cadences **within** each
-phase. A direct group-minus-knockout contrast was outside the agreed scope,
+were +0.00044, +0.00305, and +0.00273. All three models therefore show a
+descriptive difference in pattern by phase. The approved tests compare
+cadences **within** each phase. A direct group-minus-knockout contrast was outside the agreed scope,
 so the phase-variation part of RQ1 is only answered descriptively.
 
 MD2 favoured refitting for all three models by observed mean RPS. R16
 (n = 8) showed the opposite pattern. The small later round samples and
 overlapping cumulative views warrant descriptive reporting. The 104-match
-cumulative endpoint includes 24 MD1 ties. The exploratory RMSE estimates
-were mixed and the overall intervals included zero.
+cumulative endpoint includes 24 MD1 ties. The exploratory mean absolute
+goal-error summaries (labelled RMSE in the monitoring schema) are higher under refitting overall. Poisson GLM has
+d = +0.01525, CI [+0.000014, +0.03097], but raw p = 0.0625; this is outside
+Holm and illustrates that the bootstrap interval and sign-flip p-value need
+not agree at the nominal boundary. The other two overall intervals include zero.
 
 ## RQ2 — Tournament uncertainty and forecast concentration
 
@@ -134,10 +146,9 @@ results settle. It is outside the correction family.
 
 ## RQ3 — Calibration and evidence about drift
 
-[Phase comparisons](../tables/rq3_calibration_phase.csv) ·
-[Round and cumulative comparisons](../tables/rq3_calibration_rounds.csv) ·
-[Trend comparisons](../tables/rq3_trend.csv) ·
-[Calibration figure for the three contrast models](../figures/calibration-contrast-group-vs-ko.png)
+[Phase comparisons](../tables/regulation_time/rq3_calibration_phase.csv) ·
+[Round and cumulative comparisons](../tables/regulation_time/rq3_calibration_rounds.csv) ·
+[Trend comparisons](../tables/regulation_time/rq3_trend.csv)
 
 ECE and the Brier reliability component are pooled in the 18-test core
 family. Brier score and resolution remain exploratory. Brier uncertainty
@@ -146,21 +157,18 @@ Calibration set statistics use a paired match bootstrap and a per-match
 forecast arm swap. The latter requires forecast-label exchangeability under
 the null, a stronger condition than equality of aggregate ECE.
 
-### Levels and the knockout ECE result
+### Calibration levels
 
-- Overall ECE differences were −0.01437 for XGBoost, +0.01129 for Poisson
-  GLM, and −0.00357 for Bayesian Poisson. All six overall ECE and reliability
-  intervals include zero and all six Holm p-values are 1. Observed overall
-  Brier scores were slightly lower in the refitted arm and their pointwise
-  intervals include zero.
-- **XGBoost knockout ECE** is the sole corrected threshold crossing.
-  ECE was 0.16599 frozen and 0.13913 per-round (d = −0.02686, n = 32).
-  Raw p ≈ 0.00010 and Holm p ≈ 0.00180, while the pointwise CI is
-  **[−0.04415, +0.02063]**. The disagreement is present before Holm.
-  The percentile bootstrap estimates variation under resampling of matches.
-  The arm-swap test compares the result with a null distribution under
-  exchangeable forecast labels. ECE also depends on binning.
-  Report both results and treat the isolated contrast as uncertain.
+- Overall ECE differences are −0.00047 for XGBoost, +0.01221 for Poisson GLM,
+  and −0.00461 for Bayesian Poisson. All nine ECE and nine reliability
+  comparisons have raw p > 0.05, Holm p = 1, and CIs including zero.
+- **XGBoost knockout ECE** is 0.13836 frozen and 0.13105 per-round
+  (d = −0.00731, n = 32). Raw p = 0.6010, Holm p = 1, and the pointwise CI
+  is [−0.04091, +0.03935]. The earlier significant result and its p-value–CI
+  disagreement belong to the superseded extra-time scoring version.
+
+No core comparison provides statistically significant evidence of improved
+calibration. This does not establish equal calibration or absence of drift.
 
 ### Trends and the limits of identifying drift
 
@@ -173,10 +181,13 @@ assumption likewise needs justification. The simulated ECE noise floor is a
 reference under outcomes drawn from the forecasts, with no role as a CI or
 proof that a late increase is an artefact.
 
-Frozen ECE falls and then rises for XGBoost. The fitted treated-only frozen
-ECE slopes are positive in all three models, with unadjusted p-values above
-0.05. Poisson GLM has some nominal slope-difference results, while the XGBoost
-treated-only ECE slope difference is negative. The views remain descriptive.
+The treated-only frozen ECE slopes are positive in all three models, with
+raw p = 0.418–0.584. No ECE rise or mitigation test crosses 0.05 in either
+period variant. Poisson GLM ECE mitigation p is 0.0901 for four periods and
+0.1371 for five; the earlier nominal ECE mitigation result disappears.
+Supporting reliability slope-difference tests remain nominally below 0.05
+for Poisson GLM (p = 0.0176 and 0.0159), outside Holm. They do not establish
+a frozen calibration-error rise or confirm a general mitigation claim.
 With a short tournament, four or five periods, and small late-stage samples,
 calibration fluctuations are difficult to distinguish from changing match
 composition and sampling noise. **Concept drift and its mitigation remain
@@ -192,7 +203,9 @@ cycles to a maximum difference of 4.441e−16. See the
 [reconstruction record](wc_live.md#done--strand-5-cadence-correct-frozen-entropy-supersedes-strand-4)
 and the [validity discussion](../threats_to_validity.md#evaluation-threats).
 
-The thesis results use the existing analyses. The proposed pre-match Elo-gap
+The thesis results use the 90-minute RQ1/RQ3 analyses and the unchanged RQ2
+analysis. The final reproduction path excludes the old statistical analyses;
+their results remain available as history. The proposed pre-match Elo-gap
 follow-up for RQ1 was declined.
 Draw versus decisive outcomes after regulation time is an optional
 descriptive breakdown. The cost comparison was dropped because the needed

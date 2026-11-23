@@ -193,3 +193,10 @@ Against `thesis.md` dated checkboxes:
 - [x] B.1–B.4 + C.1–C.6 / C.9 (Jun 7–11)
 - [x] D.1 done Sep 4 / repro Sep 13
 - [ ] D.2, D.3, D.4, D.5 still open (correctly absent as completed events)
+
+
+## November 2026 — Scoring correction and reporting
+
+| Date | ISO week | Phase | Event | Decision / outcome | Source | Feeds |
+|------|----------|-------|-------|--------------------|--------|-------|
+| 2026-11-22 | 2026-W47 | Analysis | Align RQ1/RQ3 scoring with 90-minute outcomes | Five knockout labels change; same saved forecasts/tests/Holm families; final reproduction covers updated results only | `decisions.md`; `regulation_time_comparison.md` | method (Ch 3); results (Ch 5); journal |

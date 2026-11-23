@@ -640,3 +640,107 @@ stages:
       hash: md5
       md5: 7db75041b5f2e3c14cc0f02ceb16ecdb
       size: 2065
+  regulation_time:
+    cmd: python -m src.analysis.regulation_time
+    deps:
+    - path: data/analysis/rq1_matches.csv
+      hash: md5
+      md5: d66354508fece87b7a3bbd71dd8658e8
+      size: 535801
+    - path: data/mappings/team_mapping_master_merged.csv
+      hash: md5
+      md5: 537a718e90d96ca3b01e2bf332e8898e
+      size: 12958
+    - path: data/raw/api_football/fixtures
+      hash: md5
+      md5: 482e2cdce8d594e1fb6f8e96184f6680.dir
+      size: 14486781
+      nfiles: 118
+    - path: src/analysis/regulation_time.py
+      hash: md5
+      md5: e42c43a02337aa7bc15f6114c0aa90c9
+      size: 9211
+    - path: src/analysis/round_leaderboards.py
+      hash: md5
+      md5: a7547f9dd9f80c55daef68d24078f15a
+      size: 4167
+    - path: src/analysis/rq1_paired.py
+      hash: md5
+      md5: a7e1f5718acd65b329429092d504c105
+      size: 15949
+    - path: src/analysis/rq3_calibration_drift.py
+      hash: md5
+      md5: a8ece9825025831aaf197ca0bab91334
+      size: 27317
+    - path: src/analysis/rq_datasets/build_rq_datasets.py
+      hash: md5
+      md5: a4665bc73a09f1197d5d2e1b2c1dba85
+      size: 24846
+    - path: src/analysis/rq_datasets/paths.py
+      hash: md5
+      md5: a8601cfabecec751240bf6800f343530
+      size: 3465
+    - path: src/inference/features.py
+      hash: md5
+      md5: 9c2aae3259878bc681026cff6ff586fa
+      size: 30072
+    - path: src/models/evaluation.py
+      hash: md5
+      md5: f2300a7b08158c3f2904412be3745c21
+      size: 16109
+    outs:
+    - path: data/analysis/regulation_time
+      hash: md5
+      md5: 42921b7ed4be485a601228b34a1e5e12.dir
+      size: 1102474
+      nfiles: 4
+    - path: docs/tables/regulation_time
+      hash: md5
+      md5: c1b0f4af6ba3d5f93e827b6bda1c505f.dir
+      size: 57450
+      nfiles: 6
+  regulation_time_comparison:
+    cmd: python -m src.analysis.regulation_time_comparison
+    deps:
+    - path: data/analysis/regulation_time/outcome_audit.csv
+      hash: md5
+      md5: 1cb72b49b7d4af9b73d4f6718ef859a6
+      size: 13296
+    - path: docs/tables/regulation_time/rq1_paired_phase.csv
+      hash: md5
+      md5: b24a0e3c20e77be9ff9890ab25c5e8ea
+      size: 6892
+    - path: docs/tables/regulation_time/rq3_calibration_phase.csv
+      hash: md5
+      md5: a10da46a9a20608fa5f6941093a2b921
+      size: 11655
+    - path: docs/tables/regulation_time/rq3_trend.csv
+      hash: md5
+      md5: 5b05c74e22a821b1bfd4b595cddc1dcf
+      size: 2056
+    - path: docs/tables/rq1_paired_phase.csv
+      hash: md5
+      md5: 041e111ffc6f3a3562b09b007a1c05ea
+      size: 6957
+    - path: docs/tables/rq3_calibration_phase.csv
+      hash: md5
+      md5: f35c79b6651f87fc3bde4ee3d894a758
+      size: 11680
+    - path: docs/tables/rq3_trend.csv
+      hash: md5
+      md5: 7db75041b5f2e3c14cc0f02ceb16ecdb
+      size: 2065
+    - path: src/analysis/regulation_time_comparison.py
+      hash: md5
+      md5: 179e20dc9f2200df9fac2c8ce5135def
+      size: 10198
+    outs:
+    - path: docs/notes/regulation_time_comparison.md
+      hash: md5
+      md5: 9c128986a124fa51781db176c5fe18cb
+      size: 7498
+    - path: docs/tables/regulation_time_comparison
+      hash: md5
+      md5: 6d13607b3946341c66678b14f56bd0c4.dir
+      size: 39237
+      nfiles: 3

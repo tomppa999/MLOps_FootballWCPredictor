@@ -407,3 +407,19 @@ Sequencing decisions for the June 7–11 go-live sprint (tracked operationally i
   a short, dated `golive_runbook.md` holds the active sprint worklist and points
   at section IDs. Avoids two sources of truth drifting. A full trim of `thesis.md`
   is deferred to the D.4 writing phase.
+
+
+## Match evaluation uses 90-minute results (2026-11-22)
+
+RQ1 and RQ3 now score the saved forecasts against `score.fulltime` goals from
+finished API-Football fixtures: regulation plus stoppage time, excluding extra
+time and shootouts. Five knockout outcomes become draws, giving 29 draws in
+104 matches rather than 24. No model state, forecast probability, pairing,
+statistical test, resampling setting or Holm family is changed. RQ2 is unchanged.
+
+`regulation_time` produces the current match scores, calibration bins and
+RQ1/RQ3 tables.
+`regulation_time_comparison` is an optional historical record, separate from
+the final reproduction path. Original outputs remain available as history.
+The final fresh-clone test will cover only current results and figures after
+the remaining statistical reporting choices have been settled.

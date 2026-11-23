@@ -155,10 +155,14 @@ with generalisation to other tournaments and policies left open.
 - RQ2 entropy describes the concentration of team probabilities. The
   comparison of levels leaves resolution speed and forecast quality open.
 - Pointwise bootstrap intervals and Holm-adjusted p-values use different
-  error criteria. For XGBoost knockout ECE the raw arm-swap p-value and
-  bootstrap CI also disagree. They use different resampling procedures.
-  Report both and qualify the inference as in the
-  [findings memo](notes/findings_memo.md#levels-and-the-knockout-ece-result).
+  error criteria. Bootstrap intervals and permutation p-values also use
+  different resampling procedures. The old XGBoost knockout ECE disagreement
+  disappears under 90-minute scoring; it is retained only in the
+  [historical comparison](notes/regulation_time_comparison.md).
+- RQ1/RQ3 are scored against 90-minute results, including stoppage time and
+  excluding extra time and shootouts. Five knockout outcome labels changed.
+  Current findings use this definition consistently; historical
+  live logs and old result tables retain their original scoring definition.
 - The audited reconstruction and its identity checks belong in Methods
   as forecast provenance. See the
   [reconstruction record](notes/wc_live.md#done--strand-5-cadence-correct-frozen-entropy-supersedes-strand-4).
