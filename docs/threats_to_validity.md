@@ -121,6 +121,20 @@ the greatest benefit from per-round refitting. The experiment measures the effec
 refitting for the selected models with fixed hyperparameters; it does not identify the
 model class or hyperparameters best suited to repeated refitting.
 
+**Selection holdout and final evaluation**
+Walk-forward CV selected hyperparameters within the pre-WC 2022 training set.
+With those hyperparameters fixed, QA fit each candidate on the full training
+set and scored the later selection holdout. Since the holdout informed roster
+selection, its scores can be optimistic estimates of future performance for
+the selected models. The separate June 2026 fit supplied the starting parameters
+for the subsequent WC 2026 cadence comparison.
+
+Thesis sources: [time split and CV folds](../src/models/data_split.py),
+[CV objective](../src/models/tuning.py#L59), [QA fit and holdout scoring](../src/models/pipeline.py#L304),
+[selection and freeze decisions](notes/decisions.md#champion-selection-for-the-live-experiment-a7-2026-06-06),
+and [Cawley and Talbot (2010) on selection bias](https://www.jmlr.org/papers/v11/cawley10a.html)
+(`cawley2010selectionbias` in [references.bib](report/references.bib)).
+
 **Dependence in accuracy and entropy comparisons**
 RQ1 pairs the two forecasts on each match. RQ2 pairs snapshots and gives
 each changed state one observation. Individual-observation bootstrap draws
