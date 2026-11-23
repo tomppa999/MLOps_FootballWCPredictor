@@ -418,7 +418,7 @@ time and shootouts. Five knockout outcomes become draws, giving 29 draws in
 statistical test, resampling setting or Holm family is changed. RQ2 is unchanged.
 
 `regulation_time` produces the current match scores, calibration bins and
-RQ1/RQ3 tables.
+RQ1/RQ3 tables. `figures` consumes those bins for the new calibration graphs.
 `regulation_time_comparison` is an optional historical record, separate from
 the final reproduction path. Original outputs remain available as history.
 The final fresh-clone test will cover only current results and figures after

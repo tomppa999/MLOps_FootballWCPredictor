@@ -10,6 +10,7 @@ import argparse
 from pathlib import Path
 from typing import Final
 
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -46,8 +47,8 @@ MATCHDAY_ORDER: Final[tuple[str, ...]] = (
 )
 
 
-def load_entropy(path: Path = RQ2_PATH) -> pd.DataFrame:
-    """Read the RQ2 dataset, restricted to the simulated roster."""
+def load_entropy(path: Path = RQ2_PATH, *, matches_path: Path = RQ1_PATH) -> pd.DataFrame:
+    """Prepare the entropy curves for the intended refitting policy."""
     df = pd.read_csv(path)
     # The logged offsets carry mixed sub-second precision, which `parse_dates`
     # leaves as object dtype — matplotlib would then treat every cycle as a
@@ -56,7 +57,36 @@ def load_entropy(path: Path = RQ2_PATH) -> pd.DataFrame:
         df["inference_timestamp"], utc=True, format="mixed",
     )
     df = df[df["model_name"].isin(MODEL_STYLES)]
-    return df.sort_values("inference_timestamp")
+
+    # The first scored MD2 match used the first cycle with the valid MD1-boundary
+    # refit. The live matchday labels advanced before that refit (wc_live.md).
+    matches = pd.read_csv(
+        matches_path,
+        usecols=["round_label", "model_name", "cadence_mode", "kickoff_utc", "inference_run_id"],
+        dtype={"round_label": str},
+    )
+    md2 = matches.loc[
+        (matches["round_label"] == "2")
+        & (matches["model_name"] == "xgboost")
+        & (matches["cadence_mode"] == "per_round")
+    ]
+    if md2.empty:
+        raise ValueError("RQ1 matches are missing the first per-round XGBoost forecast for MD2")
+    kickoff = pd.to_datetime(md2["kickoff_utc"], utc=True, format="mixed")
+    first_refit_run = md2.loc[kickoff.idxmin(), "inference_run_id"]
+    per_round = df["cadence_mode"] == "per_round"
+    cutoff = df.loc[per_round & (df["inference_run_id"] == first_refit_run), "inference_timestamp"].min()
+    if pd.isna(cutoff):
+        raise ValueError(f"RQ2 entropy is missing the first valid refit cycle {first_refit_run}")
+
+    # Use the frozen series and its own timestamps for both plotted lines until
+    # the valid refit. The source snapshots and inferential inputs stay intact.
+    before_refit = df["inference_timestamp"] < cutoff
+    frozen_start = df.loc[before_refit & (df["cadence_mode"] == "frozen")]
+    return pd.concat(
+        [df.loc[~(before_refit & per_round)], frozen_start.assign(cadence_mode="per_round")],
+        ignore_index=True,
+    ).sort_values("inference_timestamp")
 
 
 def first_kickoff(path: Path = RQ1_PATH) -> pd.Timestamp:
@@ -153,10 +183,12 @@ def plot_entropy(
     )
 
     ax.set_xlabel("Inference cycle timestamp (UTC)")
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=4))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
     ax.set_ylabel("Shannon entropy of winner probability (nats)")
     ax.set_title(
-        "Uncertainty resolution over WC 2026: frozen vs per-round retraining\n"
-        "(× marks reconstructed snapshots)",
+        "Winner forecast entropy over WC 2026: frozen vs per-round refitting\n"
+        "Both arms use frozen forecasts before the first valid refit. × marks reconstructed snapshots.",
     )
     ax.set_ylim(0, ENTROPY_H_MAX * 1.06)
     x_end = df["inference_timestamp"].max()

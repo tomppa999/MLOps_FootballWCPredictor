@@ -429,12 +429,16 @@ stages:
     cmd:
     - python -m src.analysis.plot_entropy_trajectory
     - python -m src.analysis.plot_entropy_stages
-    - python -m src.analysis.rq3_calibration_overview
+    - python -m src.analysis.rq3_calibration_overview --input 
+      data/analysis/regulation_time/rq3_calibration.csv --output 
+      docs/figures/regulation-time/calibration-group-vs-ko.png --contrast-output
+      docs/figures/regulation-time/calibration-contrast-group-vs-ko.png 
+      --outcome-label "90-minute outcomes"
     deps:
-    - path: data/analysis/round_leaderboards.csv
+    - path: data/analysis/regulation_time/rq3_calibration.csv
       hash: md5
-      md5: 90ffccaed7c3e2538dc7a604a4d3e56c
-      size: 18407
+      md5: 1296dd90206c717b3b9c4aae714ccf2d
+      size: 510629
     - path: data/analysis/rq1_matches.csv
       hash: md5
       md5: d66354508fece87b7a3bbd71dd8658e8
@@ -443,26 +447,34 @@ stages:
       hash: md5
       md5: 3b4eb88bbb20e556abb94a15615c1a1d
       size: 796823
-    - path: data/analysis/rq3_calibration.csv
-      hash: md5
-      md5: d3926ad951475a2428f22e395dc81844
-      size: 767877
     - path: data/reconstruction/audit_report.json
       hash: md5
       md5: 92bbb73762357c78477729d52c89dd36
       size: 16614
-    - path: docs/tables/rq1_paired_phase.csv
+    - path: docs/tables/regulation_time/rq1_paired_phase.csv
       hash: md5
-      md5: 041e111ffc6f3a3562b09b007a1c05ea
-      size: 6957
-    - path: docs/tables/rq1_paired_rounds.csv
+      md5: b24a0e3c20e77be9ff9890ab25c5e8ea
+      size: 6892
+    - path: docs/tables/regulation_time/rq1_paired_rounds.csv
       hash: md5
-      md5: 55b30b54a06d4758723c4e015f3f04a4
-      size: 14074
-    - path: docs/tables/rq1_pairing_coverage.csv
+      md5: 437fc2d74c8f79879c8cfd06856294d0
+      size: 14045
+    - path: docs/tables/regulation_time/rq1_pairing_coverage.csv
       hash: md5
       md5: 33b47fb00b9116537cf401dc91145188
       size: 275
+    - path: docs/tables/regulation_time/rq3_calibration_phase.csv
+      hash: md5
+      md5: a10da46a9a20608fa5f6941093a2b921
+      size: 11655
+    - path: docs/tables/regulation_time/rq3_calibration_rounds.csv
+      hash: md5
+      md5: ceaad8a987fc5ef98e38cc79daaebc5f
+      size: 22527
+    - path: docs/tables/regulation_time/rq3_trend.csv
+      hash: md5
+      md5: 5b05c74e22a821b1bfd4b595cddc1dcf
+      size: 2056
     - path: docs/tables/rq2_paired_matchday.csv
       hash: md5
       md5: f8eb088784c2101b2a524b9d16436a66
@@ -475,26 +487,14 @@ stages:
       hash: md5
       md5: b002ff12649514e6636aba12d09cb3ae
       size: 360
-    - path: docs/tables/rq3_calibration_phase.csv
-      hash: md5
-      md5: f35c79b6651f87fc3bde4ee3d894a758
-      size: 11680
-    - path: docs/tables/rq3_calibration_rounds.csv
-      hash: md5
-      md5: 973e203537db4d5ee9531af1dd32d52b
-      size: 22560
-    - path: docs/tables/rq3_trend.csv
-      hash: md5
-      md5: 7db75041b5f2e3c14cc0f02ceb16ecdb
-      size: 2065
     - path: src/analysis/plot_entropy_stages.py
       hash: md5
-      md5: 08a083b1220231a5651d0dc51f8f1e9d
-      size: 5205
+      md5: 89246643d8bfe6b3470ebc19b8c2eccd
+      size: 9331
     - path: src/analysis/plot_entropy_trajectory.py
       hash: md5
-      md5: 8208919d22a1168ba0b07fc1fda6f9e3
-      size: 7043
+      md5: 77ef3ca872cfdac54696d9a3c1be7f7d
+      size: 8780
     - path: src/analysis/rq1_paired.py
       hash: md5
       md5: a7e1f5718acd65b329429092d504c105
@@ -505,29 +505,34 @@ stages:
       size: 17517
     - path: src/analysis/rq3_calibration_overview.py
       hash: md5
-      md5: ff2bef60d55fe084c2802bed73aa78c1
-      size: 11663
+      md5: ceeeb3e800f694e6f23e98dc9c88a6fc
+      size: 12046
     - path: src/analysis/rq_datasets/paths.py
       hash: md5
       md5: a8601cfabecec751240bf6800f343530
       size: 3465
     outs:
-    - path: docs/figures/calibration-contrast-group-vs-ko.png
-      hash: md5
-      md5: fa59a63c530415620bc0b833d4385523
-      size: 385381
-    - path: docs/figures/calibration-group-vs-ko.png
-      hash: md5
-      md5: 27e33c89d8337d1322b72bcfa6e1e6c4
-      size: 286889
     - path: docs/figures/entropy-stages.png
       hash: md5
-      md5: be864039d45e9f2944f705410c10e832
-      size: 303046
+      md5: b565a093098ff7f0e30c4d861043f6d1
+      size: 306650
+    - path: docs/figures/entropy-targets
+      hash: md5
+      md5: fdc4823951a6a7598af4bc341c208576.dir
+      size: 1535743
+      nfiles: 6
     - path: docs/figures/entropy-trajectory.png
       hash: md5
-      md5: 58b63bd41e258811e2ec7b77bb91a875
-      size: 243313
+      md5: 9efed9b420d006a8425e621a885fd951
+      size: 245547
+    - path: docs/figures/regulation-time/calibration-contrast-group-vs-ko.png
+      hash: md5
+      md5: 640e3c6a344338dd5c2d6295b59032b7
+      size: 426708
+    - path: docs/figures/regulation-time/calibration-group-vs-ko.png
+      hash: md5
+      md5: 7c93d389c3a53caf70521839a2f7a8dd
+      size: 326838
   rq1:
     cmd: python -m src.analysis.rq1_paired
     deps:

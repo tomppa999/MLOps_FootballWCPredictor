@@ -98,7 +98,11 @@ Paper section names are placeholders for the future condensed paper (not the old
 |------|--------|-------|------|
 | [docs/figures/entropy-trajectory.png](../figures/entropy-trajectory.png) | `generated` | results RQ2; paper | DVC `figures` stage |
 | [docs/figures/entropy-stages.png](../figures/entropy-stages.png) | `generated` | results RQ2; paper | DVC `figures` stage; 2×3 stage panels |
-| [docs/figures/calibration-group-vs-ko.png](../figures/calibration-group-vs-ko.png) | `generated` | results RQ3; paper | DVC `figures` stage |
+| [docs/figures/entropy-targets/](../figures/entropy-targets/) | `generated` | results RQ2; presentation | Six standalone target plots; clearly labelled zoomed y-axes where appropriate; DVC `figures` stage |
+| [docs/figures/regulation-time/calibration-group-vs-ko.png](../figures/regulation-time/calibration-group-vs-ko.png) | `generated` | results RQ3; paper | Current 90-minute scoring; DVC `figures` stage |
+| [docs/figures/regulation-time/calibration-contrast-group-vs-ko.png](../figures/regulation-time/calibration-contrast-group-vs-ko.png) | `generated` | results RQ3; paper | Three treatment-contrast models; MD1 excluded |
+| [docs/figures/calibration-group-vs-ko.png](../figures/calibration-group-vs-ko.png) | `source-only` | historical comparison | Superseded extra-time outcome definition |
+| [docs/figures/calibration-contrast-group-vs-ko.png](../figures/calibration-contrast-group-vs-ko.png) | `source-only` | historical comparison | Superseded extra-time outcome definition |
 | [docs/figures/Architecture.png](../figures/Architecture.png) | `source-only` | system (Ch 4) | Pre-thesis diagram |
 | [docs/figures/Architecture_final.png](../figures/Architecture_final.png) | `source-only` | system (Ch 4); paper | Prefer over Architecture.png |
 | [docs/figures/Process.png](../figures/Process.png) | `source-only` | system (Ch 4) | Pre-thesis |

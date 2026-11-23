@@ -248,22 +248,21 @@ stages:
     cmd:
       - python -m src.analysis.plot_entropy_trajectory
       - python -m src.analysis.plot_entropy_stages
-      - python -m src.analysis.rq3_calibration_overview
+      - python -m src.analysis.rq3_calibration_overview --input data/analysis/regulation_time/rq3_calibration.csv --output docs/figures/regulation-time/calibration-group-vs-ko.png --contrast-output docs/figures/regulation-time/calibration-contrast-group-vs-ko.png --outcome-label "90-minute outcomes"
     deps:
       - data/analysis/rq1_matches.csv
       - data/analysis/rq2_entropy.csv
-      - data/analysis/rq3_calibration.csv
-      - data/analysis/round_leaderboards.csv
+      - data/analysis/regulation_time/rq3_calibration.csv
       - data/reconstruction/audit_report.json
-      - docs/tables/rq1_paired_phase.csv
-      - docs/tables/rq1_paired_rounds.csv
-      - docs/tables/rq1_pairing_coverage.csv
+      - docs/tables/regulation_time/rq1_paired_phase.csv
+      - docs/tables/regulation_time/rq1_paired_rounds.csv
+      - docs/tables/regulation_time/rq1_pairing_coverage.csv
       - docs/tables/rq2_paired_stage.csv
       - docs/tables/rq2_paired_matchday.csv
       - docs/tables/rq2_pairing_coverage.csv
-      - docs/tables/rq3_calibration_rounds.csv
-      - docs/tables/rq3_calibration_phase.csv
-      - docs/tables/rq3_trend.csv
+      - docs/tables/regulation_time/rq3_calibration_rounds.csv
+      - docs/tables/regulation_time/rq3_calibration_phase.csv
+      - docs/tables/regulation_time/rq3_trend.csv
       - src/analysis/plot_entropy_trajectory.py
       - src/analysis/plot_entropy_stages.py
       - src/analysis/rq3_calibration_overview.py
@@ -276,7 +275,9 @@ stages:
           cache: false
       - docs/figures/entropy-stages.png:
           cache: false
-      - docs/figures/calibration-group-vs-ko.png:
+      - docs/figures/entropy-targets:
           cache: false
-      - docs/figures/calibration-contrast-group-vs-ko.png:
+      - docs/figures/regulation-time/calibration-group-vs-ko.png:
+          cache: false
+      - docs/figures/regulation-time/calibration-contrast-group-vs-ko.png:
           cache: false

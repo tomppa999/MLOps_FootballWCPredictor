@@ -58,7 +58,9 @@ def _base_entropy(label: str, cadence: str, model: str, state: int) -> dict[str,
     # Lock stages once the resolution label is reached (identical across cadences).
     for stage, resolved_from in STAGE_RESOLVED_FROM.items():
         if rank >= label_rank[resolved_from]:
-            levels[stage] = 0.0 if stage == "entropy_winner" and label == "Complete" else levels[stage]
+            levels[stage] = (
+                0.0 if stage == "entropy_winner" and label == "Complete" else levels[stage]
+            )
             # Force bit-identical across cadences once locked.
             if cadence == "per_round":
                 pass  # same base; gap applied below only if unresolved
@@ -105,30 +107,34 @@ def _rq2_frame() -> pd.DataFrame:
             for model in ROSTER_MODELS:
                 ent_f = _base_entropy(label, "frozen", model, state)
                 ent_p = _base_entropy(label, "per_round", model, state)
-                rows.append({
-                    "inference_run_id": f"f{run}",
-                    "inference_timestamp": ts_f.isoformat(),
-                    "cadence_mode": "frozen",
-                    "model_name": model,
-                    "matchday_label": label,
-                    "cycle_index": cycle_f,
-                    "synthetic": False,
-                    "snapshot_label": "",
-                    "provenance": "reconstructed_frozen_shadow",
-                    **ent_f,
-                })
-                rows.append({
-                    "inference_run_id": f"p{run}",
-                    "inference_timestamp": ts_p.isoformat(),
-                    "cadence_mode": "per_round",
-                    "model_name": model,
-                    "matchday_label": label,
-                    "cycle_index": cycle_p,
-                    "synthetic": False,
-                    "snapshot_label": "",
-                    "provenance": "live_replay",
-                    **ent_p,
-                })
+                rows.append(
+                    {
+                        "inference_run_id": f"f{run}",
+                        "inference_timestamp": ts_f.isoformat(),
+                        "cadence_mode": "frozen",
+                        "model_name": model,
+                        "matchday_label": label,
+                        "cycle_index": cycle_f,
+                        "synthetic": False,
+                        "snapshot_label": "",
+                        "provenance": "reconstructed_frozen_shadow",
+                        **ent_f,
+                    }
+                )
+                rows.append(
+                    {
+                        "inference_run_id": f"p{run}",
+                        "inference_timestamp": ts_p.isoformat(),
+                        "cadence_mode": "per_round",
+                        "model_name": model,
+                        "matchday_label": label,
+                        "cycle_index": cycle_p,
+                        "synthetic": False,
+                        "snapshot_label": "",
+                        "provenance": "live_replay",
+                        **ent_p,
+                    }
+                )
             cycle_f += 1
             cycle_p += 1
             run += 1
@@ -137,18 +143,20 @@ def _rq2_frame() -> pd.DataFrame:
     ts_orphan = t0 + pd.Timedelta(hours=500)
     for model in ROSTER_MODELS:
         ent = _base_entropy("SF", "frozen", model, state)
-        rows.append({
-            "inference_run_id": "orphan",
-            "inference_timestamp": ts_orphan.isoformat(),
-            "cadence_mode": "frozen",
-            "model_name": model,
-            "matchday_label": "SF",
-            "cycle_index": cycle_f,
-            "synthetic": False,
-            "snapshot_label": "",
-            "provenance": "reconstructed_frozen_shadow",
-            **ent,
-        })
+        rows.append(
+            {
+                "inference_run_id": "orphan",
+                "inference_timestamp": ts_orphan.isoformat(),
+                "cadence_mode": "frozen",
+                "model_name": model,
+                "matchday_label": "SF",
+                "cycle_index": cycle_f,
+                "synthetic": False,
+                "snapshot_label": "",
+                "provenance": "reconstructed_frozen_shadow",
+                **ent,
+            }
+        )
     cycle_f += 1
 
     # Synthetic snapshot pair (identical timestamps) — must be dropped.
@@ -156,18 +164,20 @@ def _rq2_frame() -> pd.DataFrame:
     for cadence, ci in (("frozen", cycle_f), ("per_round", cycle_p)):
         for model in ROSTER_MODELS:
             ent = _base_entropy("R32", cadence, model, state)
-            rows.append({
-                "inference_run_id": f"syn_{cadence}",
-                "inference_timestamp": ts_syn.isoformat(),
-                "cadence_mode": cadence,
-                "model_name": model,
-                "matchday_label": "R32",
-                "cycle_index": ci,
-                "synthetic": True,
-                "snapshot_label": "r32_pre_japan_brazil",
-                "provenance": "reconstructed_snapshot",
-                **ent,
-            })
+            rows.append(
+                {
+                    "inference_run_id": f"syn_{cadence}",
+                    "inference_timestamp": ts_syn.isoformat(),
+                    "cadence_mode": cadence,
+                    "model_name": model,
+                    "matchday_label": "R32",
+                    "cycle_index": ci,
+                    "synthetic": True,
+                    "snapshot_label": "r32_pre_japan_brazil",
+                    "provenance": "reconstructed_snapshot",
+                    **ent,
+                }
+            )
 
     return pd.DataFrame(rows)
 
@@ -295,7 +305,9 @@ def test_window_counts() -> None:
         & (tab["window"] == "treated_unresolved")
     ].iloc[0]
     n_before_r16 = sum(
-        n for lab, n in _LABEL_SCHEDULE if lab not in {"1", "2"} and MATCHDAY_ORDER.index(lab) < MATCHDAY_ORDER.index("R16")
+        n
+        for lab, n in _LABEL_SCHEDULE
+        if lab not in {"1", "2"} and MATCHDAY_ORDER.index(lab) < MATCHDAY_ORDER.index("R16")
     )
     assert r32["n"] == n_before_r16
 
@@ -361,6 +373,119 @@ def test_plot_entropy_stages_smoke() -> None:
     import matplotlib.pyplot as plt
 
     plt.close(fig)
+
+
+@pytest.mark.parametrize("stage", STAGES)
+def test_individual_target_plot_preserves_curves_and_shows_visible_values(stage: str) -> None:
+    import matplotlib.pyplot as plt
+
+    from src.analysis.plot_entropy_stages import plot_entropy_target
+    from src.analysis.plot_entropy_trajectory import MODEL_STYLES
+
+    df = _rq2_frame()
+    df["inference_timestamp"] = pd.to_datetime(df["inference_timestamp"], utc=True)
+    x_start = df["inference_timestamp"].min()
+    fig = plot_entropy_target(df, stage=stage, x_start=x_start, round_kickoffs={})
+    try:
+        fig.canvas.draw()
+        ax = fig.axes[0]
+        for annotation in ax.texts:
+            bounds = annotation.get_window_extent(fig.canvas.get_renderer())
+            assert bounds.x0 >= 0 and bounds.x1 <= fig.bbox.x1
+        curves = {
+            line.get_label(): line for line in ax.lines if not line.get_label().startswith("_")
+        }
+        for model, style in MODEL_STYLES.items():
+            for mode in ("frozen", "per_round"):
+                if model == "mean_rate_poisson" and mode == "frozen":
+                    continue
+                source = df[(df.model_name == model) & (df.cadence_mode == mode)].sort_values(
+                    "inference_timestamp"
+                )
+                if source.empty:
+                    continue
+                label = (
+                    style["label"]
+                    if model == "mean_rate_poisson"
+                    else f"{style['label']} ({mode.replace('_', '-')})"
+                )
+                np.testing.assert_array_equal(curves[label].get_ydata(), source[stage].to_numpy())
+                lo, hi = ax.get_ylim()
+                assert lo <= source[stage].min() and hi >= source[stage].max()
+        if stage == "entropy_r32":
+            assert ax.get_ylim()[0] > 3.0
+            assert "zoomed y-axis" in ax.get_title().lower()
+        if stage == "entropy_winner":
+            assert ax.get_ylim()[0] == 0
+    finally:
+        plt.close(fig)
+
+
+def test_target_zoom_ignores_pre_tournament_values() -> None:
+    import matplotlib.pyplot as plt
+
+    from src.analysis.plot_entropy_stages import plot_entropy_target
+
+    df = _rq2_frame()
+    df["inference_timestamp"] = pd.to_datetime(df["inference_timestamp"], utc=True)
+    start = df["inference_timestamp"].min()
+    early = df.iloc[:1].copy()
+    early["inference_timestamp"] = start - pd.Timedelta(days=10)
+    early["entropy_r32"] = 0.0
+    fig = plot_entropy_target(
+        pd.concat([early, df]), stage="entropy_r32", x_start=start, round_kickoffs={}
+    )
+    try:
+        assert fig.axes[0].get_ylim()[0] > 3.0
+    finally:
+        plt.close(fig)
+
+
+def test_entropy_plot_uses_frozen_until_first_valid_refit(tmp_path: Path) -> None:
+    from src.analysis.plot_entropy_trajectory import load_entropy
+
+    df = _rq2_frame()
+    timestamps = pd.to_datetime(df["inference_timestamp"], utc=True)
+    per_round = df["cadence_mode"] == "per_round"
+    cutoff_row = df.loc[timestamps[per_round & (df["matchday_label"] == "2")].idxmax()]
+    cutoff = pd.Timestamp(cutoff_row["inference_timestamp"])
+    before = timestamps < cutoff
+    entropy_path = tmp_path / "entropy.csv"
+    matches_path = tmp_path / "matches.csv"
+    df.to_csv(entropy_path, index=False)
+    pd.DataFrame(
+        [
+            {
+                "round_label": "2",
+                "model_name": "xgboost",
+                "cadence_mode": "per_round",
+                "kickoff_utc": cutoff + pd.Timedelta(hours=1),
+                "inference_run_id": cutoff_row["inference_run_id"],
+            }
+        ]
+    ).to_csv(matches_path, index=False)
+
+    plotted = load_entropy(entropy_path, matches_path=matches_path)
+    plotted_start = plotted[plotted["inference_timestamp"] < cutoff]
+    pair_key = ["model_name", "inference_timestamp"]
+    pd.testing.assert_frame_equal(
+        plotted_start[plotted_start["cadence_mode"] == "frozen"]
+        .set_index(pair_key)[list(STAGES)]
+        .sort_index(),
+        plotted_start[plotted_start["cadence_mode"] == "per_round"]
+        .set_index(pair_key)[list(STAGES)]
+        .sort_index(),
+    )
+    columns = ["cadence_mode", *pair_key, *STAGES]
+    pd.testing.assert_frame_equal(
+        plotted[plotted["inference_timestamp"] >= cutoff][columns]
+        .sort_values(columns[:3])
+        .reset_index(drop=True),
+        df.assign(inference_timestamp=timestamps)
+        .loc[~before, columns]
+        .sort_values(columns[:3])
+        .reset_index(drop=True),
+    )
 
 
 def test_pairing_coverage_counts() -> None:

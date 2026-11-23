@@ -161,7 +161,7 @@ with generalisation to other tournaments and policies left open.
   [historical comparison](notes/regulation_time_comparison.md).
 - RQ1/RQ3 are scored against 90-minute results, including stoppage time and
   excluding extra time and shootouts. Five knockout outcome labels changed.
-  Current findings use this definition consistently; historical
+  Current findings and figures use this definition consistently; historical
   live logs and old result tables retain their original scoring definition.
 - The audited reconstruction and its identity checks belong in Methods
   as forecast provenance. See the

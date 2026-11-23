@@ -92,7 +92,8 @@ not agree at the nominal boundary. The other two overall intervals include zero.
 [Target comparisons](../tables/rq2_paired_stage.csv) ·
 [Matchday comparisons](../tables/rq2_paired_matchday.csv) ·
 [Pairing coverage](../tables/rq2_pairing_coverage.csv) ·
-[Target trajectories](../figures/entropy-stages.png) ·
+[Target overview](../figures/entropy-stages.png) ·
+[R32 standalone trajectory](../figures/entropy-targets/entropy-r32.png) ·
 [Winner trajectory](../figures/entropy-trajectory.png)
 
 Shannon entropy measures how spread out the forecast mass is across teams.
@@ -131,10 +132,16 @@ target. Forecast concentration can change independently of correctness.
 
 The six target comparisons ask who is expected to reach each stage at
 comparable tournament states. The calendar view shows how winner entropy
-and its cadence gap evolve as results arrive. In the descriptive cycle view,
+and its cadence gap evolve as results arrive. Both entropy figures use the
+frozen series for both arms before the first valid MD1-to-MD2 refit. The
+change applies to the plotted trajectories only. In the descriptive cycle view,
 the average winner-entropy gap peaks at R32 for all three fitted models.
 Later state cells are small and the gap varies in sign and size. These
-patterns describe the observed trajectories. The approved tests compare
+patterns describe the observed trajectories. The figures stage also produces a
+standalone plot for each target in `docs/figures/entropy-targets/`. Individual
+plots use the visible target range, clearly labelled when the y-axis is zoomed.
+All roster curves, the baseline and reconstructed markers remain visible; the
+common-scale overview is retained. The approved tests compare
 levels, so a faster resolution rate remains untested. A time-to-threshold
 analysis would need a defined time axis and remaining-uncertainty threshold
 and is outside the current scope.
@@ -148,7 +155,8 @@ results settle. It is outside the correction family.
 
 [Phase comparisons](../tables/regulation_time/rq3_calibration_phase.csv) ·
 [Round and cumulative comparisons](../tables/regulation_time/rq3_calibration_rounds.csv) ·
-[Trend comparisons](../tables/regulation_time/rq3_trend.csv)
+[Trend comparisons](../tables/regulation_time/rq3_trend.csv) ·
+[Calibration figure for the three contrast models](../figures/regulation-time/calibration-contrast-group-vs-ko.png)
 
 ECE and the Brier reliability component are pooled in the 18-test core
 family. Brier score and resolution remain exploratory. Brier uncertainty
@@ -205,7 +213,9 @@ and the [validity discussion](../threats_to_validity.md#evaluation-threats).
 
 The thesis results use the 90-minute RQ1/RQ3 analyses and the unchanged RQ2
 analysis. The final reproduction path excludes the old statistical analyses;
-their results remain available as history. The proposed pre-match Elo-gap
+their results remain available as history. Calibration figures under
+`docs/figures/regulation-time/` use the corrected labels. The older calibration
+PNGs outside that directory are historical and should not be cited as current. The proposed pre-match Elo-gap
 follow-up for RQ1 was declined.
 Draw versus decisive outcomes after regulation time is an optional
 descriptive breakdown. The cost comparison was dropped because the needed

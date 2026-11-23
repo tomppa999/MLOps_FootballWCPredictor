@@ -476,7 +476,8 @@ crossing disappears (raw p 0.0001 → 0.6010; Holm p 0.0018 → 1).
 The old Poisson GLM ECE mitigation trend crossings also disappear. Supporting
 reliability trends remain exploratory. RQ2 is unaffected.
 
-Current tables are in `docs/tables/regulation_time/`. The optional
+Current sources are `docs/tables/regulation_time/` and
+`docs/figures/regulation-time/`. The optional
 [comparison note](regulation_time_comparison.md) preserves the old/new numbers.
 Historical live logs and earlier figures retain their original values; they
 are not current thesis results. See the README for the updated-only reproduction

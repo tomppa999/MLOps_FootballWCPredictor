@@ -200,7 +200,7 @@ Data (Bronze/Silver/Gold) and trained model artifacts are versioned with DVC. Th
 The post-tournament analysis uses DVC-tracked reconstruction inputs and prepared
 datasets. Stage `regulation_time` produces the current RQ1/RQ3 tables using
 90-minute outcomes and goal counts; `rq2` produces the entropy comparisons.
-The `figures` stage generates the plots. The
+The `figures` stage generates entropy plots and 90-minute calibration plots. The
 [findings memo](docs/notes/findings_memo.md) explains the interpretation.
 
 ### Prerequisites
@@ -240,7 +240,15 @@ dvc repro -f -s figures
 
 Always pass `-s` when forcing. A bare `dvc repro -f` propagates upstream into the strand stages, which is a 4 h 40 rebuild (Strand 1 17 min, Strand 2 2 h 01, Strand 5 2 h 37).
 
-Current RQ1/RQ3 tables are in `docs/tables/regulation_time/`.
+Current RQ1/RQ3 tables are in `docs/tables/regulation_time/`; the matching
+calibration graphs are in `docs/figures/regulation-time/`. RQ2 tables and entropy
+figure paths are unchanged. The figures stage also writes a standalone plot
+for each of the six targets to `docs/figures/entropy-targets/`. Those plots use
+target-specific y-axis limits, explicitly labelled when zoomed; the six-panel
+overview retains its common scale. Saved forecasts and model provenance are preserved.
+
+The old `rq1` and `rq3` stages and their tables remain historical. They are not
+dependencies of the current statistical analyses or `figures`.
 An optional correction record can be regenerated with
 `dvc repro -s regulation_time_comparison` once the historical tables are available.
 It writes `docs/tables/regulation_time_comparison/` and
