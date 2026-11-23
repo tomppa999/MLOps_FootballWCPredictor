@@ -939,6 +939,7 @@ def parse_wc_results_before_kickoff(
     fixtures_dir: Path = _FIXTURES_DIR,
     mapping_path: Path = _TEAM_MAPPING_PATH,
     use_settlement: bool = True,
+    reported_results: dict[int, pd.Timestamp] | None = None,
 ) -> dict[str, Any]:
     """Build partial ``wc_results`` from what was known at ``max_kickoff``.
 
@@ -953,6 +954,9 @@ def parse_wc_results_before_kickoff(
     would leak its final score.
     """
     settlement = load_fixture_settlement() if use_settlement else None
+    # Public report times apply only to explicitly reconstructed outage snapshots.
+    if reported_results:
+        settlement = {**(settlement or {}), **reported_results}
     effective_cutoff = max_kickoff - settle_delta
     group_results: dict[tuple[str, str], tuple[int, int]] = {}
     ko_results: dict[frozenset, dict] = {}

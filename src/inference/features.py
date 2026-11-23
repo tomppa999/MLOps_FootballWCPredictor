@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+from functools import cache
 from pathlib import Path
 from typing import Final
 
@@ -690,6 +691,15 @@ def build_inference_features(
         team: grp for team, grp in history.groupby("team")
     }
 
+    # Many pairings share a team and date. Scope these lookups to this Gold batch.
+    @cache
+    def team_features(team: str, date: pd.Timestamp) -> tuple[dict, float]:
+        team_history = team_groups.get(team)
+        prior = (team_history[team_history["date_utc"] < date]
+                 if team_history is not None else pd.DataFrame())
+        rolling = {"match_index": len(prior) + 1, **_rolling_for_team(prior, n_matches)}
+        return rolling, _get_latest_elo(gold_df, team, date)
+
     feature_rows: list[dict] = []
     for _, row in upcoming_df.iterrows():
         match_date = pd.to_datetime(row["date_utc"])
@@ -710,19 +720,12 @@ def build_inference_features(
             team = row[f"{side}_team"]
             prefix = f"{side}_team"
 
-            team_hist = team_groups.get(team)
-            if team_hist is not None:
-                prior = team_hist[team_hist["date_utc"] < match_date]
-            else:
-                prior = pd.DataFrame()
-
-            result[f"{prefix}_match_index"] = len(prior) + 1
-            feats = _rolling_for_team(prior, n_matches)
+            feats, _ = team_features(team, match_date)
             for key, val in feats.items():
                 result[f"{prefix}_{key}"] = val
 
-        home_elo = _get_latest_elo(gold_df, row["home_team"], match_date)
-        away_elo = _get_latest_elo(gold_df, row["away_team"], match_date)
+        _, home_elo = team_features(row["home_team"], match_date)
+        _, away_elo = team_features(row["away_team"], match_date)
         result["home_elo_pre"] = home_elo
         result["away_elo_pre"] = away_elo
         result["elo_diff"] = home_elo - away_elo

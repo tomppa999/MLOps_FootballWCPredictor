@@ -100,15 +100,29 @@ def load_tournament_config(path: Path = TOURNAMENT_CONFIG_PATH) -> dict:
         return json.load(f)
 
 
+GoalRates = tuple[float, float] | tuple[float, float, float]
+
+
+def _draw_goals(
+    rng: np.random.Generator, home: float, away: float, shared: float = 0.0,
+) -> tuple[int, int]:
+    if shared == 0:
+        return rng.poisson(home), rng.poisson(away)
+    unique_home = rng.poisson(home - shared)
+    unique_away = rng.poisson(away - shared)
+    common = rng.poisson(shared)
+    return unique_home + common, unique_away + common
+
+
 def _ko_match_rates(
     home_team: str,
     away_team: str,
     venue: str,
-    rate_lookup: dict[tuple[str, str], tuple[float, float]],
+    rate_lookup: dict[tuple[str, str], GoalRates],
     venue_country: dict[str, str],
     host_nations: set[str],
-) -> tuple[float, float]:
-    """Return ``(lambda_h, lambda_a)`` oriented to the bracket slots.
+) -> GoalRates:
+    """Orient marginal goal rates and any shared component to the bracket slots.
 
     Home advantage is already baked into ``rate_lookup`` at prediction time:
     each host's home-oriented prediction is stored with the host as
@@ -137,10 +151,10 @@ def _ko_match_rates(
         return rate_lookup.get((home_team, away_team), (1.2, 1.2))
 
     other = away_team if advantaged == home_team else home_team
-    adv_rate, other_rate = rate_lookup.get((advantaged, other), (1.2, 1.2))
+    rates = rate_lookup.get((advantaged, other), (1.2, 1.2))
     if advantaged == home_team:
-        return adv_rate, other_rate
-    return other_rate, adv_rate
+        return rates
+    return (rates[1], rates[0], *rates[2:])
 
 
 def _locked_ko_winner(locked: dict[str, Any]) -> str:
@@ -163,19 +177,18 @@ def _resolve_ko_match(
     lambda_h: float,
     lambda_a: float,
     rng: np.random.Generator,
+    shared: float = 0.0,
 ) -> tuple[int, int, str]:
     """Simulate a single KO match: 90 min → ET → penalties.
 
     Returns (home_goals_total, away_goals_total, decided_by).
     decided_by is one of "90min", "ET", "PEN".
     """
-    h90 = rng.poisson(lambda_h)
-    a90 = rng.poisson(lambda_a)
+    h90, a90 = _draw_goals(rng, lambda_h, lambda_a, shared)
     if h90 != a90:
         return h90, a90, "90min"
 
-    h_et = rng.poisson(lambda_h * ET_SCALE)
-    a_et = rng.poisson(lambda_a * ET_SCALE)
+    h_et, a_et = _draw_goals(rng, lambda_h * ET_SCALE, lambda_a * ET_SCALE, shared * ET_SCALE)
     h_total = h90 + h_et
     a_total = a90 + a_et
     if h_total != a_total:
@@ -284,7 +297,7 @@ def _rank_group_standings(
 
 def _simulate_group(
     teams: list[str],
-    match_rates: dict[tuple[str, str], tuple[float, float]],
+    match_rates: dict[tuple[str, str], GoalRates],
     rng: np.random.Generator,
     matchdays: list[list[list[int]]] | None = None,
     locked_results: dict[tuple[str, str], tuple[int, int]] | None = None,
@@ -321,9 +334,7 @@ def _simulate_group(
                 rates = match_rates.get((home, away))
                 if rates is None:
                     rates = (1.2, 1.2)
-                lh, la = rates
-                hg = rng.poisson(lh)
-                ag = rng.poisson(la)
+                hg, ag = _draw_goals(rng, *rates)
 
             h2h[(home, away)] = (hg, ag)
 
@@ -374,6 +385,8 @@ def simulate_tournament(
     seed: int | None = None,
     locked_group_results: dict[tuple[str, str], tuple[int, int]] | None = None,
     locked_ko_results: dict[frozenset, dict] | None = None,
+    *,
+    joint_poisson: bool = False,
 ) -> dict[str, Any]:
     """Run n_sims full 2026 WC tournament simulations.
 
@@ -382,6 +395,7 @@ def simulate_tournament(
 
     Args:
         predictions_df: DataFrame with columns home_team, away_team, lambda_h, lambda_a.
+        joint_poisson: use the supplied lambda_shared covariance for every simulated match.
         n_sims: number of tournament simulations.
         config_path: path to wc2026.json.
         seed: random seed for reproducibility.
@@ -414,18 +428,28 @@ def simulate_tournament(
     if matchdays_cfg:
         matchdays = [md["pairs"] for md in matchdays_cfg]
 
-    rate_lookup: dict[tuple[str, str], tuple[float, float]] = {}
-    for _, row in predictions_df.iterrows():
-        rate_lookup[(row["home_team"], row["away_team"])] = (
-            float(row["lambda_h"]),
-            float(row["lambda_a"]),
-        )
-    for _, row in predictions_df.iterrows():
-        if (row["away_team"], row["home_team"]) not in rate_lookup:
-            rate_lookup[(row["away_team"], row["home_team"])] = (
-                float(row["lambda_a"]),
-                float(row["lambda_h"]),
-            )
+    columns = ["home_team", "away_team", "lambda_h", "lambda_a"]
+    if joint_poisson:
+        columns.append("lambda_shared")
+        values = predictions_df[columns[2:]].to_numpy(dtype=float)
+        if (
+            not np.isfinite(values).all() or (values < 0).any()
+            or (values[:, 2] > values[:, :2].min(axis=1)).any()
+        ):
+            raise ValueError("Invalid bivariate Poisson goal rates")
+        if predictions_df.duplicated(columns[:2]).any():
+            raise ValueError("Duplicate joint forecast orientation")
+    direct: dict[tuple[str, str], GoalRates] = {}
+    mirrored: dict[tuple[str, str], GoalRates] = {}
+    for home, away, lh, la, *common in predictions_df[columns].itertuples(index=False, name=None):
+        rates = (float(lh), float(la), *(float(x) for x in common))
+        direct[(home, away)] = rates
+        mirrored.setdefault((away, home), (rates[1], rates[0], *rates[2:]))
+    rate_lookup = mirrored | direct
+    if joint_poisson:
+        teams = [team for group in groups.values() for team in group]
+        if any((h, a) not in rate_lookup for h in teams for a in teams if h != a):
+            raise ValueError("Joint tournament forecast is missing a team pairing")
 
     stages = ["Group", "R32", "R16", "QF", "SF", "Final", "Winner"]
     all_teams = {t for teams in groups.values() for t in teams}
@@ -537,10 +561,10 @@ def simulate_tournament(
 
             ko_pairing_counts["R32"][tuple(sorted((home_team, away_team)))] += 1
             ko_slot_pairing_counts.setdefault(match_num, Counter())[(home_team, away_team)] += 1
-            lh, la = _ko_match_rates(
+            lh, la, *shared = _ko_match_rates(
                 home_team, away_team, venue, rate_lookup, venue_country, host_nations
             )
-            hg, ag, _ = _resolve_ko_match(lh, la, rng)
+            hg, ag, _ = _resolve_ko_match(lh, la, rng, *shared)
             winner = home_team if hg > ag else away_team
             r32_winners[match_num] = winner
 
@@ -588,11 +612,11 @@ def simulate_tournament(
             ko_pairing_counts[stage][tuple(sorted((home_team, away_team)))] += 1
             ko_slot_pairing_counts.setdefault(match_num, Counter())[(home_team, away_team)] += 1
 
-            lh, la = _ko_match_rates(
+            lh, la, *shared = _ko_match_rates(
                 home_team, away_team, venue, rate_lookup, venue_country, host_nations
             )
 
-            hg, ag, _ = _resolve_ko_match(lh, la, rng)
+            hg, ag, _ = _resolve_ko_match(lh, la, rng, *shared)
             winner = home_team if hg > ag else away_team
             ko_winners[match_num] = winner
 

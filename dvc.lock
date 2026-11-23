@@ -847,3 +847,346 @@ stages:
       hash: md5
       md5: 367941a5d3d47bde483422f61b478309
       size: 2818
+  poisson_joint_prepare:
+    cmd: python -m src.analysis.poisson_joint_prepare
+    deps:
+    - path: data/analysis/live/inference_cycles.csv
+      hash: md5
+      md5: fc217ee2029ac4698128c1edfb6c647a
+      size: 118987
+    - path: data/mappings/team_mapping_master_merged.csv
+      hash: md5
+      md5: 537a718e90d96ca3b01e2bf332e8898e
+      size: 12958
+    - path: data/raw/api_football/fixtures
+      hash: md5
+      md5: 482e2cdce8d594e1fb6f8e96184f6680.dir
+      size: 14486781
+      nfiles: 118
+    - path: data/reconstruction/inputs/fixture_settlement.csv
+      hash: md5
+      md5: 7c4714c0fbb8ee0936251547a9ba37e8
+      size: 14529
+    - path: data/reconstruction/inputs/logged_predictions/all_models.parquet
+      hash: md5
+      md5: 7634cb538725e7e007dab007ac16eeb2
+      size: 56034454
+    - path: data/reconstruction/inputs/models/manifest.csv
+      hash: md5
+      md5: b016edcd576ea5babf48f99a52e3c6fb
+      size: 1002
+    - path: data/thesis_inputs/baseline/data/analysis/rq1_matches.csv
+      hash: md5
+      md5: d66354508fece87b7a3bbd71dd8658e8
+      size: 535801
+    - path: data/thesis_inputs/baseline/data/analysis/rq2_entropy.csv
+      hash: md5
+      md5: 3b4eb88bbb20e556abb94a15615c1a1d
+      size: 796823
+    - path: data/thesis_inputs/poisson/gold
+      hash: md5
+      md5: 4cb2085c14185b90a54922b9b8893364.dir
+      size: 211144632
+      nfiles: 414
+    - path: data/thesis_inputs/poisson/gold_history.tar.gz
+      hash: md5
+      md5: b57faf593fdf282adc8497ff28671fd5
+      size: 68255
+    - path: data/thesis_inputs/poisson/models
+      hash: md5
+      md5: e6d8ab4e3a701d8e3960a48bab6429cd.dir
+      size: 23015
+      nfiles: 11
+    - path: data/thesis_inputs/poisson/strand5_predictions.parquet
+      hash: md5
+      md5: cb37097ac5bb33d54d1966ae1f56ed31
+      size: 27866531
+    - path: data/thesis_inputs/poisson/trial_cycle_map.csv
+      hash: md5
+      md5: b308769a7066bb64e0a585c4a15b50f6
+      size: 231290
+    - path: data/tournament/wc2026.json
+      hash: md5
+      md5: 3d9f626849df1ba7b6f864dfd0236d28
+      size: 90793
+    - path: src/analysis/poisson_joint_prepare.py
+      hash: md5
+      md5: 125d1f628ba916fcdb7539090ad2a3f3
+      size: 17092
+    - path: src/analysis/poisson_refit_diagnostic.py
+      hash: md5
+      md5: 606b2647482a5c1f78943cf54986503f
+      size: 18053
+    - path: src/analysis/replay_common.py
+      hash: md5
+      md5: cd76ac619d9d4888b4ff2400ef136dad
+      size: 38614
+    - path: src/analysis/rq2_outages.py
+      hash: md5
+      md5: 00d729f4942f12a5fd0dbe27a7862b16
+      size: 999
+    - path: src/analysis/rq_datasets/paths.py
+      hash: md5
+      md5: a8601cfabecec751240bf6800f343530
+      size: 3465
+    - path: src/analysis/strand4_entropy.py
+      hash: md5
+      md5: c9c93f25688be0f9c2583be7a7cc266b
+      size: 7242
+    - path: src/gold/context_features.py
+      hash: md5
+      md5: 7417aede444414cf36630506857a4852
+      size: 2004
+    - path: src/gold/rolling_features.py
+      hash: md5
+      md5: 2d5ac37e9858c90a9e54291c5ebd9b77
+      size: 7801
+    - path: src/gold/temporal_features.py
+      hash: md5
+      md5: 267bbf95d69d7bc962c7cb946a4b2c46
+      size: 3059
+    - path: src/inference/features.py
+      hash: md5
+      md5: 28e6343f48df79204c6e69b57aa8fd8e
+      size: 30305
+    - path: src/inference/run.py
+      hash: md5
+      md5: 58898ad1940ed25cabc3f428b6a7cba4
+      size: 20675
+    - path: src/models/config.py
+      hash: md5
+      md5: 80b34187cab0039244d69d8a1dc16e87
+      size: 8758
+    - path: src/models/data_split.py
+      hash: md5
+      md5: a3ae86bde9251efeb4e67b3ada9d3183
+      size: 9955
+    - path: src/models/evaluation.py
+      hash: md5
+      md5: f2300a7b08158c3f2904412be3745c21
+      size: 16109
+    outs:
+    - path: data/analysis/poisson_joint_inputs
+      hash: md5
+      md5: 64673a1ab175b1fd90519cd0d955cf77.dir
+      size: 4328588
+      nfiles: 4
+  poisson_joint_replay:
+    cmd: python -m src.analysis.poisson_joint_replay
+    deps:
+    - path: data/analysis/poisson_joint_inputs
+      hash: md5
+      md5: 64673a1ab175b1fd90519cd0d955cf77.dir
+      size: 4328588
+      nfiles: 4
+    - path: data/tournament/wc2026.json
+      hash: md5
+      md5: 3d9f626849df1ba7b6f864dfd0236d28
+      size: 90793
+    - path: src/analysis/poisson_joint_replay.py
+      hash: md5
+      md5: b8577b3473f269aaa35a98be53ad6dd4
+      size: 2860
+    - path: src/analysis/replay_common.py
+      hash: md5
+      md5: cd76ac619d9d4888b4ff2400ef136dad
+      size: 38614
+    - path: src/inference/simulation.py
+      hash: md5
+      md5: 705bd85518bba071c204d2b5873faed3
+      size: 28572
+    outs:
+    - path: data/analysis/poisson_joint
+      hash: md5
+      md5: 3452386b0f3e2b4cdf3e8e1061aa379b.dir
+      size: 1187469
+      nfiles: 3
+  poisson_joint_validate:
+    cmd: python -m src.analysis.poisson_joint_validate
+    deps:
+    - path: data/analysis/live/fixtures.csv
+      hash: md5
+      md5: 6b817e321dfdbf76a28d69f9b4d0c8f5
+      size: 7668
+    - path: data/analysis/poisson_joint
+      hash: md5
+      md5: 3452386b0f3e2b4cdf3e8e1061aa379b.dir
+      size: 1187469
+      nfiles: 3
+    - path: data/analysis/poisson_joint_inputs
+      hash: md5
+      md5: 64673a1ab175b1fd90519cd0d955cf77.dir
+      size: 4328588
+      nfiles: 4
+    - path: data/mappings/team_mapping_master_merged.csv
+      hash: md5
+      md5: 537a718e90d96ca3b01e2bf332e8898e
+      size: 12958
+    - path: data/raw/api_football/fixtures
+      hash: md5
+      md5: 482e2cdce8d594e1fb6f8e96184f6680.dir
+      size: 14486781
+      nfiles: 118
+    - path: data/reconstruction/inputs/fixture_settlement.csv
+      hash: md5
+      md5: 7c4714c0fbb8ee0936251547a9ba37e8
+      size: 14529
+    - path: data/reconstruction/inputs/models/manifest.csv
+      hash: md5
+      md5: b016edcd576ea5babf48f99a52e3c6fb
+      size: 1002
+    - path: data/thesis_inputs/baseline/data/analysis/rq1_matches.csv
+      hash: md5
+      md5: d66354508fece87b7a3bbd71dd8658e8
+      size: 535801
+    - path: data/thesis_inputs/baseline/data/analysis/rq2_entropy.csv
+      hash: md5
+      md5: 3b4eb88bbb20e556abb94a15615c1a1d
+      size: 796823
+    - path: data/thesis_inputs/poisson
+      hash: md5
+      md5: dfd1b57920fdb78af1f3cb7472387f39.dir
+      size: 242249926
+      nfiles: 1704
+    - path: data/thesis_inputs/sensitivity.tar.gz
+      hash: md5
+      md5: 0807ebb98da602758aab21d97f232de1
+      size: 11181132
+    - path: data/tournament/wc2026.json
+      hash: md5
+      md5: 3d9f626849df1ba7b6f864dfd0236d28
+      size: 90793
+    - path: src/analysis/poisson_joint_prepare.py
+      hash: md5
+      md5: 125d1f628ba916fcdb7539090ad2a3f3
+      size: 17092
+    - path: src/analysis/poisson_joint_replay.py
+      hash: md5
+      md5: b8577b3473f269aaa35a98be53ad6dd4
+      size: 2860
+    - path: src/analysis/poisson_joint_validate.py
+      hash: md5
+      md5: 1d8b9845e4b0e393d645e6bf20385d19
+      size: 10290
+    - path: src/analysis/replay_common.py
+      hash: md5
+      md5: cd76ac619d9d4888b4ff2400ef136dad
+      size: 38614
+    - path: src/analysis/rq2_outages.py
+      hash: md5
+      md5: 00d729f4942f12a5fd0dbe27a7862b16
+      size: 999
+    - path: src/analysis/strand4_entropy.py
+      hash: md5
+      md5: c9c93f25688be0f9c2583be7a7cc266b
+      size: 7242
+    - path: src/inference/features.py
+      hash: md5
+      md5: 28e6343f48df79204c6e69b57aa8fd8e
+      size: 30305
+    - path: src/inference/simulation.py
+      hash: md5
+      md5: 705bd85518bba071c204d2b5873faed3
+      size: 28572
+    - path: src/models/candidates/poisson_glm.py
+      hash: md5
+      md5: 691047dd6cd0f6e46ce96a80fd37f8c6
+      size: 6617
+    - path: src/models/evaluation.py
+      hash: md5
+      md5: f2300a7b08158c3f2904412be3745c21
+      size: 16109
+    outs:
+    - path: data/analysis/poisson_joint_checks.json
+      hash: md5
+      md5: 1d5ae324cabf9d2a717de4d00e12573f
+      size: 2545
+  rq2_public_outages:
+    cmd: python -m src.analysis.rq2_outage_comparison
+    deps:
+    - path: data/analysis/poisson_joint
+      hash: md5
+      md5: 3452386b0f3e2b4cdf3e8e1061aa379b.dir
+      size: 1187469
+      nfiles: 3
+    - path: data/analysis/poisson_joint_inputs
+      hash: md5
+      md5: 64673a1ab175b1fd90519cd0d955cf77.dir
+      size: 4328588
+      nfiles: 4
+    - path: data/mappings/team_mapping_master_merged.csv
+      hash: md5
+      md5: 537a718e90d96ca3b01e2bf332e8898e
+      size: 12958
+    - path: data/raw/api_football/fixtures
+      hash: md5
+      md5: 482e2cdce8d594e1fb6f8e96184f6680.dir
+      size: 14486781
+      nfiles: 118
+    - path: data/reconstruction/inputs/fixture_settlement.csv
+      hash: md5
+      md5: 7c4714c0fbb8ee0936251547a9ba37e8
+      size: 14529
+    - path: data/reconstruction/inputs/logged_predictions/all_models.parquet
+      hash: md5
+      md5: 7634cb538725e7e007dab007ac16eeb2
+      size: 56034454
+    - path: data/reconstruction/inputs/models
+      hash: md5
+      md5: 61344f458f8be59424bb9772866d5264.dir
+      size: 3209803
+      nfiles: 73
+    - path: data/thesis_inputs/poisson/gold
+      hash: md5
+      md5: 4cb2085c14185b90a54922b9b8893364.dir
+      size: 211144632
+      nfiles: 414
+    - path: data/thesis_inputs/poisson/strand5_predictions.parquet
+      hash: md5
+      md5: cb37097ac5bb33d54d1966ae1f56ed31
+      size: 27866531
+    - path: data/tournament/wc2026.json
+      hash: md5
+      md5: 3d9f626849df1ba7b6f864dfd0236d28
+      size: 90793
+    - path: src/analysis/poisson_joint_prepare.py
+      hash: md5
+      md5: 125d1f628ba916fcdb7539090ad2a3f3
+      size: 17092
+    - path: src/analysis/poisson_joint_replay.py
+      hash: md5
+      md5: b8577b3473f269aaa35a98be53ad6dd4
+      size: 2860
+    - path: src/analysis/replay_common.py
+      hash: md5
+      md5: cd76ac619d9d4888b4ff2400ef136dad
+      size: 38614
+    - path: src/analysis/rq2_outage_comparison.py
+      hash: md5
+      md5: cd9e70c8dd5aaac0d532098769fe68a8
+      size: 7885
+    - path: src/analysis/rq2_outages.py
+      hash: md5
+      md5: 00d729f4942f12a5fd0dbe27a7862b16
+      size: 999
+    - path: src/inference/features.py
+      hash: md5
+      md5: 28e6343f48df79204c6e69b57aa8fd8e
+      size: 30305
+    - path: src/inference/simulation.py
+      hash: md5
+      md5: 705bd85518bba071c204d2b5873faed3
+      size: 28572
+    - path: src/models/config.py
+      hash: md5
+      md5: 80b34187cab0039244d69d8a1dc16e87
+      size: 8758
+    - path: src/models/data_split.py
+      hash: md5
+      md5: a3ae86bde9251efeb4e67b3ada9d3183
+      size: 9955
+    outs:
+    - path: data/analysis/rq2_public_outages.csv
+      hash: md5
+      md5: 46405a373e18c4c6b7e36b6f3a5bbfa4
+      size: 28093

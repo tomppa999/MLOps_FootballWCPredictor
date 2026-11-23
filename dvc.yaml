@@ -318,3 +318,101 @@ stages:
           cache: false
       - docs/figures/regulation-time/calibration-contrast-group-vs-ko.png:
           cache: false
+
+  poisson_joint_prepare:
+    cmd: python -m src.analysis.poisson_joint_prepare
+    deps:
+      - data/thesis_inputs/baseline/data/analysis/rq1_matches.csv
+      - data/thesis_inputs/baseline/data/analysis/rq2_entropy.csv
+      - data/thesis_inputs/poisson/models
+      - data/thesis_inputs/poisson/gold
+      - data/thesis_inputs/poisson/gold_history.tar.gz
+      - data/thesis_inputs/poisson/strand5_predictions.parquet
+      - data/thesis_inputs/poisson/trial_cycle_map.csv
+      - data/analysis/live/inference_cycles.csv
+      - data/reconstruction/inputs/fixture_settlement.csv
+      - data/reconstruction/inputs/logged_predictions/all_models.parquet
+      - data/reconstruction/inputs/models/manifest.csv
+      - data/raw/api_football/fixtures
+      - data/mappings/team_mapping_master_merged.csv
+      - data/tournament/wc2026.json
+      - src/analysis/poisson_joint_prepare.py
+      - src/analysis/rq2_outages.py
+      - src/analysis/poisson_refit_diagnostic.py
+      - src/analysis/replay_common.py
+      - src/analysis/rq_datasets/paths.py
+      - src/analysis/strand4_entropy.py
+      - src/gold/context_features.py
+      - src/gold/temporal_features.py
+      - src/gold/rolling_features.py
+      - src/inference/features.py
+      - src/inference/run.py
+      - src/models/config.py
+      - src/models/data_split.py
+      - src/models/evaluation.py
+    outs:
+      - data/analysis/poisson_joint_inputs
+
+  poisson_joint_replay:
+    cmd: python -m src.analysis.poisson_joint_replay
+    deps:
+      - data/analysis/poisson_joint_inputs
+      - data/tournament/wc2026.json
+      - src/analysis/poisson_joint_replay.py
+      - src/analysis/replay_common.py
+      - src/inference/simulation.py
+    outs:
+      - data/analysis/poisson_joint
+
+  poisson_joint_validate:
+    cmd: python -m src.analysis.poisson_joint_validate
+    deps:
+      - data/analysis/poisson_joint
+      - data/analysis/poisson_joint_inputs
+      - data/thesis_inputs/baseline/data/analysis/rq1_matches.csv
+      - data/thesis_inputs/baseline/data/analysis/rq2_entropy.csv
+      - data/thesis_inputs/poisson
+      - data/thesis_inputs/sensitivity.tar.gz
+      - data/analysis/live/fixtures.csv
+      - data/reconstruction/inputs/models/manifest.csv
+      - data/reconstruction/inputs/fixture_settlement.csv
+      - data/raw/api_football/fixtures
+      - data/mappings/team_mapping_master_merged.csv
+      - data/tournament/wc2026.json
+      - src/analysis/poisson_joint_prepare.py
+      - src/analysis/rq2_outages.py
+      - src/analysis/poisson_joint_replay.py
+      - src/analysis/poisson_joint_validate.py
+      - src/analysis/strand4_entropy.py
+      - src/analysis/replay_common.py
+      - src/inference/simulation.py
+      - src/inference/features.py
+      - src/models/candidates/poisson_glm.py
+      - src/models/evaluation.py
+    outs:
+      - data/analysis/poisson_joint_checks.json
+
+  rq2_public_outages:
+    cmd: python -m src.analysis.rq2_outage_comparison
+    deps:
+      - data/analysis/poisson_joint
+      - data/analysis/poisson_joint_inputs
+      - data/thesis_inputs/poisson/gold
+      - data/thesis_inputs/poisson/strand5_predictions.parquet
+      - data/reconstruction/inputs/models
+      - data/reconstruction/inputs/logged_predictions/all_models.parquet
+      - data/reconstruction/inputs/fixture_settlement.csv
+      - data/raw/api_football/fixtures
+      - data/mappings/team_mapping_master_merged.csv
+      - data/tournament/wc2026.json
+      - src/analysis/rq2_outage_comparison.py
+      - src/analysis/rq2_outages.py
+      - src/analysis/poisson_joint_prepare.py
+      - src/analysis/poisson_joint_replay.py
+      - src/analysis/replay_common.py
+      - src/inference/features.py
+      - src/inference/simulation.py
+      - src/models/config.py
+      - src/models/data_split.py
+    outs:
+      - data/analysis/rq2_public_outages.csv

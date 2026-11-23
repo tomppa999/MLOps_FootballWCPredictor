@@ -203,6 +203,45 @@ datasets. Stage `regulation_time` produces the current RQ1/RQ3 tables using
 The `figures` stage generates entropy plots and 90-minute calibration plots. The
 [findings memo](docs/notes/findings_memo.md) explains the interpretation.
 
+### Bivariate Poisson replay
+
+Restore the [pinned thesis inputs](data/thesis_inputs/README.md), activate
+`modelops`, and run `dvc repro poisson_joint_validate rq2_public_outages`. This prepares
+the historical Poisson components, simulates each distinct tournament input
+with its original seed and 10,000 draws, and checks the results. It reads the
+archived model parameters offline. These stages are independent of the
+historical strand runners.
+
+- `data/analysis/poisson_joint/matches.csv` contains the 208 Poisson replacement
+  forecasts, exact 90-minute win/draw/loss probabilities, source information
+  and RPS against the archived match labels. The downstream 90-minute analysis
+  rescores those probabilities against regulation-time outcomes.
+- `data/analysis/poisson_joint/cycles.csv` maps each of the 853 cycle/cadence
+  rows to its six entropy values and simulation state. Join on `state_id` to
+  `advancement.parquet` in the same directory for team probabilities, or to
+  `data/analysis/poisson_joint_inputs/states.json` for the seed and result locks.
+- `data/analysis/poisson_joint_checks.json` records the comparison with the
+  original-seed sensitivity run, four independent-sampler controls and all
+  eight Poisson outage rows.
+- `data/analysis/rq2_public_outages.csv` contains the four synthetic snapshots
+  for both cadences and all four models (32 rows). Each uses the round seed
+  and 10,000 simulations. The three comparison models use their historical
+  regime parameters. Each pin is checked against archived forecasts immediately
+  before the outage. Every locked knockout winner must advance in all simulations.
+  The public cutoffs apply only to the reconstructed RQ2 trajectories. The paired
+  RQ2 analysis excludes synthetic observations.
+
+On 29 June the 16:00 UTC forecast precedes Brazil–Japan. At 19:05 Brazil has
+advanced, and at 23:30 Paraguay has also advanced. Full time in Brazil–Japan
+was reported at 19:03 UTC and the decisive Paraguay penalty at 23:29 UTC.
+[Al Jazeera, Brazil–Japan](https://www.aljazeera.com/amp/sports/liveblog/2026/6/29/brazil-vs-japan-live-fifa-world-cup-2026)
+and [The Guardian, Germany–Paraguay](https://www.theguardian.com/football/live/2026/jun/29/germany-v-paraguay-world-cup-2026-last-32-live).
+
+On 5 July the 22:30 UTC forecast includes Norway’s win over Brazil. Mexico–England
+was still to come. Full time was reported at 22:05 UTC. The replay allows the
+reported minute to finish before treating the result as publicly available.
+[The Guardian, Brazil–Norway](https://www.theguardian.com/football/live/2026/jul/05/brazil-v-norway-world-cup-2026-last-16-live).
+
 ### Prerequisites
 
 - The environment, either way round: `conda env create -f environment.yml` (creates `modelops`, Python 3.14) or `pip install -e ".[dev]"` into an existing Python ≥ 3.11.
