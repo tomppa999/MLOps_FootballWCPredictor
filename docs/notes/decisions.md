@@ -9,10 +9,8 @@ that won't be obvious from the code alone.
 ## Baseline model: Maher / Dixon & Coles
 
 - Mean-rate Poisson = Maher's Model 0. Defensible, well-cited.
-- Dixon & Coles (1997) is the key Maher citation but irrelevant here:
-  its low-score correction (ρ for 0-0, 1-0, 0-1, 1-1) only improves
-  exact scoreline prediction, not RPS (goal difference distribution is
-  identical — bivariate correction cancels in X−Y).
+- The Dixon–Coles low-score adjustment changes probabilities for four scorelines
+  and can change draw probability. The mean-rate baseline uses independent goals.
 - Ley et al. (2019) IS the national-team successor to Maher/D&C.
   Frame it as a lineage: Maher → Dixon & Coles → Ley et al.
 - See also: `docs/literature/prediction_framing.md`
@@ -271,12 +269,13 @@ full top-5. Source ranking: A.7 / post-A.6 refit holdout RPS (expanded holdout,
   (re-fit), explicitly excluding hyperparameter re-tuning and model re-selection. The RQ
   labels use "retraining" in this scoped sense.
 
-## Independent Poisson for simulation
+## Joint Poisson for the fitted bivariate candidate
 
-- Bivariate extension (Maher 1982, Dixon & Coles 1997) matters for exact scorelines
-  but not for RPS. For group tiebreakers that depend on goal counts, independent
-  Poisson introduces a small approximation. Acknowledged in limitations.
-- Decision: keep independent Poisson for simplicity.
+The live simulator sampled its two marginal goal rates independently. The
+thesis replay recovers the historical common rate and shares a single draw
+within each match, including a fresh scaled draw in extra time. RQ1 and RQ3
+use exact win/draw/loss probabilities from the two team-specific components.
+The archived fit, marginal goal scores and historical results remain traceable.
 
 ## CV objective vs model-selection metric: NLL within families, RPS across families
 

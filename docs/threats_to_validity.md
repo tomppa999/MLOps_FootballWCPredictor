@@ -177,6 +177,12 @@ with generalisation to other tournaments and policies left open.
   excluding extra time and shootouts. Five knockout outcome labels changed.
   Current findings and figures use this definition consistently; historical
   live logs and old result tables retain their original scoring definition.
+- The joint Poisson replay corrects the downstream use of the fitted covariance
+  after inspecting an entropy anomaly. Historical model selection and the original
+  live serving policy are part of the historical record. Original-seed checks
+  validate the replay implementation. The three-seed sensitivity range describes
+  simulation variability. Public-result outage snapshots describe what could
+  have been forecast during downtime and are excluded from paired inference.
 - The audited reconstruction and its identity checks belong in Methods
   as forecast provenance. See the
   [reconstruction record](notes/wc_live.md#done--strand-5-cadence-correct-frozen-entropy-supersedes-strand-4).

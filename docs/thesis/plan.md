@@ -56,6 +56,12 @@ Design and implementation of a reproducible, local-first MLOps pipeline for prob
 * Statistical comparison: Mode performance compared across tournament phases and over time  
 * Reference replay (descriptive): WC 2022 replayed frozen to provide a 32-team baseline for entropy-resolution trajectories
 
+The final WC 2026 analysis reconstructs each Bivariate Poisson forecast using
+the fitted shared goal component. Match accuracy and calibration use
+regulation-time outcomes. Tournament forecasts use 10,000 draws per cycle and
+the historical seed. The 32 outage observations serve only in the trajectory
+figures. See the [results and interpretation](../notes/findings_memo.md).
+
 ### Data
 
 * Training Split: International matches 2018–2022, weighted by recency and importance (3,903 matches)  

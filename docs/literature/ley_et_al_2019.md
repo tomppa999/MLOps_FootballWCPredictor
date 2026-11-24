@@ -62,7 +62,7 @@ RPS = 0.1953.
 
 4. **Bivariate vs Independent Poisson: negligible difference.** RPS
    0.1651 vs 0.1653. The covariance parameter λ_C is close to zero.
-   Justifies using independent Poisson in simulation.
+   The size of the difference in our replay depends on its own fitted common rate.
 
 5. **Time depreciation is critical.** All models use weighted MLE with
    exponential decay. Without it, old matches (irrelevant to current

@@ -79,12 +79,14 @@ A bivariate Poisson model is introduced:
 
 The bivariate model provides a much better fit for the score-difference distribution while retaining the same team parameters from Model 2.
 
-**Important property:** The probability distribution of the *goal difference* (and therefore match outcome probabilities) is identical for both models because the common W term cancels in X − Y. The bivariate extension only matters for predicting exact scorelines, not win/draw/loss probabilities.
+**Goal difference.** The common term cancels in X − Y. With fixed marginal
+means μ and λ, the two independent components have rates μ − q and λ − q.
+The difference has variance μ + λ − 2q, so outcome probabilities depend on q.
 
 ## Relevance for our thesis
 
 1. **Baseline model:** Our intercept-only Poisson baseline (grand-mean λ, no team parameters) corresponds to Model 0 — the simplest layer in Maher's hierarchy.
 2. **Our full Poisson GLM with team Elo features** approximates Model 2's logic: separate attack/defense contributions captured via Elo-derived features rather than per-team fixed effects.
-3. **Independence is fine for RPS:** Since RPS depends on P(home win), P(draw), P(away loss) — which depend only on goal difference — the bivariate extension does not change RPS. Our independent Poisson is sufficient.
-4. **Correlation matters for exact scores:** If we later simulate exact scorelines (e.g., for tiebreaker scenarios in Monte Carlo tournament simulation), injecting ρ ≈ 0.2 would improve calibration.
+3. **Outcome probabilities.** The thesis uses the fitted component rates to compute win/draw/loss probabilities and RPS.
+4. **Exact scores.** The tournament replay retains the fitted covariance in goals and group tiebreakers.
 5. **Home advantage as a constant:** Maher finds a single home-advantage multiplier suffices — supports using a binary home/neutral feature rather than per-team home effects.

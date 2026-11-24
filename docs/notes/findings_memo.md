@@ -6,10 +6,11 @@ and 6. Use the DVC-produced CSVs linked below for numerical citations.
 RQ1 and RQ3 now use **90-minute outcomes and goal counts**, including stoppage
 time and excluding extra time and shootouts. Five knockout matches change from
 decisive outcomes to draws: 29 draws across 104 matches, rather than 24.
-Saved forecasts, fitted models, pairing, tests and Holm families are unchanged.
-The current source is DVC stage `regulation_time`; the optional
-[historical comparison](regulation_time_comparison.md) records the correction.
-RQ2 results are unchanged.
+The joint Bivariate Poisson replay uses the historical fitted parameters for
+match probabilities and tournament simulation. The other models retain their
+archived match and logged tournament forecasts. Four reconstructed outage
+points use publicly reported results in both arms of each model. The paired
+RQ2 tests exclude these points. [Settlement-only comparison](regulation_time_comparison.md).
 
 ## Reading the results
 
@@ -53,8 +54,8 @@ raw live artifacts and provenance retain the original incident.
 - **XGBoost RPS.** 0.14629 frozen to 0.14399 per-round, an observed decrease
   of 0.00230 (1.6%). The pointwise CI is [−0.00624, +0.00163], raw p = 0.2550,
   and Holm p = 1.
-- **Poisson GLM RPS.** d = −0.00192, CI [−0.00560, +0.00173], raw p = 0.3106,
-  Holm p = 1.
+- **Poisson GLM RPS.** d = −0.00261, CI [−0.00613, +0.00101], raw p = 0.1489,
+  Holm p = 0.8933.
 - **Bayesian Poisson RPS.** d = −0.00162, CI [−0.00451, +0.00134], raw
   p = 0.2791, Holm p = 1.
 - **NLL.** d = −0.00171 for XGBoost, +0.01670 for Poisson GLM, and −0.00157
@@ -63,15 +64,15 @@ raw live artifacts and provenance retain the original incident.
 
 **Interpretation.** Mean overall RPS was modestly lower under refitting for all
 three models, but all overall intervals include zero. Two group-stage RPS
-comparisons cross the raw 0.05 threshold: Poisson GLM (p = 0.0487, Holm
-p = 0.3896) and Bayesian Poisson (p = 0.0172, Holm p = 0.1548). None of the
+comparisons cross the raw 0.05 threshold: Poisson GLM (p = 0.0113, Holm
+p = 0.1017) and Bayesian Poisson (p = 0.0172, Holm p = 0.1376). None of the
 nine RPS or nine NLL comparisons survives Holm. The earlier nominal overall
 XGBoost result disappears under 90-minute scoring. Failure to reject does not
 establish equivalence.
 
 ### Phase, round, and other score patterns
 
-Group-stage mean RPS differences were −0.00412, −0.00523, and −0.00452 for
+Group-stage mean RPS differences were −0.00412, −0.00639, and −0.00452 for
 XGBoost, Poisson GLM, and Bayesian Poisson. Knockout means in the same order
 were +0.00044, +0.00305, and +0.00273. All three models therefore show a
 descriptive difference in pattern by phase. The approved tests compare
@@ -118,15 +119,17 @@ changed states still share earlier results and fitted models.
   CI [+0.06438, +0.08766], raw p ≈ 0.00010, Holm p ≈ 0.00180.
 - **Bayesian Poisson.** 2.19676 to 2.15748, d = +0.03928 nats,
   CI [+0.03518, +0.04337], raw p ≈ 0.00010, Holm p ≈ 0.00180.
-- **Poisson GLM.** d = +0.00016 nats, CI [−0.01011, +0.01014],
-  raw p = 0.9777, Holm p = 1.
+- **Bivariate Poisson GLM.** 2.19768 to 2.16719, d = +0.03049 nats,
+  CI [+0.02569, +0.03524], raw p ≈ 0.00010, Holm p ≈ 0.00180.
 
-**Interpretation.** Twelve of 18 comparisons cross 0.05 after Holm under
-the existing test assumptions. Eleven show lower per-round entropy
-(XGBoost from R16 through winner and Bayesian Poisson on all six targets).
-The remaining comparison shows higher per-round entropy for Poisson GLM
-at R32 (d = −0.00320 nats). Concentration changes depend on the model and
-target. Forecast concentration can change independently of correctness.
+**Interpretation.** Seventeen of the 18 core comparisons show lower per-round
+entropy after Holm adjustment. These cover all six targets for both fitted Poisson
+models and R16 through winner for XGBoost. For Bivariate Poisson, the
+frozen-minus-per-round difference increases from +0.00058 nats for R32 to
++0.03049 for winner. All six adjusted p-values round to 0.00180. The same
+88 treated pairs were retained by the corrected state-selection rule.
+The archived independent projection gave a winner gap of +0.00016 and
+a negative R32 gap. These effects measure forecast concentration.
 
 ### Targets versus calendar trajectories
 
@@ -151,50 +154,23 @@ The earlier D.1 cycle-weighted results are descriptive context. The mean-rate
 Poisson trajectory is a non-refitting simulation diagnostic and changes as
 results settle. It is outside the correction family.
 
-### Entropy at the first valid refit under independent goal sampling
+### Entropy at the first valid refit
 
-The original tournament simulation drew each team's goals independently from
-the Bivariate Poisson GLM's marginal means. This discarded the fitted score
-covariance. All boundary estimates in this section use that simulation.
+On 18 June the corrected plotted changes were R32 +0.02%, R16 −0.13%,
+QF −0.26%, SF −0.09%, Final +0.35%, and Winner −0.09%. Winner entropy
+moved from 2.5595 to 2.5572 nats. Using the preceding live per-round snapshot
+as the reference gives +0.23% for Winner. Both calculations use the same
+post-refit forecast. [Boundary estimates for all six targets](../tables/rq2_refit_boundary.csv).
 
-At the first valid refit after matchday 1 on 18 June, the plotted per-round
-entropy for Bivariate Poisson GLM increased across all six tournament
-targets. Relative to each target's plotted pre-refit value, the increases
-were R32 +0.28%, R16 +0.45%, QF +0.83%, SF +1.29%, Final +1.36%, and
-Winner +1.67%. R32 increased from 3.7311 to 3.7417 nats (+0.0106 nats),
-whereas Winner increased from 2.6000 to 2.6433 nats (+0.0433 nats).
-The larger relative increase for Winner is less visually prominent because
-the Winner plot uses a broader y-axis range. The pattern therefore extends
-beyond group-stage qualification forecasts.
-
-The [boundary comparison](../tables/rq2_refit_boundary.csv) distinguishes
-the plotted baseline, which follows the frozen-series convention described
-above, from the previous live per-round snapshot. All six targets also
-increased against the live per-round baseline, ranging from +0.32% for R32
-to +2.79% for Winner. These percentages describe changes in entropy, rather
-than percentage-point changes in advancement or title probabilities. The
-[refit diagnostic](poisson_refit_diagnostic.md) verified that the training
-update added exactly the 24 MD1 fixtures, with no changes to existing model
-features or targets. These fixtures accounted for only about 1.5% of total
-training weight, but 38.5% within World Cup matches and 43.3% within neutral
-World Cup group-stage matches, owing to match-importance and recency
-weighting. Diagnostic refits reproduced the parameter shift from both zero
-and frozen-model starting values, including with stricter stopping criteria.
-
-The same relative weighting policy applied to XGBoost and Bayesian Poisson;
-weighting alone therefore does not explain the model-specific response
-of Bivariate Poisson GLM. A plausible explanation is its
-compact, globally shared log-linear parameterization: changes to the
-World Cup context coefficients affect many potential matchups together.
-Its additional common-rate component also permits joint revisions to both
-teams' expected goals. XGBoost represents effects through tree partitions,
-whereas Bayesian Poisson uses separate home and away rate regressions with
-prior-based regularization. These structural differences can produce
-different forecast revisions under the same observation weights. This
-interpretation is consistent with the observed response; the separate
-contributions of model structure and regularization were not isolated.
-The increases describe revisions in forecast concentration, rather than
-establishing a deterioration in predictive performance.
+The earlier independent-marginal simulation showed a rise on all six targets
+at this boundary. The fitted common goal component increased after MD1.
+Independent draws at the marginal means inflated the goal-difference
+variance by twice this component. The joint replay uses the two team-specific
+rates for the difference and one shared draw per simulated scoreline.
+The 24 new matches had about 1.5% of total training weight and 38.5% within
+World Cup matches. These weights and the refit checks describe the historical
+fit. A causal attribution to weighting or regularisation requires a separate
+comparison. [Historical refit diagnostic](poisson_refit_diagnostic.md).
 
 ## RQ3 — Calibration and evidence about drift
 
@@ -212,7 +188,7 @@ the null, a stronger condition than equality of aggregate ECE.
 
 ### Calibration levels
 
-- Overall ECE differences are −0.00047 for XGBoost, +0.01221 for Poisson GLM,
+- Overall ECE differences are −0.00047 for XGBoost, +0.00878 for Poisson GLM,
   and −0.00461 for Bayesian Poisson. All nine ECE and nine reliability
   comparisons have raw p > 0.05, Holm p = 1, and CIs including zero.
 - **XGBoost knockout ECE** is 0.13836 frozen and 0.13105 per-round
@@ -234,13 +210,11 @@ assumption likewise needs justification. The simulated ECE noise floor is a
 reference under outcomes drawn from the forecasts, with no role as a CI or
 proof that a late increase is an artefact.
 
-The treated-only frozen ECE slopes are positive in all three models, with
-raw p = 0.418–0.584. No ECE rise or mitigation test crosses 0.05 in either
-period variant. Poisson GLM ECE mitigation p is 0.0901 for four periods and
-0.1371 for five; the earlier nominal ECE mitigation result disappears.
-Supporting reliability slope-difference tests remain nominally below 0.05
-for Poisson GLM (p = 0.0176 and 0.0159), outside Holm. They do not establish
-a frozen calibration-error rise or confirm a general mitigation claim.
+The treated-only frozen ECE slopes are positive for all three models, with
+raw p = 0.491–0.584. The ECE rise and mitigation tests all have p > 0.05.
+For Bivariate Poisson the ECE slope-difference p-values are 0.0953 for four
+periods and 0.1475 for five. The corresponding supporting reliability tests
+give p = 0.0186 and 0.0519. These trend tests are exploratory.
 With a short tournament, four or five periods, and small late-stage samples,
 calibration fluctuations are difficult to distinguish from changing match
 composition and sampling noise. **Concept drift and its mitigation remain
@@ -256,11 +230,9 @@ cycles to a maximum difference of 4.441e−16. See the
 [reconstruction record](wc_live.md#done--strand-5-cadence-correct-frozen-entropy-supersedes-strand-4)
 and the [validity discussion](../threats_to_validity.md#evaluation-threats).
 
-The thesis results use the 90-minute RQ1/RQ3 analyses and the unchanged RQ2
-analysis. The final reproduction path excludes the old statistical analyses;
-their results remain available as history. Calibration figures under
-`docs/figures/regulation-time/` use the corrected labels. The older calibration
-PNGs outside that directory are historical and should not be cited as current. The proposed pre-match Elo-gap
+The thesis results use 90-minute RQ1/RQ3 scoring and the corrected joint
+Poisson RQ2 analysis. The current calibration figures are under
+`docs/figures/regulation-time/`. The proposed pre-match Elo-gap
 follow-up for RQ1 was declined.
 Draw versus decisive outcomes after regulation time is an optional
 descriptive breakdown. The cost comparison was dropped because the needed
@@ -268,6 +240,7 @@ attribution data are unavailable. A paper decision remains open, with
 auditable retraining experiments and the relationship between forecast
 concentration and predictive performance as candidate angles.
 
-The local checks of the regenerated Holm tables and figures precede a
-separate fresh-clone check of the final Git and DVC revision. See the
-[reproduction instructions](../../README.md#reproduce-the-thesis-analysis).
+An independent checkout restored the six input roots into an empty DVC
+cache and reproduced the same SHA-256 hashes for all 30 verified outputs,
+including the ten figures. Repeating the target skipped every stage.
+[Reproduction instructions](../../README.md#reproduce-the-thesis-analysis).

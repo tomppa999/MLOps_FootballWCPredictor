@@ -1,5 +1,6 @@
 """Summarise all six Poisson entropy targets at the first valid MD1 refit."""
 
+import argparse
 from pathlib import Path
 
 import numpy as np
@@ -49,14 +50,18 @@ def boundary_changes(raw: pd.DataFrame, plotted: pd.DataFrame, run_id: str) -> p
 
 
 def main() -> None:
-    matches = pd.read_csv(RQ1_PATH, dtype={"round_label": str})
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--matches", type=Path, default=RQ1_PATH)
+    parser.add_argument("--input", type=Path, default=RQ2_PATH)
+    args = parser.parse_args()
+    matches = pd.read_csv(args.matches, dtype={"round_label": str})
     md2 = matches[
         (matches.round_label == "2") & (matches.model_name == "xgboost")
         & (matches.cadence_mode == "per_round")
     ].copy()
     md2["kickoff_utc"] = pd.to_datetime(md2.kickoff_utc, utc=True, format="mixed")
     run_id = md2.sort_values("kickoff_utc").iloc[0].inference_run_id
-    changes = boundary_changes(pd.read_csv(RQ2_PATH), load_entropy(), run_id)
+    changes = boundary_changes(pd.read_csv(args.input), load_entropy(args.input, matches_path=args.matches), run_id)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     changes.to_csv(OUTPUT, index=False)
     print(changes[["baseline", "target", "before_nats", "after_nats", "increase_nats", "increase_percent"]].to_string(index=False))

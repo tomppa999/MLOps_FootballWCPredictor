@@ -283,17 +283,10 @@ reduced to its mean before scoring. H4 was likely incorrectly rejected.
 has no demonstrated feature value. The intercept-only case of the
 independent Poisson framework (Maher 1982).
 
-**Maher citation context:** Dixon & Coles (1997) is the most influential
-Maher citation. It adds a low-score correction factor ρ for scorelines
-{0-0, 1-0, 0-1, 1-1} and exponential time-decay on parameters. However,
-the correction only improves exact-scoreline prediction — it is
-mathematically irrelevant for RPS (which depends only on goal difference,
-and the common term cancels; Maher 1982 Section 4 shows this). For
-national teams and RPS evaluation, Dixon & Coles adds no benefit over
-independent Poisson. Ley et al. (2019) is the national-team adaptation of
-Maher/D&C and is the direct state-of-the-art reference for this project.
-Groll et al. (2019) establish the broader Poisson goal-modeling framework
-and RPS as the standard evaluation metric.
+**Baseline scope.** The intercept-only model assigns the same independent goal
+rate to both teams. Dixon–Coles adjusts low-score probabilities and can change
+win/draw/loss probabilities. The fitted Bivariate Poisson candidate has a
+separate shared-count parameter and uses its joint distribution for the thesis.
 
 - [x] New file `src/models/candidates/mean_rate_poisson.py`:
   - `MeanRatePoisson(BaseModel)`, no hyperparameters
@@ -684,11 +677,10 @@ from Secret Manager in favour of IAM). Revisit after the tournament.
 
 ### D.1. Trajectory and entropy analysis
 
-**STATUS:** The September 4 reconstruction was verified on a fresh clone
-on September 13. Current RQ1/RQ3 results use 90-minute scoring from
-`regulation_time`; RQ2 is unchanged. The results and interpretation are in the
-[findings memo](../notes/findings_memo.md). The final fresh-clone check will
-reproduce only current results and updated figures; it remains pending.
+**Current results.** The joint Poisson replay and full-roster tables run through
+`dvc repro thesis_results`. RQ1/RQ3 use regulation-time outcomes, and RQ2 uses
+the historical cycle seed. The reconstruction below describes the archive used
+as input. [Corrected results](../notes/findings_memo.md).
 
 - [x] Extract per-model `tournament_probabilities` from all tagged MLflow
   snapshots, keyed by `(model_name, cadence_mode)` → build trajectory DataFrames
@@ -715,12 +707,9 @@ cycle within 30 minutes. This view weights cycles and includes the early window.
 | poisson_glm | +0.0080 | +0.0122 | −0.0808 | +0.0807 |
 | mean_rate_poisson | +0.0004 | +0.0001 | −0.0060 | +0.0055 |
 
-Each cycle-weighted mean is positive and each model's gap changes sign
-somewhere in the tournament. The approved main comparison instead weights
-changed states in the treated window. It shows lower mean winner entropy for
-XGBoost and Bayesian Poisson and a near-zero difference for Poisson GLM.
-Use the [findings memo](../notes/findings_memo.md#rq2--tournament-uncertainty-and-forecast-concentration)
-for the headline estimates and interpretation.
+This table records the historical independent-sampling analysis. The official
+treated-state comparison uses joint Poisson simulation for the fitted bivariate
+model. [Current estimates](../notes/findings_memo.md#rq2--tournament-uncertainty-and-forecast-concentration).
 
 Caveat to carry into the write-up: the frozen half of this table is a *reconstruction*, not the
 live log. The frozen entropy that the pipeline logged was contaminated by the shadow-resolution
@@ -762,14 +751,11 @@ every frozen cycle from the pre-tournament pin. Faithfulness rests on
 - Reuse existing `round_advancement_probabilities` artifacts
 - Mean-rate Poisson is a non-refitting diagnostic whose forecast probabilities
   still change as results settle
-- **Goal correlation in Monte Carlo simulation:** Independent Poisson is
-  fine for RPS (goal *difference* distribution is identical regardless of
-  covariance — Ley et al. 2019 show this mathematically). But for exact
-  scoreline simulation, correlation exists (~0.2 per Maher 1982; Dixon &
-  Coles 1997 add a low-score adjustment). If group tiebreakers depend on
-  exact scorelines (goals scored, head-to-head), this could matter slightly.
-  Decision: keep independent Poisson for simplicity; acknowledge in
-  limitations.
+- **Goal correlation.** Write the fitted scores as H = X₁ + X₃ and A = X₂ + X₃
+  with independent Poisson components. H − A follows Skellam(λ₁, λ₂) with
+  variance λ₁ + λ₂. Independent sampling at the two marginal means inflates
+  this variance by 2λ₃. The official RQ1/RQ3 probabilities use the Skellam
+  difference, and RQ2 shares the common draw within each simulated match.
 
 ### Literature benchmarks (for context in thesis)
 

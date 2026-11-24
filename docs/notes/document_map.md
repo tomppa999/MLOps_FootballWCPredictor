@@ -140,7 +140,6 @@ Paper section names are placeholders for the future condensed paper (not the old
 
 1. **Literature on retraining cadence / concept drift / continuous training** is absent from `literature_review.md` and `references.bib` (16 entries, all football goal modeling or general MLOps). Needed before paper related-work / discussion.
 2. **D.2** (structural-driver regression) and **D.3** (WC 2022 frozen retrospective) are open in `thesis.md`.
-3. **Fresh-clone check** of the current 90-minute RQ1/RQ3, unchanged RQ2 and updated figures remains separate from local regeneration. Historical statistical analyses are excluded.
-4. **Stale LaTeX** (`paper.tex`, optionally `wc_mlops_report.tex`) not yet moved under `docs/archive/` — marked only; move is a follow-up.
-5. **University thesis guidelines** (page/word limits) unchecked (D.4 item).
-6. **New paper Overleaf file** does not exist; do not revise the course `paper.tex` in place.
+3. **Stale LaTeX** (`paper.tex`, optionally `wc_mlops_report.tex`) not yet moved under `docs/archive/` — marked only; move is a follow-up.
+4. **University thesis guidelines** (page/word limits) unchecked (D.4 item).
+5. **New paper Overleaf file** does not exist; do not revise the course `paper.tex` in place.

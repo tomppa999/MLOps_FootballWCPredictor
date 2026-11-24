@@ -177,9 +177,9 @@ labelled `all5` descriptive trend variant.
 
 ## Reproduction status
 
-The current results use 90-minute scoring for RQ1/RQ3 and the unchanged RQ2
-analysis. The original extra-time results and their comparison are historical;
-`regulation_time_comparison` is optional and outside the final reproduction path.
-The separate fresh-clone check remains pending for the final versioned revision.
-Use the [targeted DVC workflow](../../README.md#reproduce-the-thesis-analysis)
-and the pinned reconstruction inputs.
+The joint Poisson analysis uses the same family definitions, bootstrap and
+permutation settings as the archived 90-minute analysis. Replacing one
+model's probabilities can move the adjusted p-values of other models in the
+same family. The DVC report checks all four family sizes and compares the
+other models’ raw estimates and p-values against the archive.
+[Full reproduction](../../README.md#reproduce-the-thesis-analysis).

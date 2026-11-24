@@ -202,17 +202,18 @@ def plot_entropy(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=RQ2_PATH)
+    parser.add_argument("--matches", type=Path, default=RQ1_PATH)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
 
-    df = load_entropy(args.input)
+    df = load_entropy(args.input, matches_path=args.matches)
     print(
         f"Loaded {len(df)} rows "
         f"({int(df['synthetic'].sum())} reconstructed) "
         f"for {df['model_name'].nunique()} models",
     )
 
-    round_kickoffs = load_round_kickoffs()
+    round_kickoffs = load_round_kickoffs(args.matches)
     x_start = min(round_kickoffs.values())
     print(f"Cropping x-axis to the tournament window, from {x_start}")
 

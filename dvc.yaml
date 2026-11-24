@@ -1,9 +1,7 @@
 # Bronze -> Silver -> Gold builds the live pipeline; the strand* stages below
 # reconstruct the post-tournament D.1 analysis offline from DVC-tracked inputs.
 #
-# `dvc repro figures` walks the reconstruction/RQ DAG: `figures` depends on the
-# audit report and the round leaderboards even though it does not read them, so
-# that one target includes the checks.
+# `dvc repro thesis_results` builds the official analysis from pinned inputs.
 #
 # silver and gold are frozen: the analysis reads historical Gold at the commit
 # each inference cycle actually served, never a freshly rebuilt one.
@@ -137,9 +135,9 @@ stages:
       - data/reconstruction/audit_report.json
 
   leaderboards:
-    cmd: python -m src.analysis.round_leaderboards
+    cmd: python -m src.analysis.round_leaderboards --rq1 data/analysis/regulation_time/rq1_matches.csv
     deps:
-      - data/analysis/rq1_matches.csv
+      - data/analysis/regulation_time/rq1_matches.csv
       - src/analysis/round_leaderboards.py
       - src/analysis/rq_datasets/paths.py
     outs:
@@ -169,9 +167,9 @@ stages:
   # inference cycles (nearest frozen within 30 min), cycle and distinct-state
   # grains, with bootstrap CIs and sign-flip permutation p-values.
   rq2:
-    cmd: python -m src.analysis.rq2_paired
+    cmd: python -m src.analysis.rq2_paired --rq2 data/analysis/thesis/rq2_entropy.csv
     deps:
-      - data/analysis/rq2_entropy.csv
+      - data/analysis/thesis/rq2_entropy.csv
       - src/analysis/rq1_paired.py
       - src/analysis/rq2_paired.py
       - src/analysis/rq_datasets/paths.py
@@ -208,9 +206,9 @@ stages:
   # Current RQ1/RQ3 results: score the saved forecasts against 90-minute outcomes.
   # Use -s to avoid replaying the retired upstream pipeline.
   regulation_time:
-    cmd: python -m src.analysis.regulation_time
+    cmd: python -m src.analysis.regulation_time --rq1 data/analysis/thesis/rq1_matches.csv
     deps:
-      - data/analysis/rq1_matches.csv
+      - data/analysis/thesis/rq1_matches.csv
       - data/raw/api_football/fixtures
       - data/mappings/team_mapping_master_merged.csv
       - src/analysis/regulation_time.py
@@ -228,15 +226,19 @@ stages:
 
   # Optional history only. Neither the current analysis nor figures depend on it.
   regulation_time_comparison:
-    cmd: python -m src.analysis.regulation_time_comparison
+    cmd: >-
+      python -m src.analysis.regulation_time_comparison
+      --baseline-tables data/thesis_inputs/baseline/docs/tables
+      --tables data/thesis_inputs/baseline/docs/tables/regulation_time
+      --audit data/thesis_inputs/baseline/data/analysis/regulation_time/outcome_audit.csv
     deps:
-      - data/analysis/regulation_time/outcome_audit.csv
-      - docs/tables/regulation_time/rq1_paired_phase.csv
-      - docs/tables/regulation_time/rq3_calibration_phase.csv
-      - docs/tables/regulation_time/rq3_trend.csv
-      - docs/tables/rq1_paired_phase.csv
-      - docs/tables/rq3_calibration_phase.csv
-      - docs/tables/rq3_trend.csv
+      - data/thesis_inputs/baseline/data/analysis/regulation_time/outcome_audit.csv
+      - data/thesis_inputs/baseline/docs/tables/regulation_time/rq1_paired_phase.csv
+      - data/thesis_inputs/baseline/docs/tables/regulation_time/rq3_calibration_phase.csv
+      - data/thesis_inputs/baseline/docs/tables/regulation_time/rq3_trend.csv
+      - data/thesis_inputs/baseline/docs/tables/rq1_paired_phase.csv
+      - data/thesis_inputs/baseline/docs/tables/rq3_calibration_phase.csv
+      - data/thesis_inputs/baseline/docs/tables/rq3_trend.csv
       - src/analysis/regulation_time_comparison.py
     outs:
       - docs/tables/regulation_time_comparison:
@@ -269,10 +271,10 @@ stages:
           cache: false
 
   rq2_refit_boundary:
-    cmd: python -m src.analysis.entropy_refit_boundary
+    cmd: python -m src.analysis.entropy_refit_boundary --input data/analysis/thesis/rq2_entropy.csv --matches data/analysis/thesis/rq1_matches.csv
     deps:
-      - data/analysis/rq1_matches.csv
-      - data/analysis/rq2_entropy.csv
+      - data/analysis/thesis/rq1_matches.csv
+      - data/analysis/thesis/rq2_entropy.csv
       - src/analysis/entropy_refit_boundary.py
       - src/analysis/plot_entropy_trajectory.py
       - src/analysis/rq2_paired.py
@@ -283,14 +285,13 @@ stages:
 
   figures:
     cmd:
-      - python -m src.analysis.plot_entropy_trajectory
-      - python -m src.analysis.plot_entropy_stages
+      - python -m src.analysis.plot_entropy_trajectory --input data/analysis/thesis/rq2_entropy.csv --matches data/analysis/thesis/rq1_matches.csv
+      - python -m src.analysis.plot_entropy_stages --input data/analysis/thesis/rq2_entropy.csv --matches data/analysis/thesis/rq1_matches.csv
       - python -m src.analysis.rq3_calibration_overview --input data/analysis/regulation_time/rq3_calibration.csv --output docs/figures/regulation-time/calibration-group-vs-ko.png --contrast-output docs/figures/regulation-time/calibration-contrast-group-vs-ko.png --outcome-label "90-minute outcomes"
     deps:
-      - data/analysis/rq1_matches.csv
-      - data/analysis/rq2_entropy.csv
+      - data/analysis/thesis/rq1_matches.csv
+      - data/analysis/thesis/rq2_entropy.csv
       - data/analysis/regulation_time/rq3_calibration.csv
-      - data/reconstruction/audit_report.json
       - docs/tables/regulation_time/rq1_paired_phase.csv
       - docs/tables/regulation_time/rq1_paired_rounds.csv
       - docs/tables/regulation_time/rq1_pairing_coverage.csv
@@ -416,3 +417,44 @@ stages:
       - src/models/data_split.py
     outs:
       - data/analysis/rq2_public_outages.csv
+
+  thesis_datasets:
+    cmd: python -m src.analysis.thesis_datasets
+    deps:
+      - data/thesis_inputs/baseline/data/analysis/rq1_matches.csv
+      - data/thesis_inputs/baseline/data/analysis/rq2_entropy.csv
+      - data/analysis/poisson_joint/matches.csv
+      - data/analysis/poisson_joint/cycles.csv
+      - data/analysis/rq2_public_outages.csv
+      - src/analysis/thesis_datasets.py
+    outs:
+      - data/analysis/thesis
+
+  thesis_results:
+    cmd: python -m src.analysis.thesis_results
+    deps:
+      - src/analysis/thesis_results.py
+      - src/analysis/thesis_datasets.py
+      - src/models/evaluation.py
+      - data/thesis_inputs/baseline
+      - data/thesis_inputs/poisson/models/manifest.json
+      - data/thesis_inputs/sensitivity.tar.gz
+      - data/analysis/poisson_joint
+      - data/analysis/poisson_joint_checks.json
+      - data/analysis/rq2_public_outages.csv
+      - data/analysis/thesis
+      - data/analysis/regulation_time
+      - data/analysis/rq2_paired_diffs.csv
+      - data/analysis/round_leaderboards.csv
+      - docs/tables/regulation_time
+      - docs/tables/rq2_paired_stage.csv
+      - docs/tables/rq2_paired_matchday.csv
+      - docs/tables/rq2_pairing_coverage.csv
+      - docs/tables/rq2_refit_boundary.csv
+      - docs/figures/entropy-stages.png
+      - docs/figures/entropy-trajectory.png
+      - docs/figures/entropy-targets
+      - docs/figures/regulation-time/calibration-contrast-group-vs-ko.png
+      - docs/figures/regulation-time/calibration-group-vs-ko.png
+    outs:
+      - data/analysis/thesis_results.json

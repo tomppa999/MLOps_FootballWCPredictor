@@ -197,11 +197,12 @@ Data (Bronze/Silver/Gold) and trained model artifacts are versioned with DVC. Th
 
 ## Reproduce the thesis analysis
 
-The post-tournament analysis uses DVC-tracked reconstruction inputs and prepared
-datasets. Stage `regulation_time` produces the current RQ1/RQ3 tables using
-90-minute outcomes and goal counts; `rq2` produces the entropy comparisons.
-The `figures` stage generates entropy plots and 90-minute calibration plots. The
-[findings memo](docs/notes/findings_memo.md) explains the interpretation.
+Run `dvc repro thesis_results` for all three research questions. The target
+assembles 1,664 match forecasts and 3,412 tournament forecasts from the pinned
+archive and the joint Bivariate Poisson replay. RQ1 and RQ3 score 90-minute
+outcomes. RQ2 pairs logged cycles and reserves synthetic points for the figures.
+The other models reuse archived forecasts for every match and logged cycle.
+[Findings and statistical interpretation](docs/notes/findings_memo.md).
 
 ### Bivariate Poisson replay
 
@@ -242,80 +243,40 @@ was still to come. Full time was reported at 22:05 UTC. The replay allows the
 reported minute to finish before treating the result as publicly available.
 [The Guardian, Brazil–Norway](https://www.theguardian.com/football/live/2026/jul/05/brazil-v-norway-world-cup-2026-last-16-live).
 
-### Prerequisites
+### Restore and reproduce offline
 
-- The environment, either way round: `conda env create -f environment.yml` (creates `modelops`, Python 3.14) or `pip install -e ".[dev]"` into an existing Python ≥ 3.11.
-- DagsHub credentials for the DVC remote — a username and a token. No API-Football key is needed: the analysis never calls the live API.
-- ~350 MB of disk for `data/reconstruction`, plus Bronze/Silver/Gold.
-
-### Run it
-
-```bash
-# 1. Clone the thesis branch. The `-b` matters: the default branch (main) is
-#    stale and its data hashes were never pushed, which surfaces later as a
-#    confusing "missing cache files" error.
-git clone -b thesis https://dagshub.com/tomppa999/MLOps_FootballWCPredictor.git
-cd MLOps_FootballWCPredictor
-
-# 2. Point DVC at the remote with your own credentials (writes .dvc/config.local,
-#    which is gitignored).
-dvc remote modify --local origin auth basic
-dvc remote modify --local origin user <dagshub-username>
-dvc remote modify --local origin password <dagshub-token>
-
-# 3. Pull the locked artifacts and check the analysis stages.
-dvc pull
-dvc status regulation_time rq2 figures
-```
-
-`dvc pull` restores cached artifacts. An up-to-date status confirms that the
-local dependencies and outputs match the lock. To check regeneration from
-the prepared datasets, force only these analysis and presentation stages:
+Use the `thesis` revision containing the joint replay, the project's `modelops`
+environment and the [local archive](data/thesis_inputs/README.md). The six
+DVC input roots below are sufficient in an empty checkout. Replace the example
+store path with the directory containing the archived DVC objects. The run
+uses the recorded cycle seeds and the project's 10,000-draw tournament setting.
 
 ```bash
-dvc repro -f -s regulation_time rq2
-dvc repro -f -s figures
+conda activate modelops
+dvc remote add --local thesis-archive /absolute/path/to/data/thesis_inputs/local_store
+dvc pull -r thesis-archive data/raw.dvc data/analysis/live.dvc data/reconstruction/inputs.dvc \
+  data/thesis_inputs/baseline.dvc data/thesis_inputs/poisson.dvc data/thesis_inputs/sensitivity.tar.gz.dvc
+export PYTHONHASHSEED=0 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 MPLBACKEND=Agg
+dvc repro thesis_results
 ```
 
-Always pass `-s` when forcing. A bare `dvc repro -f` propagates upstream into the strand stages, which is a 4 h 40 rebuild (Strand 1 17 min, Strand 2 2 h 01, Strand 5 2 h 37).
+The result verification is in `data/analysis/thesis_results.json`. It records
+input identities, exact source-row checks, RQ2 sample membership, Holm family
+sizes and output hashes. Repeat the last command to check that the stages skip.
+The full reproduction uses numeric historical model states and the archived
+data offline. A targeted deterministic replay uses
+`dvc repro -f -s poisson_joint_replay` followed by the ordinary target.
 
-Current RQ1/RQ3 tables are in `docs/tables/regulation_time/`; the matching
-calibration graphs are in `docs/figures/regulation-time/`. RQ2 tables and entropy
-figure paths are unchanged. The figures stage also writes a standalone plot
-for each of the six targets to `docs/figures/entropy-targets/`. Those plots use
-target-specific y-axis limits, explicitly labelled when zoomed; the six-panel
-overview retains its common scale. Saved forecasts and model provenance are preserved.
-
-The old `rq1` and `rq3` stages and their tables remain historical. They are not
-dependencies of the current statistical analyses or `figures`.
-An optional correction record can be regenerated with
-`dvc repro -s regulation_time_comparison` once the historical tables are available.
-It writes `docs/tables/regulation_time_comparison/` and
-`docs/notes/regulation_time_comparison.md`; exclude it from the final fresh-clone
-check. The main workflow still reads the original reconstructed forecast table
-as input, then replaces only observed goals/outcomes and derived scores in a
-separate dataset. No reconstruction or fitted model is changed.
-
-### What "same numbers" means
-
-For the separate fresh-clone check, use the final Git revision and its matching
-DVC artifacts. The September 13 check covered the earlier reconstruction.
-Verification of the final 90-minute tables and updated figures on a fresh
-clone is pending. The routine check reproduces only the current reported
-results, not the superseded extra-time analyses.
-
-- Compare the regenerated tables and figures with the Git versions. Check
-  `git diff -- dvc.lock` and `dvc status regulation_time rq2 figures` for
-  discrepancies. Verify the current 90-minute RQ1/RQ3 statistics, unchanged RQ2 statistics,
-  and the four correction families against the [findings memo](docs/notes/findings_memo.md).
-- The audit report at `data/reconstruction/audit_report.json`: **0 fails**. It currently reads 67 pass / 10 warn / 0 fail across 77 checks. Judge it on `n_fail`, not on the warns — all 10 warns are expected, and none is a numerical disagreement: 7 are visibility limits in the offline audit (its monitoring export covers 54 of 104 matches), 2 are the cadence-asymmetric cycle counts left by live's silent shadow skips, and 1 is entropy monotonicity under Monte Carlo noise (worst upward jump 0.0048 nats at 10k simulations).
-
-The load-bearing check is `s5.champion_identity`: the frozen champion (`wc_production` v15) was never touched by any of the bugs the reconstruction had to fix, so the replay must reproduce its logged λ values on all 423 frozen cycles. It does, at max |Δλ| = 4.441e-16. That check diffs `data/reconstruction/inputs/logged_predictions/all_models.parquet` against `data/reconstruction/strand5_frozen_entropy/predictions.parquet` (1.95 M rows) — **trimming either path out of the pull set silently removes the only evidence that the reconstruction is faithful**, and the audit will still report 0 fails.
-
-An earlier check found an approximately five-pixel layout shift in
-`docs/figures/entropy-trajectory.png` across working directories. If the
-image hash differs, compare the plotted series and distinguish changes in
-the analysis from changes in rendering.
+- `data/analysis/thesis/` contains the assembled match and trajectory inputs.
+  `data/analysis/regulation_time/` contains the 90-minute scores and calibration bins.
+- `docs/tables/regulation_time/` contains the RQ1 and RQ3 tables. The RQ2 tables
+  and first-refit comparisons are in `docs/tables/rq2_*.csv`.
+- `docs/figures/entropy-targets/` contains six stage-specific curves. The
+  combined entropy plots are under `docs/figures/`, and the two official
+  calibration plots are under `docs/figures/regulation-time/`.
+- The local tag `thesis-before-joint-poisson` and the baseline bundle preserve
+  the independent-sampling results. The settlement-only comparison and the
+  reconstruction audit document that historical analysis.
 
 ### Run the tests
 

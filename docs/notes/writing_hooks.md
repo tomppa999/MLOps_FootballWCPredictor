@@ -17,16 +17,13 @@ uncertainty tracking (RQ2). EURO evidence since introducing the best-third
 format shows a meaningful increase in draws on matchday 3, consistent with
 teams gaming the format once qualification mathematics are known.
 
-## Independent Poisson is fine for RPS — but not for tiebreakers
+## Goal dependence affects match and tournament forecasts
 
-Bivariate extension (Maher 1982, Dixon & Coles 1997) matters for exact scorelines
-but not for outcome probabilities. The common W term cancels in X−Y, so P(home win),
-P(draw), P(away win) are identical for independent and bivariate Poisson.
-Ley et al. confirm empirically: RPS 0.1651 (bivariate) vs 0.1653 (independent).
-
-For group tiebreakers that depend on goals scored (not just goal difference),
-this approximation could matter slightly. Decision: keep independent Poisson,
-acknowledge in limitations.
+The fitted Bivariate Poisson shares one Poisson draw between the two scores.
+That draw cancels in their difference. The correct Skellam rates are the
+two team-specific rates. Sampling independently at the larger marginal means
+inflates goal-difference variance by twice the shared rate. This changes
+win/draw/loss probabilities, RPS and the distribution of tournament outcomes.
 
 ## Entropy normalisation trap (critical for D.1 / RQ2)
 

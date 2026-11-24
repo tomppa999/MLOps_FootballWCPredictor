@@ -27,7 +27,7 @@ from src.analysis.plot_entropy_trajectory import (
     matchday_boundaries,
 )
 from src.analysis.rq2_paired import STAGES
-from src.analysis.rq_datasets.paths import ENTROPY_H_MAX, RQ2_PATH
+from src.analysis.rq_datasets.paths import ENTROPY_H_MAX, RQ1_PATH, RQ2_PATH
 
 DEFAULT_OUTPUT: Final[Path] = Path("docs/figures/entropy-stages.png")
 DEFAULT_TARGETS_DIR: Final[Path] = Path("docs/figures/entropy-targets")
@@ -234,23 +234,24 @@ def plot_entropy_stages(df, *, x_start) -> plt.Figure:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=RQ2_PATH)
+    parser.add_argument("--matches", type=Path, default=RQ1_PATH)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--targets-dir", type=Path, default=DEFAULT_TARGETS_DIR)
     args = parser.parse_args()
 
-    df = load_entropy(args.input)
+    df = load_entropy(args.input, matches_path=args.matches)
     print(
         f"Loaded {len(df)} rows "
         f"({int(df['synthetic'].sum())} reconstructed) "
         f"for {df['model_name'].nunique()} models",
     )
-    x_start = first_kickoff()
+    x_start = first_kickoff(args.matches)
     figure = plot_entropy_stages(df, x_start=x_start)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(args.output, dpi=200, bbox_inches="tight")
     plt.close(figure)
     print(f"Saved figure to {args.output}")
-    round_kickoffs = load_round_kickoffs()
+    round_kickoffs = load_round_kickoffs(args.matches)
     args.targets_dir.mkdir(parents=True, exist_ok=True)
     for stage in STAGES:
         target = plot_entropy_target(
